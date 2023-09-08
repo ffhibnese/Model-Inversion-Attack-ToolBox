@@ -1,0 +1,17 @@
+{
+  "dataset":{
+    "name":"celeba",
+    "train_file_path":"../../../CelebA/celeba/identity_CelebA.txt",
+    "model_name":"GAN",
+    "n_classes":1000,
+    "gpus":"1",
+    "img_path":"../../../CelebA/celeba/img_align_celeba"
+  },
+  "GAN":{
+    "epochs":280,
+    "z_dim":100,
+    "batch_size":64,
+    "n_critic":5,
+    "lr":4e-3
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "dataset": {
+    "name": "celeba",
+    "train_file_path": "../data_files/celeba_trainset.txt",
+    "test_file_path": "../data_files//celeba_testset.txt",
+    "img_path": "../datasets/celeba/img_align_celeba",
+    "model_name": "VGG16",
+    "mode": "reg",
+    "n_classes": 1000,
+    "gpus": "0"
+  },
+  "VGG16": {
+    "epochs": 50,
+    "batch_size": 64,
+    "instance": 4,
+    "lr": 1e-2,
+    "momentum": 0.9,
+    "weight_decay": 1e-4,
+    "gamma": 0.2,
+    "adjust_epochs": [
+      20,
+      35
+    ]
+  },
+  "VGG16_AT": {
+    "epochs": 200,
+    "batch_size": 128,
+    "instance": 4,
+    "lr": 0.1,
+    "momentum": 0.9,
+    "weight_decay": 5e-4,
+    "gamma": 0.2,
+    "adjust_epochs": [
+      20,
+      35
+    ]
+  },
+  "FaceNet": {
+    "epochs": 30,
+    "batch_size": 64,
+    "instance": 4,
+    "lr": 1e-2,
+    "momentum": 0.9,
+    "weight_decay": 1e-4,
+    "adjust_lr": [
+      1e-3,
+      1e-4
+    ],
+    "adjust_epochs": [
+      15,
+      25
+    ]
+  },
+  "FaceNet_all": {
+    "epochs": 100,
+    "batch_size": 64,
+    "instance": 4,
+    "lr": 1e-2,
+    "momentum": 0.9,
+    "weight_decay": 1e-4,
+    "adjust_lr": [
+      1e-3,
+      1e-4
+    ],
+    "adjust_epochs": [
+      15,
+      25
+    ]
+  },
+  "FaceNet64": {
+    "epochs": 50,
+    "batch_size": 64,
+    "lr": 1e-2,
+    "momentum": 0.9,
+    "weight_decay": 1e-4,
+    "lrdecay_epoch": 10,
+    "lrdecay": 0.1
+  },
+  "IR152": {
+    "epochs": 40,
+    "batch_size": 64,
+    "lr": 1e-2,
+    "momentum": 0.9,
+    "weight_decay": 1e-4,
+    "lrdecay_epoch": 10,
+    "lrdecay": 0.1
+  },
+  "IR50": {
+    "epochs": 40,
+    "batch_size": 64,
+    "lr": 1e-2,
+    "momentum": 0.9,
+    "weight_decay": 1e-4,
+    "lrdecay_epoch": 10,
+    "lrdecay": 0.1
+  }
+}
+  
+  

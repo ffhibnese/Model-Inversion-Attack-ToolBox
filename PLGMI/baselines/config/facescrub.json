@@ -1,0 +1,27 @@
+{
+  "dataset": {
+    "gan_file_path": "../data_files/facescrub_ganset.txt",
+    "model_name": "train_gan - first stage",
+    "name": "facescrub",
+    "img_path": "../datasets/facescrub",
+    "n_classes": 1000
+  },
+  "train_gan - first stage": {
+    "lr": 0.0002,
+    "batch_size": 64,
+    "z_dim": 100,
+    "epochs": 120,
+    "n_critic": 5,
+    "unlabel_weight": 10
+  },
+  "FaceNet": {
+    "lr": 0.004,
+    "batch_size": 64,
+    "epochs": 300
+  },
+  "VGG16": {
+    "lr": 0.01,
+    "batch_size": 64,
+    "epochs": 300
+  }
+}

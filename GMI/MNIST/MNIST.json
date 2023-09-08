@@ -1,0 +1,22 @@
+{
+  "dataset":{
+    "name":"MNIST",
+    "img_path":"./MNIST/imgs",
+    "gan_file_path":"./MNIST/gan_list.txt",
+    "train_file_path":"./MNIST/train_list10.txt",
+    "test_file_path":"./MNIST/test_list10.txt",
+    "img_type":"gray",
+    "img_size":32,
+    "model_name":"GAN",
+    "n_classes":10,
+    "gpus":"0"
+  },
+  "GAN":{
+    "epochs":100,
+   	"batch_size":64,
+    "lr":0.0002,
+    "z_dim":100,
+    "n_critic":5,
+    "weight_decay":1e-4
+  }
+}

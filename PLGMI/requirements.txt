@@ -1,0 +1,5 @@
+kornia==0.6.6
+numpy==1.23.2
+Pillow==9.2.0
+scipy==1.9.0
+tensorboardX==2.5.1
