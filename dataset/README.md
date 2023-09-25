@@ -1,0 +1,2 @@
+# ModelInversionAttackBox
+Download necessary datasets.
