@@ -55,3 +55,6 @@ class ModelResult:
 
 每种攻击/防御方法生成位置`<result_dir>/<method>/`
 
+## dev_scripts
+
+存放用于开发测试的脚本，开发时常量写在`development_config.py`中
