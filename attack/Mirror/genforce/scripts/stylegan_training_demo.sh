@@ -12,6 +12,6 @@ wget -nv https://www.dropbox.com/s/vvtcqcujdjeq3zs/mini_animeface.zip?dl=1 \
 # Launch training.
 echo "Launch training job with 1 GPU."
 echo "=================================================="
-PORT=6666 ./scripts/dist_train.sh 2 \
+PORT=6666 ./scripts/dist_train.sh 1 \
     configs/stylegan_demo.py \
     work_dirs/stylegan_demo
