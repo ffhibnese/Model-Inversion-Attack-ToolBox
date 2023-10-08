@@ -1,0 +1,1 @@
+from .Mirror.attacks import blackbox_attack as mirror_blackbox_attack, whitebox_attack as mirror_whitebox_attack

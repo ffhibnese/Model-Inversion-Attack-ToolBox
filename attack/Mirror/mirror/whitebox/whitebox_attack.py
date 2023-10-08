@@ -3,15 +3,15 @@ from torch import nn
 from dataclasses import dataclass
 from attack.Mirror.utils import create_folder
 import os
-from genforce.get_genforce  import get_genforce
+from attack.Mirror.genforce.get_genforce import get_genforce
 from torchvision.utils import save_image
 from attack.Mirror.utils.img_utils import clip, crop_img, resize_img, normalize, denormalize, clip_quantile_bound, get_input_resolution
 from attack.Mirror.utils.acc import verify_acc
 from PIL import Image
 import numpy as np
 import random
-from mirror.classifiers.build_classifier import get_model
-from mirror.select_w import find_closest_latent
+from attack.Mirror.mirror.classifiers.build_classifier import get_model
+from attack.Mirror.mirror.select_w import find_closest_latent
 import glob
 
 
