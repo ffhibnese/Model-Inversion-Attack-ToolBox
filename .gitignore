@@ -103,3 +103,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 cache/
+
+*.bak
+*.tmp
+*.pt
+*.pth
