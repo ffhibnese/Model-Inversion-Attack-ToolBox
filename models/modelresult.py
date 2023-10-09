@@ -5,3 +5,4 @@ import torch
 class ModelResult:
     result: torch.Tensor
     feat: list
+    addition_info: dict = None

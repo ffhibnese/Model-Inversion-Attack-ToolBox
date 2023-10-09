@@ -108,3 +108,5 @@ cache/
 *.tmp
 *.pt
 *.pth
+*.tar
+results/*
