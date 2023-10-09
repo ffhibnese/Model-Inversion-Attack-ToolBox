@@ -12,12 +12,12 @@ import torchvision.utils as tvls
 from torch.autograd import grad
 from torch.nn import BCELoss
 
-import dataloader
-import utils
-from classify import *
-from discri import DGWGAN
-from generator import Generator
-from utils import *
+from . import dataloader
+from . import utils
+from models import *
+from .discri import DGWGAN
+from .generator import Generator
+from .utils import *
 
 
 def freeze(net):

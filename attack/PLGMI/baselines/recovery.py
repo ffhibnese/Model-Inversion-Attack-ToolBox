@@ -11,13 +11,13 @@ import torch.optim as optim
 from argparse import ArgumentParser
 from torch.autograd import Variable
 
-import utils
-from classify import *
-from discri import *
-from evaluation import get_knn_dist, calc_fid
-from generator import *
-from generator import Generator
-from utils import log_sum_exp, save_tensor_images
+from . import utils
+from models import *
+from .discri import *
+from .evaluation import get_knn_dist, calc_fid
+from .generator import *
+from .generator import Generator
+from .utils import log_sum_exp, save_tensor_images
 
 
 # logger

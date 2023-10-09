@@ -6,10 +6,10 @@ from PIL import Image
 from kornia import augmentation
 from torchvision import transforms
 
-import metrics.fid
-import utils
-from models import inception
-from models.classifiers import *
+from .metrics import fid as fid_utils
+from . import utils
+from .models import inception
+from models import *
 
 
 def calc_fid(recovery_img_path, private_img_path, batch_size=64):
@@ -51,13 +51,13 @@ def calc_fid(recovery_img_path, private_img_path, batch_size=64):
     recovery_images = np.concatenate(recovery_list)
     private_images = np.concatenate(private_list)
 
-    mu_fake, sigma_fake = metrics.fid.calculate_activation_statistics(
+    mu_fake, sigma_fake = fid_utils.calculate_activation_statistics(
         recovery_images, inception_model, batch_size, device=device
     )
-    mu_real, sigma_real = metrics.fid.calculate_activation_statistics(
+    mu_real, sigma_real = fid_utils.calculate_activation_statistics(
         private_images, inception_model, batch_size, device=device
     )
-    fid_score = metrics.fid.calculate_frechet_distance(
+    fid_score = fid_utils.calculate_frechet_distance(
         mu_fake, sigma_fake, mu_real, sigma_real
     )
 
@@ -203,13 +203,13 @@ def evaluate(args, current_iter, gen, device, inception_model=None, eval_iter=No
     if calc_fid:
         fake_images = np.concatenate(fake_list)
         real_images = np.concatenate(real_list)
-        mu_fake, sigma_fake = metrics.fid.calculate_activation_statistics(
+        mu_fake, sigma_fake = fid_utils.calculate_activation_statistics(
             fake_images, inception_model, args.batch_size, device=device
         )
-        mu_real, sigma_real = metrics.fid.calculate_activation_statistics(
+        mu_real, sigma_real = fid_utils.calculate_activation_statistics(
             real_images, inception_model, args.batch_size, device=device
         )
-        fid_score = metrics.fid.calculate_frechet_distance(
+        fid_score = fid_utils.calculate_frechet_distance(
             mu_fake, sigma_fake, mu_real, sigma_real
         )
     else:

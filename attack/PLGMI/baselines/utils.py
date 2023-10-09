@@ -15,10 +15,11 @@ from PIL import Image
 from datetime import datetime
 from scipy.signal import convolve2d
 from torchvision import transforms
+from torch.nn import Parameter
 
-import classify
-import dataloader
-import facenet
+import models as classify
+from . import dataloader
+from models import *
 
 device = "cuda"
 
@@ -345,7 +346,7 @@ def calc_feat(img):
     return feat
 
 
-def get_model(attack_name, classes):
+def get_model(attack_name, n_classes):
     if attack_name.startswith("VGG16"):
         T = classify.VGG16(n_classes)
     elif attack_name.startswith("IR50"):
@@ -353,7 +354,7 @@ def get_model(attack_name, classes):
     elif attack_name.startswith("IR152"):
         T = classify.IR152(n_classes)
     elif attack_name.startswith("FaceNet64"):
-        T = facenet.FaceNet64(n_classes)
+        T = classify.FaceNet64(n_classes)
     else:
         print("Model doesn't exist")
         exit()

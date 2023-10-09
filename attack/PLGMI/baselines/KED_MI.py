@@ -12,12 +12,12 @@ from tensorboardX import SummaryWriter
 from torch.autograd import grad
 from torch.nn import BCELoss
 
-import dataloader
-import utils
-from classify import *
-from discri import DGWGAN, Discriminator, MinibatchDiscriminator
-from generator import Generator
-from utils import *
+from . import dataloader
+from . import utils
+from models import *
+from .discri import DGWGAN, Discriminator, MinibatchDiscriminator
+from .generator import Generator
+from .utils import *
 
 TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
 

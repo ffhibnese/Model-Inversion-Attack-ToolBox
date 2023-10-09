@@ -110,3 +110,4 @@ cache/
 *.pth
 *.tar
 results/*
+checkpoints/*

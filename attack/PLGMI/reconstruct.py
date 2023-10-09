@@ -8,12 +8,12 @@ import torch
 from argparse import ArgumentParser
 from kornia import augmentation
 
-import losses as L
-import utils
-from evaluation import get_knn_dist, calc_fid
-from models.classifiers import VGG16, IR152, FaceNet, FaceNet64
-from models.generators.resnet64 import ResNetGenerator
-from utils import save_tensor_images
+from . import losses as L
+from . import utils
+from .evaluation import get_knn_dist, calc_fid
+from models import *
+from .models.generators.resnet64 import ResNetGenerator
+from .utils import save_tensor_images
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -159,30 +159,47 @@ def inversion(args, G, T, E, iden, itr, lr=2e-2, iter_times=1500, num_seeds=5):
 
     return acc, acc_5, acc_var, acc_var5
 
+from dataclasses import dataclass
 
-if __name__ == "__main__":
+@dataclass
+class PlgmiArgs:
+    taregt_name: str
+    eval_name: str
+    save_dir: str
+    path_G: str
+    inv_loss_type: str = 'margin'
+    lr: float = 0.1
+    iter_times: int = 600
+    gen_num_features: int = 64
+    gen_dim_z: int = 128
+    gen_bottom_width: int = 4
+    gen_distribution: str = 'normal'
+
+
+def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir):
     global args, logger
 
-    parser = ArgumentParser(description='Stage-2: Image Reconstruction')
-    parser.add_argument('--model', default='VGG16', help='VGG16 | IR152 | FaceNet64')
-    parser.add_argument('--inv_loss_type', type=str, default='margin', help='ce | margin | poincare')
-    parser.add_argument('--lr', type=float, default=0.1)
-    parser.add_argument('--iter_times', type=int, default=600)
-    # Generator configuration
-    parser.add_argument('--gen_num_features', '-gnf', type=int, default=64,
-                        help='Number of features of generator (a.k.a. nplanes or ngf). default: 64')
-    parser.add_argument('--gen_dim_z', '-gdz', type=int, default=128,
-                        help='Dimension of generator input noise. default: 128')
-    parser.add_argument('--gen_bottom_width', '-gbw', type=int, default=4,
-                        help='Initial size of hidden variable of generator. default: 4')
-    parser.add_argument('--gen_distribution', '-gd', type=str, default='normal',
-                        help='Input noise distribution: normal (default) or uniform.')
-    # path
-    parser.add_argument('--save_dir', type=str,
-                        default='PLG_MI_Inversion')
-    parser.add_argument('--path_G', type=str,
-                        default='')
-    args = parser.parse_args()
+    # parser = ArgumentParser(description='Stage-2: Image Reconstruction')
+    # parser.add_argument('--model', default='VGG16', help='VGG16 | IR152 | FaceNet64')
+    # parser.add_argument('--inv_loss_type', type=str, default='margin', help='ce | margin | poincare')
+    # parser.add_argument('--lr', type=float, default=0.1)
+    # parser.add_argument('--iter_times', type=int, default=600)
+    # # Generator configuration
+    # parser.add_argument('--gen_num_features', '-gnf', type=int, default=64,
+    #                     help='Number of features of generator (a.k.a. nplanes or ngf). default: 64')
+    # parser.add_argument('--gen_dim_z', '-gdz', type=int, default=128,
+    #                     help='Dimension of generator input noise. default: 128')
+    # parser.add_argument('--gen_bottom_width', '-gbw', type=int, default=4,
+    #                     help='Initial size of hidden variable of generator. default: 4')
+    # parser.add_argument('--gen_distribution', '-gd', type=str, default='normal',
+    #                     help='Input noise distribution: normal (default) or uniform.')
+    # # path
+    # parser.add_argument('--save_dir', type=str,
+    #                     default='PLG_MI_Inversion')
+    # parser.add_argument('--path_G', type=str,
+    #                     default='')
+    # args = parser.parse_args()
+    args = PlgmiArgs(target_name, eval_name, cache_dir, ckpt_dir)
     logger = get_logger()
 
     logger.info(args)
@@ -201,15 +218,15 @@ if __name__ == "__main__":
     G = G.cuda()
 
     # Load target model
-    if args.model.startswith("VGG16"):
+    if args.taregt_name.startswith("vgg16"):
         T = VGG16(1000)
-        path_T = 'checkpoints/target_model/VGG16_88.26.tar'
-    elif args.model.startswith('IR152'):
+        path_T = os.path.join(ckpt_dir, 'VGG16_88.26.tar')
+    elif args.taregt_name.startswith('ir152'):
         T = IR152(1000)
-        path_T = 'checkpoints/target_model/IR152_91.16.tar'
-    elif args.model == "FaceNet64":
+        path_T = os.path.join(ckpt_dir, 'IR152_91.16.tar')
+    elif args.taregt_name == "facenet64":
         T = FaceNet64(1000)
-        path_T = 'checkpoints/target_model/FaceNet64_88.50.tar'
+        path_T = os.path.join(ckpt_dir, 'FaceNet64_88.50.tar')
     T = torch.nn.DataParallel(T).cuda()
     ckp_T = torch.load(path_T)
     T.load_state_dict(ckp_T['state_dict'], strict=False)
@@ -217,7 +234,7 @@ if __name__ == "__main__":
     # Load evaluation model
     E = FaceNet(1000)
     E = torch.nn.DataParallel(E).cuda()
-    path_E = 'checkpoints/evaluate_model/FaceNet_95.88.tar'
+    path_E = os.path.join(ckpt_dir, 'FaceNet_95.88.tar')
     ckp_E = torch.load(path_E)
     E.load_state_dict(ckp_E['state_dict'], strict=False)
 
@@ -246,11 +263,11 @@ if __name__ == "__main__":
                                                                                                             aver_var5))
 
     print("=> Calculate the KNN Dist.")
-    knn_dist = get_knn_dist(E, os.path.join(args.save_dir, 'all_imgs'), "celeba_private_feats")
+    knn_dist = get_knn_dist(E, os.path.join(args.save_dir, 'all_imgs'), os.path.join(ckpt_dir, 'PLG_MI', "celeba_private_feats"))
     print("KNN Dist %.2f" % knn_dist)
 
     print("=> Calculate the FID.")
     fid = calc_fid(recovery_img_path=os.path.join(args.save_dir, "success_imgs"),
-                   private_img_path="datasets/celeba_private_domain",
+                   private_img_path= os.path.join(ckpt_dir, 'PLG_MI', "datasets", "celeba_private_domain"),
                    batch_size=100)
     print("FID %.2f" % fid)

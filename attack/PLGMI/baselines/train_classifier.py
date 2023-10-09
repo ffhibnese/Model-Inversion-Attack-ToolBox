@@ -5,9 +5,9 @@ import torch
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
 
-import classify
-import engine
-import utils
+import models as classify
+from . import engine
+from . import utils
 
 dataset_name = "celeba"
 device = "cuda"

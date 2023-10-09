@@ -6,9 +6,9 @@ from PIL import Image
 from kornia import augmentation
 from torchvision import transforms
 
-import inception
-import metrics.fid
-import utils
+from . import inception
+from attack.PLGMI.metrics import fid as fid_utils
+from . import utils
 
 
 def calc_fid(recovery_img_path, private_img_path, batch_size=64):
@@ -50,13 +50,13 @@ def calc_fid(recovery_img_path, private_img_path, batch_size=64):
     recovery_images = np.concatenate(recovery_list)
     private_images = np.concatenate(private_list)
 
-    mu_fake, sigma_fake = metrics.fid.calculate_activation_statistics(
+    mu_fake, sigma_fake = fid_utils.calculate_activation_statistics(
         recovery_images, inception_model, batch_size, device=device
     )
-    mu_real, sigma_real = metrics.fid.calculate_activation_statistics(
+    mu_real, sigma_real = fid_utils.calculate_activation_statistics(
         private_images, inception_model, batch_size, device=device
     )
-    fid_score = metrics.fid.calculate_frechet_distance(
+    fid_score = fid_utils.fid.calculate_frechet_distance(
         mu_fake, sigma_fake, mu_real, sigma_real
     )
 

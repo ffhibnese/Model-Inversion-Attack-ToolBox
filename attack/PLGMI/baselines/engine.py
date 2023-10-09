@@ -6,8 +6,8 @@ import torch.nn as nn
 from copy import deepcopy
 from torch.optim.lr_scheduler import MultiStepLR
 
-import classify
-import utils
+import models as classify
+from . import utils
 
 root_path = "./target_model_at_eps4"
 model_path = os.path.join(root_path, "target_ckp")
