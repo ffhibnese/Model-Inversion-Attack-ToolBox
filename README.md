@@ -55,6 +55,10 @@ class ModelResult:
 
 每种攻击/防御方法生成位置`<result_dir>/<method>/`
 
+## <checkpoint_dir>
+
+由用户指定，预训练模型存放位置，开发时默认为`./checkpoints`
+
 ## dev_scripts
 
 存放用于开发测试的脚本，开发时常量写在`development_config.py`中
