@@ -70,3 +70,43 @@ def calc_knn(feat, iden, path):
         knn_dist += knn
 
     return (knn_dist / bs).item()
+
+def get_knn_dist(E, infered_image_path, private_feats_path, resolution):
+    """
+    Get KNN Dist of reconstructed images.
+    :param E:
+    :param infered_image_path:
+    :param private_feats_path:
+    :return:
+    """
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+    list_of_idx = os.listdir(infered_image_path)
+
+    images_list = []
+    targets_list = []
+    # load reconstructed images
+    for idx in list_of_idx:
+        for filename in os.listdir(os.path.join(infered_image_path, idx)):
+            target, seed = os.path.splitext(filename)[0].strip().split('_')[-2:]
+            image = Image.open(os.path.join(infered_image_path, idx, filename))
+            image = transforms.functional.to_tensor(image)
+            images_list.append(image)
+            targets_list.append(int(target))
+
+    images = torch.stack(images_list, dim=0)
+    targets = torch.LongTensor(targets_list)
+    # get features of reconstructed images
+    infered_feats = None
+    images_spilt_list = images.chunk(int(images.shape[0] / 10))
+    for i, images in enumerate(images_spilt_list):
+        images = augmentation.Resize((112, 112))(images).to(device)
+        feats = E(images)[0]
+        if i == 0:
+            infered_feats = feats.detach().cpu()
+        else:
+            infered_feats = torch.cat([infered_feats, feats.detach().cpu()], dim=0)
+    # calc the knn dist
+    knn_dist = calc_knn(infered_feats, targets, private_feats_path, resolution)
+
+    return knn_dist

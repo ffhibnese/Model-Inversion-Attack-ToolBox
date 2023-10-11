@@ -10,7 +10,8 @@ from kornia import augmentation
 
 from . import losses as L
 from . import utils
-from .evaluation import get_knn_dist, calc_fid
+from metrics.knn import get_knn_dist
+from metrics.fid.fid import calc_fid
 from models import *
 from .models.generators.resnet64 import ResNetGenerator
 from .utils import save_tensor_images
@@ -263,7 +264,7 @@ def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir, dataset_name, data
                                                                                                             aver_var5))
 
     print("=> Calculate the KNN Dist.")
-    knn_dist = get_knn_dist(E, os.path.join(args.save_dir, 'all_imgs'), os.path.join(dataset_dir, 'plgmi', "celeba_private_feats"))
+    knn_dist = get_knn_dist(E, os.path.join(args.save_dir, 'all_imgs'), os.path.join(dataset_dir, 'plgmi', "celeba_private_feats"), resolution=112)
     print("KNN Dist %.2f" % knn_dist)
 
     print("=> Calculate the FID.")
