@@ -6,7 +6,8 @@ from attack import mirror_whitebox_attack
 
 
 if __name__ == '__main__':
-    work_dir, result_dir, ckpt_dir = get_dirs('mirror')
+    dirs = get_dirs('mirror')
+    work_dir, result_dir, ckpt_dir = dirs['workdir'], dirs['result_dir'], dirs['ckpt_dir']
     
     target_name = 'vgg16'
     eval_name = 'facenet'

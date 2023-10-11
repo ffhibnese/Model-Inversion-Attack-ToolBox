@@ -176,7 +176,7 @@ class PlgmiArgs:
     gen_distribution: str = 'normal'
 
 
-def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir):
+def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir, dataset_name, dataset_dir):
     global args, logger
 
     # parser = ArgumentParser(description='Stage-2: Image Reconstruction')
@@ -212,7 +212,7 @@ def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir):
         args.gen_num_features, args.gen_dim_z, args.gen_bottom_width,
         num_classes=1000, distribution=args.gen_distribution
     )
-    gen_ckpt_path = args.path_G
+    gen_ckpt_path = os.path.join(ckpt_dir, 'PLG_MI', f'{dataset_name}_VGG16_PLG_MI_G.tar')
     gen_ckpt = torch.load(gen_ckpt_path)['model']
     G.load_state_dict(gen_ckpt)
     G = G.cuda()
@@ -263,11 +263,11 @@ def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir):
                                                                                                             aver_var5))
 
     print("=> Calculate the KNN Dist.")
-    knn_dist = get_knn_dist(E, os.path.join(args.save_dir, 'all_imgs'), os.path.join(ckpt_dir, 'PLG_MI', "celeba_private_feats"))
+    knn_dist = get_knn_dist(E, os.path.join(args.save_dir, 'all_imgs'), os.path.join(dataset_dir, 'plgmi', "celeba_private_feats"))
     print("KNN Dist %.2f" % knn_dist)
 
     print("=> Calculate the FID.")
     fid = calc_fid(recovery_img_path=os.path.join(args.save_dir, "success_imgs"),
-                   private_img_path= os.path.join(ckpt_dir, 'PLG_MI', "datasets", "celeba_private_domain"),
+                   private_img_path= os.path.join(dataset_dir, 'plgmi', "datasets", "celeba_private_domain"),
                    batch_size=100)
     print("FID %.2f" % fid)

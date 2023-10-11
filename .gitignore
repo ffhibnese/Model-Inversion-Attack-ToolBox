@@ -111,3 +111,4 @@ cache/
 *.tar
 results/*
 checkpoints/*
+dataset/*
