@@ -15,7 +15,7 @@ def get_private_feats(E, private_feats_path, private_loader, resolution=112):
     :param private_loader: dataloader of the private data
     :return:
     """
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     if not os.path.exists(private_feats_path):
         os.makedirs(private_feats_path)
@@ -27,7 +27,7 @@ def get_private_feats(E, private_feats_path, private_loader, resolution=112):
 
         targets = targets.view(-1)
         images = augmentation.Resize((resolution, resolution))(images)
-        feats = E(images).result
+        feats = E(images).feat
 
         if i == 0:
             private_feats = feats.detach().cpu()
@@ -79,7 +79,7 @@ def get_knn_dist(E, infered_image_path, private_feats_path, resolution):
     :param private_feats_path:
     :return:
     """
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     list_of_idx = os.listdir(infered_image_path)
 
@@ -88,7 +88,8 @@ def get_knn_dist(E, infered_image_path, private_feats_path, resolution):
     # load reconstructed images
     for idx in list_of_idx:
         for filename in os.listdir(os.path.join(infered_image_path, idx)):
-            target, seed = os.path.splitext(filename)[0].strip().split('_')[-2:]
+            # target, seed = os.path.splitext(filename)[0].strip().split('_')[-2:]
+            target = idx
             image = Image.open(os.path.join(infered_image_path, idx, filename))
             image = transforms.functional.to_tensor(image)
             images_list.append(image)
@@ -100,8 +101,8 @@ def get_knn_dist(E, infered_image_path, private_feats_path, resolution):
     infered_feats = None
     images_spilt_list = images.chunk(int(images.shape[0] / 10))
     for i, images in enumerate(images_spilt_list):
-        images = augmentation.Resize((112, 112))(images).to(device)
-        feats = E(images)[0]
+        images = augmentation.Resize((resolution, resolution))(images).to(device)
+        feats = E(images).feat
         if i == 0:
             infered_feats = feats.detach().cpu()
         else:
