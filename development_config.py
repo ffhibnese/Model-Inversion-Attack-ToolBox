@@ -3,7 +3,7 @@ import os
 work_root_dir = './cache'
 result_root_dir = './results'
 ckpt_dir = './checkpoints'
-dataset_dir = './datasets'
+dataset_dir = './dataset'
 
 def get_dirs(method_name):
     work_dir = os.path.join(work_root_dir, method_name)

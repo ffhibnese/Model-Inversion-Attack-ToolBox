@@ -27,7 +27,7 @@ def get_private_feats(E, private_feats_path, private_loader, resolution=112):
 
         targets = targets.view(-1)
         images = augmentation.Resize((resolution, resolution))(images)
-        feats = E(images).feat
+        feats = E(images).feat[-1]
 
         if i == 0:
             private_feats = feats.detach().cpu()
@@ -89,11 +89,12 @@ def get_knn_dist(E, infered_image_path, private_feats_path, resolution):
     for idx in list_of_idx:
         for filename in os.listdir(os.path.join(infered_image_path, idx)):
             # target, seed = os.path.splitext(filename)[0].strip().split('_')[-2:]
-            target = idx
-            image = Image.open(os.path.join(infered_image_path, idx, filename))
-            image = transforms.functional.to_tensor(image)
-            images_list.append(image)
-            targets_list.append(int(target))
+            if filename.endswith(('jpg', 'jpeg', 'png')):
+                target = idx
+                image = Image.open(os.path.join(infered_image_path, idx, filename))
+                image = transforms.functional.to_tensor(image)
+                images_list.append(image)
+                targets_list.append(int(target))
 
     images = torch.stack(images_list, dim=0)
     targets = torch.LongTensor(targets_list)
@@ -102,12 +103,12 @@ def get_knn_dist(E, infered_image_path, private_feats_path, resolution):
     images_spilt_list = images.chunk(int(images.shape[0] / 10))
     for i, images in enumerate(images_spilt_list):
         images = augmentation.Resize((resolution, resolution))(images).to(device)
-        feats = E(images).feat
+        feats = E(images).feat[-1]
         if i == 0:
             infered_feats = feats.detach().cpu()
         else:
             infered_feats = torch.cat([infered_feats, feats.detach().cpu()], dim=0)
     # calc the knn dist
-    knn_dist = calc_knn(infered_feats, targets, private_feats_path, resolution)
+    knn_dist = calc_knn(infered_feats, targets, private_feats_path)
 
     return knn_dist
