@@ -87,8 +87,8 @@ def inversion(args, G, T, E, iden, itr, lr=2e-2, iter_times=1500, num_seeds=5):
 
             fake = G(z, iden)
 
-            out1 = T(aug_list(fake))[-1]
-            out2 = T(aug_list(fake))[-1]
+            out1 = T(aug_list(fake)).result
+            out2 = T(aug_list(fake)).result
 
             if z.grad is not None:
                 z.grad.data.zero_()
@@ -116,7 +116,7 @@ def inversion(args, G, T, E, iden, itr, lr=2e-2, iter_times=1500, num_seeds=5):
 
         with torch.no_grad():
             fake = G(z, iden)
-            score = T(fake)[-1]
+            score = T(fake).result
             eval_prob = E(augmentation.Resize((112, 112))(fake))[-1]
             eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
 
