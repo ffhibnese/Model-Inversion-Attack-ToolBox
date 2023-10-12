@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 
-from utils import LinearWeightNorm
+from .utils import LinearWeightNorm
 
 
 class MinibatchDiscrimination(nn.Module):

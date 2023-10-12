@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
 
-from links import CategoricalConditionalBatchNorm2d
+from attack.PLGMI.links.conditional_batchnorm import CategoricalConditionalBatchNorm2d
 
 
 def _upsample(x):

@@ -21,6 +21,8 @@ from attack.Mirror.genforce.get_genforce import get_genforce
 from .genertic import genetic_alogrithm
 
 from .blackbox_args import MirrorBlackBoxArgs
+
+from metrics.knn import get_knn_dist
     
 def mirror_blackbox_attack(
     is_train,
@@ -34,6 +36,7 @@ def mirror_blackbox_attack(
     classifiers_checkpoint_dir: str,
     batch_size : int,
     use_cache : bool,
+    calc_knn : bool=False,
     device = 'cuda'
 ):
     
@@ -52,7 +55,8 @@ def mirror_blackbox_attack(
         device=device,
         resolution=resolution,
         use_cache=use_cache,
-        pre_sample_dir=pre_sample_dir
+        pre_sample_dir=pre_sample_dir,
+        calc_knn = calc_knn
     )
     
     
@@ -117,6 +121,12 @@ def run(
         compute_conf(target_net, args.arch_name, resolution=args.resolution, targets=args.target_labels, imgs=imgs)
         vutils.save_image(imgs, f'a.png', nrow=1)
         
+        if args.calc_knn:
+            
+            feat_dir = os.path.join(args.classifiers_checkpoint_dir, "PLG_MI", "celeba_private_feats")
+            knn_dist = get_knn_dist(target_net, args.work_dir, feat_dir, resolution=112)
+            print(f"knn dist: {knn_dist}")
+        
         
 def compute_conf(net, arch_name, resolution, targets, imgs):
     
@@ -146,6 +156,6 @@ def compute_conf(net, arch_name, resolution, targets, imgs):
     print(f'top1 acc: {acc}')
     print(f'topk acc: {topk_acc}')
     
-            
+    
             
             

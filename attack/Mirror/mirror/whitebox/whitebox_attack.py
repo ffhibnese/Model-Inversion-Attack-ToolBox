@@ -13,7 +13,7 @@ import random
 from attack.Mirror.mirror.classifiers.build_classifier import get_model
 from attack.Mirror.mirror.select_w import find_closest_latent
 import glob
-
+from metrics.knn import get_knn_dist
 
 @dataclass
 class MirrorWhiteBoxArgs:
@@ -42,6 +42,7 @@ class MirrorWhiteBoxArgs:
     image_resolution: int
     test_image_resolution: int
     
+    calc_knn: bool
 
     
 
@@ -57,7 +58,7 @@ def mirror_white_box_attack(
     use_cache = False,
     do_flip = False,
     loss_class_ce = 1,
-    epoch_num = 20000,
+    epoch_num = 5000,
     batch_size = 8,
     lr = 0.2,
     save_every = 100,
@@ -65,7 +66,8 @@ def mirror_white_box_attack(
     latent_space = 'w',
     p_std_ce = 1,
     z_std_ce = 1,
-    device = 'cuda'
+    device = 'cuda',
+    calc_knn = False
 ):
     if genforce_model_name != 'stylegan2_ffhq1024':
         torch.backends.cudnn.benchmark = True
@@ -106,7 +108,8 @@ def mirror_white_box_attack(
         image_resolution=image_resolution,
         test_image_resolution=test_image_resolution,
         lr=lr,
-        pre_sample_dir=pre_sample_dir
+        pre_sample_dir=pre_sample_dir,
+        calc_knn=calc_knn
     )
     
     # run
@@ -133,6 +136,7 @@ def run(
     target_net,
     eval_net
 ):
+    
     if args.arch_name == 'sphere20a':
         # TODO: add sphere
         raise NotImplementedError('sphere20 is not implement')
@@ -342,7 +346,10 @@ def run(
 
     for i in range(fake.shape[0]):
         target = targets[i].item()
-        save_filename = f'{args.final_image_dir}/img_label{target:05d}_id{i:03d}_iter{best_epoch}.jpg'
+        # save_filename = f'{args.final_image_dir}/img_label{target:05d}_id{i:03d}_iter{best_epoch}.jpg'
+        save_dirname = os.path.join(args.final_image_dir, f'{target}')
+        os.makedirs(save_dirname, exist_ok=True)
+        save_filename = os.path.join(save_dirname, f'{i}.jpg')
 
         torch.save(latent_inputs[i], save_filename[:-4]+'.pt')
 
@@ -351,3 +358,8 @@ def run(
         pil_image.save(save_filename)
 
     torch.save(latent_inputs, f'{args.final_image_dir}/latent_inputs.pt')
+    
+    if args.calc_knn:
+        feat_dir = os.path.join(args.checkpoint_dir, "PLG_MI", "celeba_private_feats")
+        knn_dist = get_knn_dist(eval_net, args.final_image_dir, feat_dir, resolution=112)
+        print(f"knn dist: {knn_dist}")

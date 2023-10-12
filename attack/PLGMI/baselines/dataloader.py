@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torchvision import transforms
 
-import utils
+from . import utils
 
 
 # mnist_path = "./data/mnist"

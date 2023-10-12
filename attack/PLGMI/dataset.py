@@ -3,7 +3,7 @@ import os
 import torch
 from PIL import Image
 
-import utils
+from . import utils
 
 
 def sample_from_data(args, device, data_loader):

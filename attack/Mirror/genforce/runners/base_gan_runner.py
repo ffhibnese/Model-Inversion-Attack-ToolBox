@@ -9,8 +9,8 @@ import torch
 import torch.distributed as dist
 
 from metrics.inception import build_inception_model
-from metrics.fid import extract_feature
-from metrics.fid import compute_fid
+from metrics.fid.fid import extract_feature
+from metrics.fid.fid import compute_fid
 from utils.visualizer import HtmlPageVisualizer
 from utils.visualizer import postprocess_image
 from utils.visualizer import save_image

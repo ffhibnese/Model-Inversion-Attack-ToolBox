@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
 
-from models.generators.resblocks import Block
+from .resblocks import Block
 
 
 class ResNetGenerator(nn.Module):
@@ -18,7 +18,7 @@ class ResNetGenerator(nn.Module):
         self.activation = activation
         self.num_classes = num_classes
         self.distribution = distribution
-
+        # print(dim_z)
         self.l1 = nn.Linear(dim_z, 16 * num_features * bottom_width ** 2)
 
         self.block2 = Block(num_features * 16, num_features * 8,
@@ -41,7 +41,8 @@ class ResNetGenerator(nn.Module):
         init.xavier_uniform_(self.conv7.weight.tensor)
 
     def forward(self, z, y=None, **kwargs):
-        h = self.l1(z).view(z.size(0), -1, self.bottom_width, self.bottom_width)
+        h = self.l1(z)
+        h = h.reshape(z.size(0), -1, self.bottom_width, self.bottom_width)
         for i in range(2, 6):
             h = getattr(self, 'block{}'.format(i))(h, y, **kwargs)
         h = self.activation(self.b6(h))

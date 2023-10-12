@@ -11,13 +11,14 @@ import torch.optim as optim
 from argparse import ArgumentParser
 from torch.autograd import Variable
 
-import utils
-from classify import *
-from discri import *
-from evaluation import get_knn_dist, calc_fid
-from generator import *
-from generator import Generator
-from utils import log_sum_exp, save_tensor_images
+from . import utils
+from models import *
+from .discri import *
+from metrics.knn import get_knn_dist
+from metrics.fid.fid import calc_fid
+from .generator import *
+from .generator import Generator
+from .utils import log_sum_exp, save_tensor_images
 
 
 # logger
@@ -82,7 +83,7 @@ def dist_inversion(G, D, T, E, iden, itr, lr=2e-2, momentum=0.9, lamda=100, iter
         else:
             label = D(fake)
 
-        out = T(fake)[-1]
+        out = T(fake).result
 
         for p in params:
             if p.grad is not None:
@@ -108,7 +109,7 @@ def dist_inversion(G, D, T, E, iden, itr, lr=2e-2, momentum=0.9, lamda=100, iter
         if (i + 1) % 300 == 0:
             with torch.no_grad():
                 fake_img = G(z.detach())
-                eval_prob = E(utils.low2high(fake_img))[-1]
+                eval_prob = E(utils.low2high(fake_img)).result
                 eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
                 acc = iden.eq(eval_iden.long()).sum().item() * 1.0 / bs
                 print(
@@ -126,8 +127,8 @@ def dist_inversion(G, D, T, E, iden, itr, lr=2e-2, momentum=0.9, lamda=100, iter
             tf = time.time()
             z = reparameterize(mu, log_var)
             fake = G(z)
-            score = T(fake)[-1]
-            eval_prob = E(utils.low2high(fake))[-1]
+            score = T(fake).result
+            eval_prob = E(utils.low2high(fake)).result
             eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
 
             cnt, cnt5 = 0, 0
@@ -211,7 +212,7 @@ def inversion(G, D, T, E, iden, itr, lr=2e-2, momentum=0.9, lamda=100, iter_time
             else:
                 label = D(fake)
 
-            out = T(fake)[-1]
+            out = T(fake).result
 
             if z.grad is not None:
                 z.grad.data.zero_()
@@ -241,7 +242,7 @@ def inversion(G, D, T, E, iden, itr, lr=2e-2, momentum=0.9, lamda=100, iter_time
             if (i + 1) % 300 == 0:
                 with torch.no_grad():
                     fake_img = G(z.detach())
-                    eval_prob = E(utils.low2high(fake_img))[-1]
+                    eval_prob = E(utils.low2high(fake_img)).result
                     eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
                     acc = iden.eq(eval_iden.long()).sum().item() * 1.0 / bs
                     print("Iteration:{}\tPrior Loss:{:.2f}\tIden Loss:{:.2f}\tAttack Acc:{:.2f}".format(i + 1,
@@ -251,8 +252,8 @@ def inversion(G, D, T, E, iden, itr, lr=2e-2, momentum=0.9, lamda=100, iter_time
 
         with torch.no_grad():
             fake = G(z)
-            score = T(fake)[-1]
-            eval_prob = E(utils.low2high(fake))[-1]
+            score = T(fake).result
+            eval_prob = E(utils.low2high(fake)).result
             eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
 
             cnt, cnt5 = 0, 0
@@ -293,28 +294,16 @@ def inversion(G, D, T, E, iden, itr, lr=2e-2, momentum=0.9, lamda=100, iter_time
     print("Acc:{:.2f}\tAcc_5:{:.2f}\tAcc_var:{:.4f}\tAcc_var5:{:.4f}".format(acc, acc_5, acc_var, acc_var5))
 
     return acc, acc_5, acc_var, acc_var5
+    
+device = 'cuda'
 
+def gmi_attack(target_name, eval_name, cache_dir, ckpt_dir, dataset_name, dataset_dir, is_kedmi):
 
-if __name__ == "__main__":
-    global args, logger
+    
+    assert eval_name == 'facenet'
 
-    parser = ArgumentParser(description='Step2: targeted recovery')
-    parser.add_argument('--model', default='VGG16', help='VGG16 | IR152 | FaceNet64')
-    parser.add_argument('--improved_flag', action='store_true', default=False, help='use improved k+1 GAN')
-    parser.add_argument('--dist_flag', action='store_true', default=False, help='use distributional recovery')
-    parser.add_argument('--save_dir', type=str,
-                        default='Inversion_Results')
-    parser.add_argument('--path_G', type=str,
-                        default='')
-    parser.add_argument('--path_D', type=str,
-                        default='')
-    args = parser.parse_args()
-    logger = get_logger()
+    print("=> creating model ...")
 
-    logger.info(args)
-    logger.info("=> creating model ...")
-
-    print("=> Using improved GAN:", args.improved_flag)
 
     z_dim = 100
     ###########################################
@@ -322,48 +311,44 @@ if __name__ == "__main__":
     ###########################################
     G = Generator(z_dim)
     G = torch.nn.DataParallel(G).cuda()
-    if args.improved_flag == True:
+        
+    if is_kedmi:
         D = MinibatchDiscriminator()
-        # path_G = './improvedGAN/improved_celeba_G.tar'
-        # path_D = './improvedGAN/improved_celeba_D.tar'
-        path_G = args.path_G
-        path_D = args.path_D
+        path_G = os.path.join(ckpt_dir, 'KED_MI', f'{dataset_name}_VGG16_KED_MI_G.tar')
+        path_D = os.path.join(ckpt_dir, 'KED_MI', f'{dataset_name}_VGG16_KED_MI_D.tar')
     else:
         D = DGWGAN(3)
-        # path_G = './improvedGAN/celeba_G.tar'
-        # path_D = './improvedGAN/celeba_D.tar'
-        path_G = args.path_G
-        path_D = args.path_D
+        path_G = os.path.join(ckpt_dir, 'GMI', f'{dataset_name}_VGG16_GMI_G.tar')
+        path_D = os.path.join(ckpt_dir, 'GMI', f'{dataset_name}_VGG16_GMI_D.tar')
 
     D = torch.nn.DataParallel(D).cuda()
     ckp_G = torch.load(path_G)
-    G.load_state_dict(ckp_G['state_dict'], strict=False)
+    G.load_state_dict(ckp_G['state_dict'], strict=True)
     ckp_D = torch.load(path_D)
-    D.load_state_dict(ckp_D['state_dict'], strict=False)
+    D.load_state_dict(ckp_D['state_dict'], strict=True)
 
-    if args.model.startswith("VGG16"):
+    if target_name.startswith("vgg16"):
         T = VGG16(1000)
-        path_T = '../checkpoints/target_model/VGG16_88.26.tar'
-    elif args.model.startswith('IR152'):
+        path_T = os.path.join(ckpt_dir, 'VGG16_88.26.tar')
+    elif target_name.startswith('ir152'):
         T = IR152(1000)
-        path_T = '../checkpoints/target_model/IR152_91.16.tar'
-    elif args.model == "FaceNet64":
+        path_T = os.path.join(ckpt_dir, 'IR152_91.16.tar')
+    elif target_name == "facenet64":
         T = FaceNet64(1000)
-        path_T = '../checkpoints/target_model/FaceNet64_88.50.tar'
-    print("Target Model: ", path_T)
+        path_T = os.path.join(ckpt_dir, 'FaceNet64_88.50.tar')
+    T = (T).to(device)
+    ckp_T = torch.load(path_T)['state_dict']
+    T.load_state_dict(ckp_T, strict=True)
 
-    T = torch.nn.DataParallel(T).cuda()
-    ckp_T = torch.load(path_T)
-    T.load_state_dict(ckp_T['state_dict'], strict=False)
-
+    # Load evaluation model
     E = FaceNet(1000)
-    E = torch.nn.DataParallel(E).cuda()
-    path_E = '../checkpoints/evaluate_model/FaceNet_95.88.tar'
-    ckp_E = torch.load(path_E)
-    E.load_state_dict(ckp_E['state_dict'], strict=False)
+    E = (E).to(device)
+    path_E = os.path.join(ckpt_dir, 'FaceNet_95.88.tar')
+    ckp_E = torch.load(path_E)['state_dict']
+    E.load_state_dict(ckp_E, strict=True)
 
     ############         attack     ###########
-    logger.info("=> Begin attacking ...")
+    print("=> Begin attacking ...")
 
     aver_acc, aver_acc5, aver_var, aver_var5 = 0, 0, 0, 0
     for i in range(1):
@@ -372,14 +357,14 @@ if __name__ == "__main__":
         # evaluate on the first 300 identities only
         for idx in range(5):
             print("--------------------- Attack batch [%s]------------------------------" % idx)
-            if args.dist_flag == True:
+            if is_kedmi:
                 acc, acc5, var, var5 = dist_inversion(G, D, T, E, iden, itr=i, lr=2e-2, momentum=0.9, lamda=100,
-                                                      iter_times=1500, clip_range=1, improved=args.improved_flag,
-                                                      num_seeds=5, save_dir=args.save_dir)
+                                                      iter_times=1500, clip_range=1, improved=True,
+                                                      num_seeds=5, save_dir=cache_dir)
             else:
                 acc, acc5, var, var5 = inversion(G, D, T, E, iden, itr=i, lr=2e-2, momentum=0.9, lamda=100,
-                                                 iter_times=1500, clip_range=1, improved=args.improved_flag,
-                                                 save_dir=args.save_dir)
+                                                 iter_times=1500, clip_range=1, improved=False,
+                                                 save_dir=cache_dir)
 
             iden = iden + 60
             aver_acc += acc / 5
@@ -392,11 +377,12 @@ if __name__ == "__main__":
                                                                                                             aver_var,
                                                                                                             aver_var5))
 
-    print("=> Calculate the KNN dist.")
-    knn_dist = get_knn_dist(E, os.path.join(args.save_dir, 'all_imgs'), "../celeba_private_feats")
+    print("=> Calculate the KNN Dist.")
+    knn_dist = get_knn_dist(E, os.path.join(cache_dir, 'all_imgs'), os.path.join(dataset_dir, 'plgmi', "celeba_private_feats"), resolution=112)
     print("KNN Dist %.2f" % knn_dist)
 
     print("=> Calculate the FID.")
-    fid = calc_fid(recovery_img_path=os.path.join(args.save_dir, "success_imgs"),
-                   private_img_path="../datasets/celeba_private_domain", batch_size=100)
+    fid = calc_fid(recovery_img_path=os.path.join(cache_dir, "success_imgs"),
+                   private_img_path= os.path.join(dataset_dir, 'plgmi', "datasets", "celeba_private_domain"),
+                   batch_size=100)
     print("FID %.2f" % fid)

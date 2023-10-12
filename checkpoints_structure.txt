@@ -1,0 +1,36 @@
+./checkpoints/
+├── 20180402-114759-vggface2.pt
+├── FaceNet64_88.50.tar
+├── FaceNet_95.88.tar
+├── GMI
+│   ├── celeba_GMI_D.tar
+│   ├── celeba_GMI_G.tar
+│   ├── facescrub_GMI_D.tar
+│   ├── facescrub_GMI_G.tar
+│   ├── ffhq_GMI_D.tar
+│   └── ffhq_GMI_G.tar
+├── IR152_91.16.tar
+├── KED_MI
+│   ├── celeba_VGG16_KED_MI_D.tar
+│   ├── celeba_VGG16_KED_MI_G.tar
+│   ├── facescrub_VGG16_KED_MI_D.tar
+│   ├── facescrub_VGG16_KED_MI_G.tar
+│   ├── ffhq_VGG16_KED_MI_D.tar
+│   └── ffhq_VGG16_KED_MI_G.tar
+├── PLG_MI
+│   ├── celeba_private_feats
+│   ├── celeba_VGG16_PLG_MI_D.tar
+│   ├── celeba_VGG16_PLG_MI_G.tar
+│   ├── data_files
+│   ├── datasets
+│   ├── facescrub_VGG16_PLG_MI_D.tar
+│   ├── facescrub_VGG16_PLG_MI_G.tar
+│   ├── ffhq_VGG16_PLG_MI_D.tar
+│   └── ffhq_VGG16_PLG_MI_G.tar
+├── README.md
+├── resnet50_scratch_dag.pth
+├── stylegan_celeba_partial256.pth
+├── VGG16_88.26.tar
+└── vgg_face_dag.pth
+
+6 directories, 27 files

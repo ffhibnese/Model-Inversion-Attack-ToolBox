@@ -87,10 +87,11 @@ class VectorizedPopulation:
             self.population = torch.cat([elite_value.unsqueeze(0), mutated_children], dim=0)
             self.compute_fitness()
         
-    def visualize_imgs(self, filename, generate_images_func, k=8):
-        ws = self.population[:k]
-        out = generate_images_func(ws, raw_img=True)
-        vutils.save_image(out, filename)
+    def visualize_imgs(self, file_dir, generate_images_func, k=8):
+        # ws = self.population[:k]
+        for i in range(k):
+            out = generate_images_func(self.population[[i]], raw_img=True)
+            vutils.save_image(out, os.path.join(file_dir, f'{i}.png'))
         
         
 def init_population(args: MirrorBlackBoxArgs, target_label, target_model, compute_fitness_func):
@@ -161,7 +162,7 @@ def genetic_alogrithm(args: MirrorBlackBoxArgs, generate_images_func, target_lab
         population.produce_next_generation(elite)
     
     elite, elite_score = population.find_elite()
-    population.visualize_imgs(os.path.join(args.work_dir, f'{target_label}/{gen+1}.png'), generate_images_func)
+    population.visualize_imgs(os.path.join(args.work_dir, f'{target_label}/'), generate_images_func)
     return elite, elite_score
     
 

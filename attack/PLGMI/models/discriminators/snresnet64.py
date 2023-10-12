@@ -4,8 +4,8 @@ import torch.nn.functional as F
 from torch.nn import init
 from torch.nn import utils
 
-from models.discriminators.resblocks import Block
-from models.discriminators.resblocks import OptimizedBlock
+from .resblocks import Block
+from .resblocks import OptimizedBlock
 
 
 class SNResNetProjectionDiscriminator(nn.Module):
