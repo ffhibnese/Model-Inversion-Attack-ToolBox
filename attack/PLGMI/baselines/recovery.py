@@ -14,7 +14,8 @@ from torch.autograd import Variable
 from . import utils
 from models import *
 from .discri import *
-from .evaluation import get_knn_dist, calc_fid
+from metrics.knn import get_knn_dist
+from metrics.fid.fid import calc_fid
 from .generator import *
 from .generator import Generator
 from .utils import log_sum_exp, save_tensor_images
@@ -82,7 +83,7 @@ def dist_inversion(G, D, T, E, iden, itr, lr=2e-2, momentum=0.9, lamda=100, iter
         else:
             label = D(fake)
 
-        out = T(fake)[-1]
+        out = T(fake).result
 
         for p in params:
             if p.grad is not None:
@@ -108,7 +109,7 @@ def dist_inversion(G, D, T, E, iden, itr, lr=2e-2, momentum=0.9, lamda=100, iter
         if (i + 1) % 300 == 0:
             with torch.no_grad():
                 fake_img = G(z.detach())
-                eval_prob = E(utils.low2high(fake_img))[-1]
+                eval_prob = E(utils.low2high(fake_img)).result
                 eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
                 acc = iden.eq(eval_iden.long()).sum().item() * 1.0 / bs
                 print(
@@ -126,8 +127,8 @@ def dist_inversion(G, D, T, E, iden, itr, lr=2e-2, momentum=0.9, lamda=100, iter
             tf = time.time()
             z = reparameterize(mu, log_var)
             fake = G(z)
-            score = T(fake)[-1]
-            eval_prob = E(utils.low2high(fake))[-1]
+            score = T(fake).result
+            eval_prob = E(utils.low2high(fake)).result
             eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
 
             cnt, cnt5 = 0, 0
@@ -211,7 +212,7 @@ def inversion(G, D, T, E, iden, itr, lr=2e-2, momentum=0.9, lamda=100, iter_time
             else:
                 label = D(fake)
 
-            out = T(fake)[-1]
+            out = T(fake).result
 
             if z.grad is not None:
                 z.grad.data.zero_()
@@ -241,7 +242,7 @@ def inversion(G, D, T, E, iden, itr, lr=2e-2, momentum=0.9, lamda=100, iter_time
             if (i + 1) % 300 == 0:
                 with torch.no_grad():
                     fake_img = G(z.detach())
-                    eval_prob = E(utils.low2high(fake_img))[-1]
+                    eval_prob = E(utils.low2high(fake_img)).result
                     eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
                     acc = iden.eq(eval_iden.long()).sum().item() * 1.0 / bs
                     print("Iteration:{}\tPrior Loss:{:.2f}\tIden Loss:{:.2f}\tAttack Acc:{:.2f}".format(i + 1,
@@ -251,8 +252,8 @@ def inversion(G, D, T, E, iden, itr, lr=2e-2, momentum=0.9, lamda=100, iter_time
 
         with torch.no_grad():
             fake = G(z)
-            score = T(fake)[-1]
-            eval_prob = E(utils.low2high(fake))[-1]
+            score = T(fake).result
+            eval_prob = E(utils.low2high(fake)).result
             eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
 
             cnt, cnt5 = 0, 0
