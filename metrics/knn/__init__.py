@@ -82,6 +82,7 @@ def get_knn_dist(E, infered_image_path, private_feats_path, resolution):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     list_of_idx = os.listdir(infered_image_path)
+    list_of_idx = [d for d in list_of_idx if os.path.isdir(os.path.join(infered_image_path, d))]
 
     images_list = []
     targets_list = []
