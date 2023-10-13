@@ -34,13 +34,14 @@ def mirror_blackbox_attack(
     target_labels: list,
     work_dir: str,
     classifiers_checkpoint_dir: str,
+    dataset_name: str,
     batch_size : int,
     use_cache : bool,
     calc_knn : bool=False,
     device = 'cuda'
 ):
     
-    target_net = get_model(arch_name, device)
+    target_net = get_model(arch_name, device, classifier_dir=classifiers_checkpoint_dir, dataset_name=dataset_name)
     resolution = get_input_resolution(arch_name)
     
     args = MirrorBlackBoxArgs(

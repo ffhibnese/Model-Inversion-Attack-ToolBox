@@ -13,7 +13,8 @@ if __name__ == '__main__':
     eval_name = 'facenet'
     genforce_name = 'stylegan_celeba_partial256'
     target_labels = [108, 180] + list(range(18))
+    dataset_name = 'celeba'
     
     calc_knn = eval_name == 'facenet'
     
-    mirror_whitebox_attack(genforce_name, target_name, eval_name, target_labels, work_dir, ckpt_dir, result_dir, batch_size=len(target_labels), device='cuda', calc_knn=calc_knn)
+    mirror_whitebox_attack(genforce_name, target_name, eval_name, target_labels, work_dir, ckpt_dir, dataset_name, result_dir, batch_size=len(target_labels), device='cuda', calc_knn=calc_knn)

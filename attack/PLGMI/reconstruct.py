@@ -225,13 +225,13 @@ def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir, dataset_name, data
     # Load target model
     if args.taregt_name.startswith("vgg16"):
         T = VGG16(1000)
-        path_T = os.path.join(ckpt_dir, 'VGG16_88.26.tar')
+        path_T = os.path.join(ckpt_dir, 'celeba', 'VGG16_88.26.tar')
     elif args.taregt_name.startswith('ir152'):
         T = IR152(1000)
-        path_T = os.path.join(ckpt_dir, 'IR152_91.16.tar')
+        path_T = os.path.join(ckpt_dir, 'celeba', 'IR152_91.16.tar')
     elif args.taregt_name == "facenet64":
         T = FaceNet64(1000)
-        path_T = os.path.join(ckpt_dir, 'FaceNet64_88.50.tar')
+        path_T = os.path.join(ckpt_dir, 'celeba', 'FaceNet64_88.50.tar')
     T = (T).to(device)
     ckp_T = torch.load(path_T)['state_dict']
     T.load_state_dict(ckp_T, strict=True)
@@ -239,7 +239,7 @@ def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir, dataset_name, data
     # Load evaluation model
     E = FaceNet(1000)
     E = (E).to(device)
-    path_E = os.path.join(ckpt_dir, 'FaceNet_95.88.tar')
+    path_E = os.path.join(ckpt_dir, 'celeba', 'FaceNet_95.88.tar')
     ckp_E = torch.load(path_E)['state_dict']
     E.load_state_dict(ckp_E, strict=True)
     # E.load_state_dict(ckp_E['state_dict'], strict=False)

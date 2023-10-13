@@ -10,8 +10,9 @@ from models import *
 import os
 
 from collections import OrderedDict
-def get_model(arch_name, device, use_dropout=False, path = './mirror/classifiers'):
+def get_model(arch_name, device, classifier_dir, dataset_name, use_dropout=False):
     
+    path = os.path.join(classifier_dir, dataset_name)
     # path = None
     # state_dict = torch
     if arch_name == 'vgg16':
