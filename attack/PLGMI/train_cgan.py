@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 import torchvision
 
-from . import evaluation
+# from . import evaluation
 from . import losses as L
 from . import utils
 from .dataset import FaceDataset, InfiniteSamplerWrapper, sample_from_data, sample_from_gen
@@ -348,23 +348,23 @@ def main():
                 args, n_iter, n_iter // args.checkpoint_interval,
                 gen, opt_gen, dis, opt_dis
             )
-        if n_iter % args.eval_interval == 0:
-            # Once these criterion are prepared, val_loader will be used.
-            fid_score = evaluation.evaluate(
-                args, n_iter, gen, device, inception_model, eval_loader
-            )
-            print('[Eval] iteration: {:07d}/{:07d}, FID: {:07f}'.format(
-                n_iter, args.max_iteration, fid_score))
-            if writer is not None:
-                writer.add_scalar("FID", fid_score, n_iter)
-                # Project embedding weights if exists.
-                embedding_layer = getattr(dis, 'l_y', None)
-                if embedding_layer is not None:
-                    writer.add_embedding(
-                        embedding_layer.weight.data,
-                        list(range(args.num_classes)),
-                        global_step=n_iter
-                    )
+        # if n_iter % args.eval_interval == 0:
+        #     # Once these criterion are prepared, val_loader will be used.
+        #     fid_score = evaluation.evaluate(
+        #         args, n_iter, gen, device, inception_model, eval_loader
+        #     )
+        #     print('[Eval] iteration: {:07d}/{:07d}, FID: {:07f}'.format(
+        #         n_iter, args.max_iteration, fid_score))
+        #     if writer is not None:
+        #         writer.add_scalar("FID", fid_score, n_iter)
+        #         # Project embedding weights if exists.
+        #         embedding_layer = getattr(dis, 'l_y', None)
+        #         if embedding_layer is not None:
+        #             writer.add_embedding(
+        #                 embedding_layer.weight.data,
+        #                 list(range(args.num_classes)),
+        #                 global_step=n_iter
+        #             )
 
 
 if __name__ == '__main__':
