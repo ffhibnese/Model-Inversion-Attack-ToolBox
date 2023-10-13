@@ -54,6 +54,7 @@ def mirror_white_box_attack(
     work_dir,
     checkpoint_dir,
     classifier_dir,
+    dataset_name,
     pre_sample_dir = None,
     use_cache = False,
     do_flip = False,
@@ -79,8 +80,8 @@ def mirror_white_box_attack(
     create_folder(tmp_image_dir)
     create_folder(os.path.join(tmp_image_dir, 'images'))
     
-    target_net: nn.Module = get_model(arch_name, device=device, use_dropout=use_dropout, path=classifier_dir)
-    eval_net: nn.Module = get_model(test_arch_name, device=device, use_dropout=use_dropout, path=classifier_dir)
+    target_net: nn.Module = get_model(arch_name, device=device, use_dropout=use_dropout, classifier_dir=classifier_dir, dataset_name=dataset_name)
+    eval_net: nn.Module = get_model(test_arch_name, device=device, use_dropout=use_dropout, classifier_dir=classifier_dir, dataset_name=dataset_name)
     image_resolution = get_input_resolution(arch_name)
     test_image_resolution = get_input_resolution(test_arch_name)
     
