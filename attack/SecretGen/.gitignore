@@ -1,0 +1,15 @@
+__pycache__
+checkpoint
+data
+logs
+output
+result
+premodels
+vec
+tmp
+
+*.out
+*.png
+*.tar
+*.sh
+*.csv
