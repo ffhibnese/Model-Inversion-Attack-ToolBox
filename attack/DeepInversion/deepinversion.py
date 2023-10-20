@@ -7,11 +7,12 @@
 # Hoiem, Niraj K. Jha, and Jan Kautz
 # --------------------------------------------------------
 
-from __future__ import division, print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+# from __future__ import division, print_function
+# from __future__ import absolute_import
+# from __future__ import division
+# from __future__ import unicode_literals
 
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -23,7 +24,7 @@ import torchvision.utils as vutils
 from PIL import Image
 import numpy as np
 
-from utils.utils import lr_cosine_policy, lr_policy, beta_policy, mom_cosine_policy, clip, denormalize, create_folder
+from .utils.utils import lr_cosine_policy, lr_policy, beta_policy, mom_cosine_policy, clip, denormalize, create_folder
 
 
 class DeepInversionFeatureHook():
@@ -67,9 +68,10 @@ def get_image_prior_losses(inputs_jit):
 
 
 class DeepInversionClass(object):
-    def __init__(self, bs=84,
+    def __init__(self, target_labels, bs=84,
+                 
                  use_fp16=True, net_teacher=None, path="./gen_images/",
-                 final_data_path="/gen_images_final/",
+                 final_data_path="./gen_images_final/",
                  parameters=dict(),
                  setting_id=0,
                  jitter=30,
@@ -85,7 +87,6 @@ class DeepInversionClass(object):
         :param final_data_path: path to write final images into
         :param parameters: a dictionary of control parameters:
             "resolution": input image resolution, single value, assumed to be a square, 224
-            "random_label" : for classification initialize target to be random values
             "start_noise" : start from noise, def True, other options are not supported at this time
             "detach_student": if computing Adaptive DI, should we detach student?
         :param setting_id: predefined settings for optimization:
@@ -110,26 +111,35 @@ class DeepInversionClass(object):
         print("Deep inversion class generation")
         # for reproducibility
         torch.manual_seed(torch.cuda.current_device())
+        
+        
+        
+        self.target_labels = []
+        self.bs = bs
+        
+        while len(self.target_labels) < bs:
+            for label in target_labels:
+                self.target_labels.append(label)
+                if len(self.target_labels) >= bs:
+                    break
+        self.target_labels = torch.LongTensor(self.target_labels).cuda()
 
         self.net_teacher = net_teacher
 
         if "resolution" in parameters.keys():
             self.image_resolution = parameters["resolution"]
-            self.random_label = parameters["random_label"]
             self.start_noise = parameters["start_noise"]
             self.detach_student = parameters["detach_student"]
             self.do_flip = parameters["do_flip"]
             self.store_best_images = parameters["store_best_images"]
         else:
             self.image_resolution = 224
-            self.random_label = False
             self.start_noise = True
             self.detach_student = False
             self.do_flip = True
             self.store_best_images = False
 
         self.setting_id = setting_id
-        self.bs = bs  # batch size
         self.use_fp16 = use_fp16
         self.save_every = 100
         self.jitter = jitter
@@ -189,17 +199,19 @@ class DeepInversionClass(object):
         criterion = self.criterion
 
         # setup target labels
-        if targets is None:
-            #only works for classification now, for other tasks need to provide target vector
-            targets = torch.LongTensor([random.randint(0, 999) for _ in range(self.bs)]).to('cuda')
-            if not self.random_label:
-                # preselected classes, good for ResNet50v1.5
-                targets = [1, 933, 946, 980, 25, 63, 92, 94, 107, 985, 151, 154, 207, 250, 270, 277, 283, 292, 294, 309,
-                           311,
-                           325, 340, 360, 386, 402, 403, 409, 530, 440, 468, 417, 590, 670, 817, 762, 920, 949, 963,
-                           967, 574, 487]
+        # if targets is None:
+        #     #only works for classification now, for other tasks need to provide target vector
+        #     targets = torch.LongTensor([random.randint(0, 999) for _ in range(self.bs)]).to('cuda')
+        #     if not self.random_label:
+        #         # preselected classes, good for ResNet50v1.5
+        #         targets = [1, 933, 946, 980, 25, 63, 92, 94, 107, 985, 151, 154, 207, 250, 270, 277, 283, 292, 294, 309,
+        #                    311,
+        #                    325, 340, 360, 386, 402, 403, 409, 530, 440, 468, 417, 590, 670, 817, 762, 920, 949, 963,
+        #                    967, 574, 487]
 
-                targets = torch.LongTensor(targets * (int(self.bs / len(targets)))).to('cuda')
+        #         targets = torch.LongTensor(targets * (int(self.bs / len(targets)))).to('cuda')
+        
+        targets = self.target_labels
 
         img_original = self.image_resolution
 
@@ -376,15 +388,19 @@ class DeepInversionClass(object):
         local_rank = torch.cuda.current_device()
         for id in range(images.shape[0]):
             class_id = targets[id].item()
-            if 0:
-                #save into separate folders
-                place_to_store = '{}/s{:03d}/img_{:05d}_id{:03d}_gpu_{}_2.jpg'.format(self.final_data_path, class_id,
-                                                                                          self.num_generations, id,
-                                                                                          local_rank)
-            else:
-                place_to_store = '{}/img_s{:03d}_{:05d}_id{:03d}_gpu_{}_2.jpg'.format(self.final_data_path, class_id,
-                                                                                          self.num_generations, id,
-                                                                                          local_rank)
+            # if 0:
+            #     #save into separate folders
+            #     place_to_store = '{}/s{:03d}/img_{:05d}_id{:03d}_gpu_{}_2.jpg'.format(self.final_data_path, class_id,
+            #                                                                               self.num_generations, id,
+            #                                                                               local_rank)
+            # else:
+            #     place_to_store = '{}/img_s{:03d}_{:05d}_id{:03d}_gpu_{}_2.jpg'.format(self.final_data_path, class_id,
+            #                                                                               self.num_generations, id,
+            #                                                                               local_rank)
+            
+            save_dir = os.path.join(self.final_data_path, f'{class_id}')
+            os.makedirs(save_dir, exist_ok=True)
+            place_to_store = os.path.join(save_dir, f'{id}.jpg')
 
             image_np = images[id].data.cpu().numpy().transpose((1, 2, 0))
             pil_image = Image.fromarray((image_np * 255).astype(np.uint8))

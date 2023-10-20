@@ -7,11 +7,12 @@
 # Hoiem, Niraj K. Jha, and Jan Kautz
 # --------------------------------------------------------
 
-from __future__ import division, print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+# from __future__ import division, print_function
+# from __future__ import absolute_import
+# from __future__ import division
+# from __future__ import unicode_literals
 
+from dataclasses import dataclass
 import argparse
 import torch
 from torch import distributed, nn
@@ -20,12 +21,13 @@ import torch.nn as nn
 import torch.nn.parallel
 import torch.utils.data
 from torchvision import datasets, transforms
+from .deepinversion import DeepInversionClass
 
 import numpy as np
 import torch.cuda.amp as amp
 import os
 import torchvision.models as models
-from utils.utils import load_model_pytorch, distributed_is_initialized
+from .utils.utils import load_model_pytorch, distributed_is_initialized
 
 random.seed(0)
 
@@ -57,10 +59,10 @@ def validate_one(input, target, model):
 
 def run(args):
     torch.manual_seed(args.local_rank)
-    device = torch.device('cuda' if torch.cuda.is_available() and not args.no_cuda else 'cpu')
+    device = torch.device(args.device)
 
     if args.arch_name == "resnet50v15":
-        from models.resnetv15 import build_resnet
+        from .models.resnetv15 import build_resnet
         net = build_resnet("resnet50", "classic")
     else:
         print("loading torchvision model for inversion with the name: {}".format(args.arch_name))
@@ -84,11 +86,11 @@ def run(args):
 
     # reserved to compute test accuracy on generated images by different networks
     net_verifier = None
-    if args.verifier and args.adi_scale == 0:
+    if args.eval_name is not None and args.adi_scale == 0:
         # if multiple GPUs are used then we can change code to load different verifiers to different GPUs
         if args.local_rank == 0:
-            print("loading verifier: ", args.verifier_arch)
-            net_verifier = models.__dict__[args.verifier_arch](pretrained=True).to(device)
+            print("loading verifier: ", args.eval_name)
+            net_verifier = models.__dict__[args.eval_name](pretrained=True).to(device)
             net_verifier.eval()
 
             if use_fp16:
@@ -110,13 +112,13 @@ def run(args):
                 if isinstance(module, nn.BatchNorm2d):
                     module.eval().half()
 
-    from deepinversion import DeepInversionClass
+    
 
     exp_name = args.exp_name
     # final images will be stored here:
-    adi_data_path = "./final_images/%s"%exp_name
+    adi_data_path =  os.path.join(exp_name, 'final_images') #"./final_images/%s"%exp_name
     # temporal data and generations will be stored here
-    exp_name = "generations/%s"%exp_name
+    exp_name = os.path.join(exp_name, 'generations') # f"{exp_name}/generations/"
 
     args.iterations = 2000
     args.start_noise = True
@@ -134,7 +136,7 @@ def run(args):
     parameters["do_flip"] = True
 
     parameters["do_flip"] = args.do_flip
-    parameters["random_label"] = args.random_label
+    # parameters["random_label"] = args.random_label
     parameters["store_best_images"] = args.store_best_images
 
     criterion = nn.CrossEntropyLoss()
@@ -152,12 +154,13 @@ def run(args):
     network_output_function = lambda x: x
 
     # check accuracy of verifier
-    if args.verifier:
+    if args.eval_name is not None:
         hook_for_display = lambda x,y: validate_one(x, y, net_verifier)
     else:
         hook_for_display = None
 
-    DeepInversionEngine = DeepInversionClass(net_teacher=net,
+    DeepInversionEngine = DeepInversionClass(target_labels=args.target_labels,
+                                             net_teacher=net,
                                              final_data_path=adi_data_path,
                                              path=exp_name,
                                              parameters=parameters,
@@ -173,6 +176,65 @@ def run(args):
     if args.adi_scale != 0:
         net_student = net_verifier
     DeepInversionEngine.generate_batch(net_student=net_student)
+    
+@dataclass
+class DeepInversionArgs:
+    
+    exp_name: str
+    adi_scale: float
+    device: str
+    bs: int
+    lr: float
+    arch_name: str
+    eval_name: str
+    do_flip: bool
+    r_feature: float
+    target_labels: list
+    
+    worldsize = 1
+    local_rank = 0
+    tv_l1 = 0.
+    tv_l2 = 0.0001
+    l2 = 0.00001
+    main_loss_multiplier = 1.
+    
+    store_best_images = True
+    epochs = 20000
+    setting_id = 0
+    first_bn_multiplier = 10
+    
+    fp16 = False
+    jitter = 30
+    comment = ''
+    
+import os
+def deepinversion_attack(
+    exp_name,
+    arch_name,
+    eval_name,
+    target_labels,
+    batch_size,
+    r_feature=0.01,
+    do_flip = True,
+    adi_scale=0.,
+    lr = 0.25,
+    device = 'cuda'
+):
+    args = DeepInversionArgs(
+        exp_name=os.path.join(exp_name, arch_name), 
+        adi_scale=adi_scale,
+        device=device,
+        bs=batch_size,
+        lr=lr,
+        arch_name=arch_name,
+        eval_name=eval_name,
+        do_flip=do_flip,
+        r_feature=r_feature,
+        target_labels=target_labels
+    )
+    
+    print(args)
+    run(args=args)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -212,5 +274,5 @@ def main():
     run(args)
 
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()

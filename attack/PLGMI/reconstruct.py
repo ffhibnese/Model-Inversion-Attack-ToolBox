@@ -181,7 +181,7 @@ class PlgmiArgs:
     gen_distribution: str = 'normal'
 
 
-def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir, dataset_name, dataset_dir, batch_size=20):
+def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir, dataset_name, dataset_dir, batch_size=20, cgan_target_name='vgg16'):
     global args, logger
 
     # parser = ArgumentParser(description='Stage-2: Image Reconstruction')
@@ -217,7 +217,7 @@ def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir, dataset_name, data
         args.gen_num_features, args.gen_dim_z, args.gen_bottom_width,
         num_classes=1000, distribution=args.gen_distribution
     )
-    gen_ckpt_path = os.path.join(ckpt_dir, 'PLG_MI', f'{dataset_name}_VGG16_PLG_MI_G.tar')
+    gen_ckpt_path = os.path.join(ckpt_dir, 'PLG_MI', f'{dataset_name}_{cgan_target_name.upper()}_PLG_MI_G.tar')
     gen_ckpt = torch.load(gen_ckpt_path)['model']
     G.load_state_dict(gen_ckpt)
     G = G.to(device)
