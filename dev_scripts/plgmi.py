@@ -1,8 +1,10 @@
 import sys
-sys.path.append('.')
-sys.path.append('./src')
+sys.path.append('..')
+sys.path.append('../src')
 
-from src.attack.PLGMI.attack import plgmi_attack
+# from attack.PLGMI.attack import attack as plgmi_attack
+from attack.PLGMI.reconstruct import plgmi_attack
+from attack.PLGMI.config import PlgmiAttackConfig
 from development_config import get_dirs
 
 if __name__ == '__main__':
@@ -14,5 +16,18 @@ if __name__ == '__main__':
     dataset_name = 'celeba'
     cgan_target_name = 'ir152'
     
+    batch_size = 20
+    device = 'cuda'
     
-    plgmi_attack(target_name, eval_name, ckpt_dir, dataset_name, dataset_dir, result_dir, cgan_target_name=cgan_target_name)
+    config = PlgmiAttackConfig(
+        target_name=target_name,
+        cgan_target_name=cgan_target_name,
+        ckpt_dir=ckpt_dir,
+        result_dir=result_dir,
+        dataset_name=dataset_name,
+        dataset_dir=dataset_dir,
+        device=device,
+        batch_size=batch_size
+    )
+    
+    plgmi_attack(config)
