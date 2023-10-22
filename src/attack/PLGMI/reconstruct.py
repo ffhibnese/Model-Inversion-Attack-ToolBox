@@ -19,7 +19,7 @@ from ...metrics import get_knn_dist, calc_fid
 from .models.generators.resnet64 import ResNetGenerator
 from .utils import save_tensor_images
 from .config import PlgmiAttackConfig
-from ...utils import Tee
+# from ...utils import Tee
 
 
 def set_random_seed(seed=0):
@@ -186,7 +186,7 @@ def plgmi_attack(attack_args: PlgmiAttackConfig):
     
     save_dir = os.path.join(result_dir, f'{dataset_name}_{target_name}_{cgan_target_name}')
     os.makedirs(save_dir, exist_ok=True)
-    Tee(f'{save_dir}/attack.log', 'w')
+    # Tee(f'{save_dir}/attack.log', 'w')
     
     args = PlgmiArgs(target_name, eval_name, save_dir, ckpt_dir, device=device,
                      inv_loss_type=attack_args.inv_loss_type,

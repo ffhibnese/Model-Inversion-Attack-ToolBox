@@ -1,6 +1,6 @@
 import sys
-sys.path.append('..')
-sys.path.append('../src')
+sys.path.append('.')
+sys.path.append('./src')
 
 # from attack.PLGMI.attack import attack as plgmi_attack
 from attack.PLGMI.reconstruct import plgmi_attack
