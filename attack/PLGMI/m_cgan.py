@@ -20,6 +20,7 @@ from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 import shutil
 from dataclasses import dataclass
+from tqdm import tqdm
 
 @dataclass
 class PlgmiCGanArgs:
@@ -49,6 +50,20 @@ class PlgmiCGanArgs:
     checkpoint_interval = 1000
     eval_interval = 1000
     alpha = 0.2 # weight of inv loss
+    
+class SimpleSampler:
+    
+    def __init__(self, loader) -> None:
+        self.loader = loader
+        
+    def _sample(self):
+        while True:
+            for data in self.loader:
+                yield data
+                
+    def sample(self, device):
+        data = self._sample()
+        return (d.to(device) for d in data)
     
 def plgmi_train_cgan(
     target_name,
@@ -157,7 +172,13 @@ def run(args: PlgmiCGanArgs, target_model):
     
     train_set = ImageFolder(top_n_selection_dir, transform=my_transform)
     
-    train_loader = iter(DataLoader(train_set, batch_size=args.batch_size, shuffle=True))
+    # train_loader = iter(DataLoader(train_set, batch_size=args.batch_size, shuffle=True, generator=torch.Generator(device='cpu')))
+    train_loader = iter(torch.utils.data.DataLoader(
+        train_set, args.batch_size,
+        sampler=InfiniteSamplerWrapper(train_set),
+    ))
+    
+    # sampler = SimpleSampler(train_loader)
     
     # result_dir = os.path.join(args.cache_dir, 'train_cgan', args.dataset_name, )
     result_ckpt_dir = os.path.join(args.gen_ckpt_dir, 'PLG_MI')
@@ -190,7 +211,7 @@ def run(args: PlgmiCGanArgs, target_model):
         kornia.augmentation.RandomRotation(5),
     ).to(device)
     
-    for n_iter in range(1, args.max_iteration + 1):
+    for n_iter in tqdm(range(1, args.max_iteration + 1)):
         # ==================== Beginning of 1 iteration. ====================
         _l_g = .0
         cumulative_inv_loss = 0.
@@ -213,14 +234,16 @@ def run(args: PlgmiCGanArgs, target_model):
                 fake_aug = aug_list(fake)
                 # calc the L_inv
                 if args.inv_loss_type == 'ce':
-                    inv_loss = L.cross_entropy_loss(target_model(fake_aug)[-1], pseudo_y)
+                    inv_loss = L.cross_entropy_loss(target_model(fake_aug).result, pseudo_y)
                 elif args.inv_loss_type == 'margin':
-                    inv_loss = L.max_margin_loss(target_model(fake_aug)[-1], pseudo_y)
+                    inv_loss = L.max_margin_loss(target_model(fake_aug).result, pseudo_y)
                 elif args.inv_loss_type == 'poincare':
-                    inv_loss = L.poincare_loss(target_model(fake_aug)[-1], pseudo_y)
+                    inv_loss = L.poincare_loss(target_model(fake_aug).result, pseudo_y)
                 # not used
                 if args.relativistic_loss:
+                    # print(">> aaaaaaaaa")
                     real, y = sample_from_data(args, device, train_loader)
+                    # real, y = sampler.sample(device)
                     dis_real = dis(real, y)
                 else:
                     dis_real = None
@@ -238,7 +261,9 @@ def run(args: PlgmiCGanArgs, target_model):
             # generate fake images
             fake, pseudo_y, _ = sample_from_gen(args, device, args.num_classes, gen)
             # sample the real images
+            # print(">> bbbaaaaaaaaa")
             real, y = sample_from_data(args, device, train_loader)
+            # real, y = sampler.sample(device)
             # calc the loss of D
             dis_fake, dis_real = dis(fake, pseudo_y), dis(real, y)
             loss_dis = dis_criterion(dis_fake, dis_real)
@@ -251,7 +276,7 @@ def run(args: PlgmiCGanArgs, target_model):
 
             with torch.no_grad():
                 count += fake.shape[0]
-                T_logits = target_model(fake)[-1]
+                T_logits = target_model(fake).result
                 T_preds = T_logits.max(1, keepdim=True)[1]
                 target_correct += T_preds.eq(pseudo_y.view_as(T_preds)).sum().item()
                 cumulative_target_acc += round(target_correct / count, 4)

@@ -181,7 +181,7 @@ class PlgmiArgs:
     gen_distribution: str = 'normal'
 
 
-def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir, dataset_name, dataset_dir, batch_size=20, cgan_target_name='vgg16'):
+def plgmi_attack(target_name, eval_name, ckpt_dir, dataset_name, dataset_dir, result_dir, batch_size=20, cgan_target_name='vgg16'):
     global args, logger
 
     # parser = ArgumentParser(description='Stage-2: Image Reconstruction')
@@ -204,7 +204,9 @@ def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir, dataset_name, data
     # parser.add_argument('--path_G', type=str,
     #                     default='')
     # args = parser.parse_args()
-    args = PlgmiArgs(target_name, eval_name, cache_dir, ckpt_dir)
+    save_dir = os.path.join(result_dir, f'{dataset_name}_{target_name}_{cgan_target_name}')
+    os.makedirs(save_dir, exist_ok=True)
+    args = PlgmiArgs(target_name, eval_name, save_dir, ckpt_dir)
     logger = get_logger()
 
     logger.info(args)
@@ -218,7 +220,13 @@ def plgmi_attack(target_name, eval_name, cache_dir, ckpt_dir, dataset_name, data
         num_classes=1000, distribution=args.gen_distribution
     )
     gen_ckpt_path = os.path.join(ckpt_dir, 'PLG_MI', f'{dataset_name}_{cgan_target_name.upper()}_PLG_MI_G.tar')
-    gen_ckpt = torch.load(gen_ckpt_path)['model']
+    print(f'gen ckpt path: {gen_ckpt_path}')
+    gen_ckpt = torch.load(gen_ckpt_path) #['model']
+    if isinstance(gen_ckpt, dict):
+        if 'state_dict' in gen_ckpt:
+            gen_ckpt = gen_ckpt['state_dict']
+        elif 'model' in gen_ckpt:
+            gen_ckpt = gen_ckpt['model']
     G.load_state_dict(gen_ckpt)
     G = G.to(device)
 
