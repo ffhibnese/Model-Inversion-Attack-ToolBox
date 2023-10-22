@@ -11,24 +11,21 @@ from kornia import augmentation
 
 from . import losses as L
 from . import utils
+from ...models import *
 from ...metrics import get_knn_dist, calc_fid
 # from ...metrics import knn
 # from ...metrics.fid.fid import calc_fid
-from ...models import *
+
 from .models.generators.resnet64 import ResNetGenerator
 from .utils import save_tensor_images
-
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-device = 'cuda'
-
-# get_knn_dist = knn.get_knn_dist
-
+from .config import PlgmiAttackConfig
+from ...utils import Tee
 
 def set_random_seed(seed=0):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    if device != 'cpu':
+    if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True
@@ -38,18 +35,6 @@ def set_random_seed(seed=0):
 set_random_seed(42)
 
 
-# logger
-def get_logger():
-    logger_name = "main-logger"
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler()
-    fmt = "[%(asctime)s %(levelname)s %(filename)s line %(lineno)d %(process)d] %(message)s"
-    handler.setFormatter(logging.Formatter(fmt))
-    logger.addHandler(handler)
-    return logger
-
-
 def inversion(args, G, T, E, iden, itr, lr=2e-2, iter_times=1500, num_seeds=5):
     save_img_dir = os.path.join(args.save_dir, 'all_imgs')
     success_dir = os.path.join(args.save_dir, 'success_imgs')
@@ -57,7 +42,7 @@ def inversion(args, G, T, E, iden, itr, lr=2e-2, iter_times=1500, num_seeds=5):
     os.makedirs(success_dir, exist_ok=True)
 
     bs = iden.shape[0]
-    iden = iden.view(-1).long().to(device)
+    iden = iden.view(-1).long().to(args.device)
 
     G.eval()
     T.eval()
@@ -84,17 +69,14 @@ def inversion(args, G, T, E, iden, itr, lr=2e-2, iter_times=1500, num_seeds=5):
         set_random_seed(random_seed)
 
         z = utils.sample_z(
-            bs, args.gen_dim_z, device, args.gen_distribution
+            bs, args.gen_dim_z, args.device, args.gen_distribution
         )
         z.requires_grad = True
 
         optimizer = torch.optim.Adam([z], lr=lr)
 
         for i in range(iter_times):
-            # print(z.shape, iden.shape)
             fake = G(z, iden)
-            # print(f'>>> z {z.device} iden {iden.device} T {next(T.parameters()).device}')
-            # print(fake.shape)
             out1 = T(aug_list(fake)).result
             out2 = T(aug_list(fake)).result
 
@@ -158,7 +140,8 @@ def inversion(args, G, T, E, iden, itr, lr=2e-2, iter_times=1500, num_seeds=5):
             print("Time:{:.2f}\tAcc:{:.2f}\t".format(interval, cnt * 1.0 / bs))
             res.append(cnt * 1.0 / bs)
             res5.append(cnt5 * 1.0 / bs)
-            torch.cuda.empty_cache()
+            if args.device == 'cuda':
+                torch.cuda.empty_cache()
 
     acc, acc_5 = statistics.mean(res), statistics.mean(res5)
     acc_var = statistics.variance(res)
@@ -175,6 +158,8 @@ class PlgmiArgs:
     eval_name: str
     save_dir: str
     path_G: str
+    device: str
+    
     inv_loss_type: str = 'margin'
     lr: float = 0.1
     iter_times: int = 600
@@ -182,38 +167,37 @@ class PlgmiArgs:
     gen_dim_z: int = 128
     gen_bottom_width: int = 4
     gen_distribution: str = 'normal'
+    
 
 
-def plgmi_attack(target_name, eval_name, ckpt_dir, dataset_name, dataset_dir, result_dir, batch_size=20, cgan_target_name='vgg16'):
-    global args, logger
 
-    # parser = ArgumentParser(description='Stage-2: Image Reconstruction')
-    # parser.add_argument('--model', default='VGG16', help='VGG16 | IR152 | FaceNet64')
-    # parser.add_argument('--inv_loss_type', type=str, default='margin', help='ce | margin | poincare')
-    # parser.add_argument('--lr', type=float, default=0.1)
-    # parser.add_argument('--iter_times', type=int, default=600)
-    # # Generator configuration
-    # parser.add_argument('--gen_num_features', '-gnf', type=int, default=64,
-    #                     help='Number of features of generator (a.k.a. nplanes or ngf). default: 64')
-    # parser.add_argument('--gen_dim_z', '-gdz', type=int, default=128,
-    #                     help='Dimension of generator input noise. default: 128')
-    # parser.add_argument('--gen_bottom_width', '-gbw', type=int, default=4,
-    #                     help='Initial size of hidden variable of generator. default: 4')
-    # parser.add_argument('--gen_distribution', '-gd', type=str, default='normal',
-    #                     help='Input noise distribution: normal (default) or uniform.')
-    # # path
-    # parser.add_argument('--save_dir', type=str,
-    #                     default='PLG_MI_Inversion')
-    # parser.add_argument('--path_G', type=str,
-    #                     default='')
-    # args = parser.parse_args()
+# def _plgmi_attack(target_name, eval_name, ckpt_dir, dataset_name, dataset_dir, result_dir, batch_size=20, cgan_target_name='vgg16', device='cpu', **kwargs):
+def plgmi_attack(attack_args: PlgmiAttackConfig):
+    
+    target_name = attack_args.target_name
+    eval_name = attack_args.eval_name
+    ckpt_dir = attack_args.ckpt_dir
+    dataset_name = attack_args.dataset_name
+    batch_size = attack_args.batch_size
+    result_dir = attack_args.result_dir
+    cgan_target_name = attack_args.cgan_target_name
+    device = attack_args.device
+    
     save_dir = os.path.join(result_dir, f'{dataset_name}_{target_name}_{cgan_target_name}')
     os.makedirs(save_dir, exist_ok=True)
-    args = PlgmiArgs(target_name, eval_name, save_dir, ckpt_dir)
-    logger = get_logger()
+    Tee(f'{save_dir}/attack.log', 'w')
+    
+    args = PlgmiArgs(target_name, eval_name, save_dir, ckpt_dir, device=device,
+                     inv_loss_type=attack_args.inv_loss_type,
+                     lr=attack_args.lr,
+                     iter_times=attack_args.iter_times,
+                     gen_num_features=attack_args.gen_num_features,
+                     gen_dim_z=attack_args.gen_dim_z,
+                     gen_bottom_width=attack_args.gen_bottom_width,
+                     gen_distribution=attack_args.gen_distribution)
 
-    logger.info(args)
-    logger.info("=> creating model ...")
+
+    print("=> creating model ...")
 
     set_random_seed(42)
 
@@ -223,7 +207,7 @@ def plgmi_attack(target_name, eval_name, ckpt_dir, dataset_name, dataset_dir, re
         num_classes=1000, distribution=args.gen_distribution
     )
     gen_ckpt_path = os.path.join(ckpt_dir, 'PLG_MI', f'{dataset_name}_{cgan_target_name.upper()}_PLG_MI_G.tar')
-    print(f'gen ckpt path: {gen_ckpt_path}')
+
     gen_ckpt = torch.load(gen_ckpt_path) #['model']
     if isinstance(gen_ckpt, dict):
         if 'state_dict' in gen_ckpt:
@@ -231,7 +215,7 @@ def plgmi_attack(target_name, eval_name, ckpt_dir, dataset_name, dataset_dir, re
         elif 'model' in gen_ckpt:
             gen_ckpt = gen_ckpt['model']
     G.load_state_dict(gen_ckpt)
-    G = G.to(device)
+    G = G.to(args.device)
 
     # Load target model
     if args.taregt_name.startswith("vgg16"):
@@ -243,19 +227,19 @@ def plgmi_attack(target_name, eval_name, ckpt_dir, dataset_name, dataset_dir, re
     elif args.taregt_name == "facenet64":
         T = FaceNet64(1000)
         path_T = os.path.join(ckpt_dir, 'celeba', 'FaceNet64_88.50.tar')
-    T = (T).to(device)
+    T = (T).to(args.device)
     ckp_T = torch.load(path_T)['state_dict']
     T.load_state_dict(ckp_T, strict=True)
 
     # Load evaluation model
     E = FaceNet(1000)
-    E = (E).to(device)
+    E = (E).to(args.device)
     path_E = os.path.join(ckpt_dir, 'celeba', 'FaceNet_95.88.tar')
     ckp_E = torch.load(path_E)['state_dict']
     E.load_state_dict(ckp_E, strict=True)
     # E.load_state_dict(ckp_E['state_dict'], strict=False)
 
-    logger.info("=> Begin attacking ...")
+    print("=> Begin attacking ...")
     aver_acc, aver_acc5, aver_var, aver_var5 = 0, 0, 0, 0
     for i in range(1):
         # attack 60 classes per batch
@@ -280,11 +264,11 @@ def plgmi_attack(target_name, eval_name, ckpt_dir, dataset_name, dataset_dir, re
                                                                                                             aver_var5))
 
     print("=> Calculate the KNN Dist.")
-    knn_dist = get_knn_dist(E, os.path.join(args.save_dir, 'all_imgs'), os.path.join(dataset_dir, 'plgmi', "celeba_private_feats"), resolution=112)
+    knn_dist = get_knn_dist(E, os.path.join(args.save_dir, 'all_imgs'), os.path.join(ckpt_dir, 'PLG_MI', "celeba_private_feats"), resolution=112)
     print("KNN Dist %.2f" % knn_dist)
 
     print("=> Calculate the FID.")
     fid = calc_fid(recovery_img_path=os.path.join(args.save_dir, "success_imgs"),
-                   private_img_path= os.path.join(dataset_dir, 'plgmi', "datasets", "celeba_private_domain"),
-                   batch_size=100)
+                   private_img_path= os.path.join(ckpt_dir, 'PLG_MI', "datasets", "celeba_private_domain"),
+                   batch_size=batch_size)
     print("FID %.2f" % fid)
