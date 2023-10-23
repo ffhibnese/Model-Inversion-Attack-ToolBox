@@ -206,7 +206,7 @@ def plgmi_attack(attack_args: PlgmiAttackConfig):
         args.gen_num_features, args.gen_dim_z, args.gen_bottom_width,
         num_classes=1000, distribution=args.gen_distribution
     )
-    gen_ckpt_path = os.path.join(ckpt_dir, 'PLG_MI', f'{dataset_name}_{cgan_target_name.upper()}_PLG_MI_G.tar')
+    gen_ckpt_path = os.path.join(ckpt_dir, 'PLGMI', f'{dataset_name}_{cgan_target_name.upper()}_PLG_MI_G.tar')
 
     gen_ckpt = torch.load(gen_ckpt_path) #['model']
     if isinstance(gen_ckpt, dict):
@@ -220,13 +220,13 @@ def plgmi_attack(attack_args: PlgmiAttackConfig):
     # Load target model
     if args.taregt_name.startswith("vgg16"):
         T = VGG16(1000)
-        path_T = os.path.join(ckpt_dir, 'celeba', 'VGG16_88.26.tar')
+        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'VGG16_88.26.tar')
     elif args.taregt_name.startswith('ir152'):
         T = IR152(1000)
-        path_T = os.path.join(ckpt_dir, 'celeba', 'IR152_91.16.tar')
+        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'IR152_91.16.tar')
     elif args.taregt_name == "facenet64":
         T = FaceNet64(1000)
-        path_T = os.path.join(ckpt_dir, 'celeba', 'FaceNet64_88.50.tar')
+        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'FaceNet64_88.50.tar')
     T = (T).to(args.device)
     ckp_T = torch.load(path_T)['state_dict']
     T.load_state_dict(ckp_T, strict=True)
@@ -234,7 +234,7 @@ def plgmi_attack(attack_args: PlgmiAttackConfig):
     # Load evaluation model
     E = FaceNet(1000)
     E = (E).to(args.device)
-    path_E = os.path.join(ckpt_dir, 'celeba', 'FaceNet_95.88.tar')
+    path_E = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'FaceNet_95.88.tar')
     ckp_E = torch.load(path_E)['state_dict']
     E.load_state_dict(ckp_E, strict=True)
     # E.load_state_dict(ckp_E['state_dict'], strict=False)
@@ -264,11 +264,11 @@ def plgmi_attack(attack_args: PlgmiAttackConfig):
                                                                                                             aver_var5))
 
     print("=> Calculate the KNN Dist.")
-    knn_dist = get_knn_dist(E, os.path.join(args.save_dir, 'all_imgs'), os.path.join(ckpt_dir, 'PLG_MI', "celeba_private_feats"), resolution=112)
+    knn_dist = get_knn_dist(E, os.path.join(args.save_dir, 'all_imgs'), os.path.join(ckpt_dir, 'PLGMI', "celeba_private_feats"), resolution=112)
     print("KNN Dist %.2f" % knn_dist)
 
     print("=> Calculate the FID.")
     fid = calc_fid(recovery_img_path=os.path.join(args.save_dir, "success_imgs"),
-                   private_img_path= os.path.join(ckpt_dir, 'PLG_MI', "datasets", "celeba_private_domain"),
+                   private_img_path= os.path.join(ckpt_dir, 'PLGMI', "datasets", "celeba_private_domain"),
                    batch_size=batch_size)
     print("FID %.2f" % fid)

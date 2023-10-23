@@ -203,13 +203,13 @@ def top_n_selection(target_name, dataset_name, ckpt_dir, dataset_dir, cache_dir,
         
     if target_name.startswith("vgg16"):
         T = VGG16(1000)
-        path_T = os.path.join(ckpt_dir, 'celeba', 'VGG16_88.26.tar')
+        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'VGG16_88.26.tar')
     elif target_name.startswith('ir152'):
         T = IR152(1000)
-        path_T = os.path.join(ckpt_dir, 'celeba', 'IR152_91.16.tar')
+        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'IR152_91.16.tar')
     elif target_name == "facenet64":
         T = FaceNet64(1000)
-        path_T = os.path.join(ckpt_dir, 'celeba', 'FaceNet64_88.50.tar')
+        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'FaceNet64_88.50.tar')
     T = (T).to(device)
     if device == 'cpu': 
         ckp_T = torch.load(path_T, map_location=lambda storage, loc: storage)['state_dict']

@@ -93,13 +93,13 @@ def plgmi_train_cgan(
     
     if target_name.startswith("vgg16"):
         T = VGG16(1000)
-        path_T = os.path.join(ckpt_dir, 'celeba', 'VGG16_88.26.tar')
+        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'VGG16_88.26.tar')
     elif target_name.startswith('ir152'):
         T = IR152(1000)
-        path_T = os.path.join(ckpt_dir, 'celeba', 'IR152_91.16.tar')
+        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'IR152_91.16.tar')
     elif target_name == "facenet64":
         T = FaceNet64(1000)
-        path_T = os.path.join(ckpt_dir, 'celeba', 'FaceNet64_88.50.tar')
+        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'FaceNet64_88.50.tar')
     T = (T).to(device)
     
     # E = FaceNet(1000)
@@ -181,7 +181,7 @@ def run(args: PlgmiCGanArgs, target_model):
     # sampler = SimpleSampler(train_loader)
     
     # result_dir = os.path.join(args.cache_dir, 'train_cgan', args.dataset_name, )
-    result_ckpt_dir = os.path.join(args.gen_ckpt_dir, 'PLG_MI')
+    result_ckpt_dir = os.path.join(args.gen_ckpt_dir, 'PLGMI')
     os.makedirs(result_ckpt_dir, exist_ok=True)
     
     result_D_path = os.path.join(result_ckpt_dir, f'{args.dataset_name}_{args.target_name.upper()}_PLG_MI_D.tar')

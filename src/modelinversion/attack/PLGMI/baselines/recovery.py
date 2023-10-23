@@ -314,8 +314,8 @@ def gmi_attack(target_name, eval_name, cache_dir, ckpt_dir, dataset_name, datase
         
     if is_kedmi:
         D = MinibatchDiscriminator()
-        path_G = os.path.join(ckpt_dir, 'KED_MI', f'{dataset_name}_VGG16_KED_MI_G.tar')
-        path_D = os.path.join(ckpt_dir, 'KED_MI', f'{dataset_name}_VGG16_KED_MI_D.tar')
+        path_G = os.path.join(ckpt_dir, 'KEDMI', f'{dataset_name}_VGG16_KED_MI_G.tar')
+        path_D = os.path.join(ckpt_dir, 'KEDMI', f'{dataset_name}_VGG16_KED_MI_D.tar')
     else:
         D = DGWGAN(3)
         path_G = os.path.join(ckpt_dir, 'GMI', f'{dataset_name}_VGG16_GMI_G.tar')
