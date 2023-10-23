@@ -361,6 +361,6 @@ def run(
     torch.save(latent_inputs, f'{args.final_image_dir}/latent_inputs.pt')
     
     if args.calc_knn:
-        feat_dir = os.path.join(args.checkpoint_dir, "PLG_MI", "celeba_private_feats")
+        feat_dir = os.path.join(args.checkpoint_dir, "PLGMI", "celeba_private_feats")
         knn_dist = get_knn_dist(eval_net, args.final_image_dir, feat_dir, resolution=112)
         print(f"knn dist: {knn_dist}")
