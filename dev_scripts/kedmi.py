@@ -1,17 +1,35 @@
 import sys
 sys.path.append('.')
+sys.path.append('./src')
+sys.path.append('./src/modelinversion')
 
-from attack.PLGMI.baselines.recovery import gmi_attack
+from modelinversion.attack.KEDMI.attack import attack as kedmi_attack
+# from modelinversion.attack.PLGMI.reconstruct import plgmi_attack
+from modelinversion.attack.KEDMI.config import KedmiAttackConfig
 from development_config import get_dirs
 
 if __name__ == '__main__':
-    dirs = get_dirs('kedmi')
+    dirs = get_dirs('plgmi')
     work_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     
-    target_name = 'ir152'
+    target_name = 'facenet64'
     eval_name = 'facenet'
+    gan_target_name = 'vgg16'
     dataset_name = 'celeba'
     
+    batch_size = 60
+    device = 'cpu'
     
+    config = KedmiAttackConfig(
+        target_name=target_name,
+        eval_name=eval_name,
+        gan_target_name=gan_target_name,
+        ckpt_dir=ckpt_dir,
+        result_dir=result_dir,
+        dataset_name=dataset_name,
+        # dataset_dir=dataset_dir,
+        device=device,
+        batch_size=batch_size
+    )
     
-    gmi_attack(target_name, eval_name, work_dir, ckpt_dir, dataset_name, dataset_dir, is_kedmi=True)
+    kedmi_attack(config)
