@@ -12,7 +12,7 @@ import os
 from collections import OrderedDict
 def get_model(arch_name, device, classifier_dir, dataset_name, use_dropout=False):
     
-    path = os.path.join(classifier_dir, dataset_name)
+    path = os.path.join(classifier_dir, 'target_eval', dataset_name)
     # path = None
     # state_dict = torch
     if arch_name == 'vgg16':
@@ -44,17 +44,20 @@ def get_model(arch_name, device, classifier_dir, dataset_name, use_dropout=False
     
     if path is not None and os.path.isfile(path):
     
-        state_dict = torch.load(path)
+        state_dict = torch.load(path, map_location=device)
         
         if isinstance(state_dict, dict) and 'state_dict' in state_dict.keys():
             state_dict = state_dict['state_dict']
         
     
-        new_state_dict = OrderedDict()
+        # new_state_dict = OrderedDict()
         for k, v in state_dict.items():
             name = k
             if k.startswith('module.'):
-                name = k[7:] # remove `module.`
-            new_state_dict[name] = v
-        model.load_state_dict(new_state_dict)
+                pl = nn.DataParallel(model)
+                pl.load_state_dict(state_dict)
+                torch.save({'state_dict': pl.module.state_dict()}, path)
+                state_dict = torch.load(path)['state_dict']
+                break
+        model.load_state_dict(state_dict)
     return model.to(device)

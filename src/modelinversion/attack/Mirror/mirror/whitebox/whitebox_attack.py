@@ -14,7 +14,7 @@ from attack.Mirror.mirror.classifiers.build_classifier import get_model
 from attack.Mirror.mirror.select_w import find_closest_latent
 import glob
 from metrics.knn import get_knn_dist
-
+from .....utils import Tee
 @dataclass
 class MirrorWhiteBoxArgs:
     arch_name: str
@@ -54,6 +54,7 @@ def mirror_white_box_attack(
     work_dir,
     checkpoint_dir,
     classifier_dir,
+    result_dir,
     dataset_name,
     pre_sample_dir = None,
     use_cache = False,
@@ -73,10 +74,13 @@ def mirror_white_box_attack(
     if genforce_model_name != 'stylegan2_ffhq1024':
         torch.backends.cudnn.benchmark = True
         
-    final_image_dir = os.path.join(work_dir, 'final_images')
-    tmp_image_dir = os.path.join(work_dir, 'generations')
-    
+    final_image_dir = os.path.join(result_dir, f'{arch_name}_{test_arch_name}_{genforce_model_name}', f'final_images')
     create_folder(final_image_dir)
+    
+    Tee(os.path.join(result_dir, f'{arch_name}_{test_arch_name}_{genforce_model_name}', 'attack.log'), 'w')
+    tmp_image_dir = os.path.join(work_dir, f'{arch_name}_{test_arch_name}_{genforce_model_name}', 'generations')
+    
+    
     create_folder(tmp_image_dir)
     create_folder(os.path.join(tmp_image_dir, 'images'))
     
@@ -180,7 +184,7 @@ def run(
             
             for ws_file in all_ws_gen_files:
             
-                all_ws = torch.load(ws_file).detach().to(args.device)
+                all_ws = torch.load(ws_file, map_location=args.device).detach().to(args.device)
                 # print(f'all_ws.shape: {all_ws.shape}')
                 all_ps = invert_lrelu(all_ws)
                 all_p_means = torch.mean(all_ps, dim=0, keepdim=True)
@@ -352,7 +356,7 @@ def run(
         os.makedirs(save_dirname, exist_ok=True)
         save_filename = os.path.join(save_dirname, f'{i}.jpg')
 
-        torch.save(latent_inputs[i], save_filename[:-4]+'.pt')
+        # torch.save(latent_inputs[i], save_filename[:-4]+'.pt')
 
         image_np = denormalize(fake[i], args.arch_name).data.cpu().numpy().transpose((1, 2, 0))
         pil_image = Image.fromarray((image_np * 255).astype(np.uint8))
@@ -362,5 +366,5 @@ def run(
     
     if args.calc_knn:
         feat_dir = os.path.join(args.checkpoint_dir, "PLGMI", "celeba_private_feats")
-        knn_dist = get_knn_dist(eval_net, args.final_image_dir, feat_dir, resolution=112)
+        knn_dist = get_knn_dist(eval_net, args.final_image_dir, feat_dir, resolution=112, device=args.device)
         print(f"knn dist: {knn_dist}")

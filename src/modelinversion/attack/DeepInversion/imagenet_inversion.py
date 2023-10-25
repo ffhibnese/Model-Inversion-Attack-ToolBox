@@ -28,6 +28,7 @@ import torch.cuda.amp as amp
 import os
 import torchvision.models as models
 from .utils.utils import load_model_pytorch, distributed_is_initialized
+from ...utils import Tee
 
 random.seed(0)
 
@@ -61,13 +62,14 @@ def run(args):
     torch.manual_seed(args.local_rank)
     device = torch.device(args.device)
 
-    if args.arch_name == "resnet50v15":
+    if args.target_name == "resnet50v15":
         from .models.resnetv15 import build_resnet
         net = build_resnet("resnet50", "classic")
     else:
-        print("loading torchvision model for inversion with the name: {}".format(args.arch_name))
-        net = models.__dict__[args.arch_name](pretrained=True)
+        print("loading torchvision model for inversion with the name: {}".format(args.target_name))
+        net = models.__dict__[args.target_name](pretrained=True)
 
+    # print(f'device: {device}')
     net = net.to(device)
 
     use_fp16 = args.fp16
@@ -77,7 +79,7 @@ def run(args):
     print('==> Resuming from checkpoint..')
 
     ### load models
-    if args.arch_name=="resnet50v15":
+    if args.target_name=="resnet50v15":
         path_to_model = "./models/resnet50v15/model_best.pth.tar"
         load_model_pytorch(net, path_to_model, gpu_n=torch.cuda.current_device())
 
@@ -116,9 +118,9 @@ def run(args):
 
     exp_name = args.exp_name
     # final images will be stored here:
-    adi_data_path =  os.path.join(exp_name, 'final_images') #"./final_images/%s"%exp_name
+    # adi_data_path =  os.path.join(exp_name, 'final_images') #"./final_images/%s"%exp_name
     # temporal data and generations will be stored here
-    exp_name = os.path.join(exp_name, 'generations') # f"{exp_name}/generations/"
+    # exp_name = os.path.join(exp_name, 'generations') # f"{exp_name}/generations/"
 
     args.iterations = 2000
     args.start_noise = True
@@ -159,9 +161,10 @@ def run(args):
     else:
         hook_for_display = None
 
+    assert not (use_fp16 and device == 'cpu'), 'cpu do not support fp16'
     DeepInversionEngine = DeepInversionClass(target_labels=args.target_labels,
                                              net_teacher=net,
-                                             final_data_path=adi_data_path,
+                                             final_data_path=args.save_dir,
                                              path=exp_name,
                                              parameters=parameters,
                                              setting_id=args.setting_id,
@@ -171,7 +174,8 @@ def run(args):
                                              criterion=criterion,
                                              coefficients = coefficients,
                                              network_output_function = network_output_function,
-                                             hook_for_display = hook_for_display)
+                                             hook_for_display = hook_for_display,
+                                             device=device)
     net_student=None
     if args.adi_scale != 0:
         net_student = net_verifier
@@ -185,11 +189,12 @@ class DeepInversionArgs:
     device: str
     bs: int
     lr: float
-    arch_name: str
+    target_name: str
     eval_name: str
     do_flip: bool
     r_feature: float
     target_labels: list
+    save_dir: str
     
     worldsize = 1
     local_rank = 0
@@ -207,30 +212,54 @@ class DeepInversionArgs:
     jitter = 30
     comment = ''
     
+# @dataclass
+# class DeepInversionConfig:
+    
+#     target_name: str
+#     eval_name: str
+#     target_labels: list
+    
+#     cache_dir: str
+#     result_dir: str
+#     dataset_name: str
+    
+#     batch_size: int = 60
+#     r_feature=0.01
+#     do_flip = True
+#     adi_scale=0.
+#     lr = 0.25
+    
+#     device = 'cpu'
+
+from .config import DeepInversionConfig
+    
 import os
 def deepinversion_attack(
-    exp_name,
-    arch_name,
-    eval_name,
-    target_labels,
-    batch_size,
-    r_feature=0.01,
-    do_flip = True,
-    adi_scale=0.,
-    lr = 0.25,
-    device = 'cuda'
+    args: DeepInversionConfig
 ):
+    print(type(args))
+    dataset_name = args.dataset_name
+    assert dataset_name == 'imagenet'
+    
+    exp_name = os.path.join(args.cache_dir, args.target_name)
+    save_dir = os.path.join(args.result_dir, args.target_name)
+    
+    os.makedirs(exp_name, exist_ok=True)
+    os.makedirs(save_dir, exist_ok=True)
+    
     args = DeepInversionArgs(
-        exp_name=os.path.join(exp_name, arch_name), 
-        adi_scale=adi_scale,
-        device=device,
-        bs=batch_size,
-        lr=lr,
-        arch_name=arch_name,
-        eval_name=eval_name,
-        do_flip=do_flip,
-        r_feature=r_feature,
-        target_labels=target_labels
+        exp_name=os.path.join(exp_name, args.target_name), 
+        save_dir=save_dir,
+        adi_scale=args.adi_scale,
+        device=args.device,
+        bs=args.batch_size,
+        lr=args.lr,
+        target_name=args.target_name,
+        eval_name=args.eval_name,
+        # dataset_name = args.dataset_name,
+        do_flip=args.do_flip,
+        r_feature=args.r_feature,
+        target_labels=args.target_labels
     )
     
     print(args)
@@ -248,7 +277,7 @@ def main():
     parser.add_argument('--bs', default=64, type=int, help='batch size')
     parser.add_argument('--jitter', default=30, type=int, help='batch size')
     parser.add_argument('--comment', default='', type=str, help='batch size')
-    parser.add_argument('--arch_name', default='resnet50', type=str, help='model name from torchvision or resnet50v15')
+    parser.add_argument('--target_name', default='resnet50', type=str, help='model name from torchvision or resnet50v15')
 
     parser.add_argument('--fp16', action='store_true', help='use FP16 for optimization')
     parser.add_argument('--exp_name', type=str, default='test', help='where to store experimental data')

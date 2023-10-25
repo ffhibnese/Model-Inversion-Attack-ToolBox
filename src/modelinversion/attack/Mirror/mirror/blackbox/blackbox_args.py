@@ -3,10 +3,12 @@ from dataclasses import dataclass
 @dataclass
 class MirrorBlackBoxArgs:
     arch_name:str
+    eval_name: str
     genforce_model_name: str
     genforce_checkpoint_dir: str
     target_labels: list
     work_dir: str
+    result_dir: str
     classifiers_checkpoint_dir: str
     batch_size : int
     use_cache : bool
@@ -15,6 +17,7 @@ class MirrorBlackBoxArgs:
     population: int
     
     resolution: int
+    eval_resolution: int
     
     log_inverval = 10
     mutation_prob = 0.1
