@@ -78,7 +78,8 @@ class DeepInversionClass(object):
                  criterion=None,
                  coefficients=dict(),
                  network_output_function=lambda x: x,
-                 hook_for_display = None):
+                 hook_for_display = None,
+                 device='cpu'):
         '''
         :param bs: batch size per GPU for image generation
         :param use_fp16: use FP16 (or APEX AMP) for model inversion, uses less memory and is faster for GPUs with Tensor Cores
@@ -110,9 +111,9 @@ class DeepInversionClass(object):
 
         print("Deep inversion class generation")
         # for reproducibility
-        torch.manual_seed(torch.cuda.current_device())
+        # torch.manual_seed(torch.cuda.current_device())
         
-        
+        self.device = device
         
         self.target_labels = []
         self.bs = bs
@@ -122,7 +123,7 @@ class DeepInversionClass(object):
                 self.target_labels.append(label)
                 if len(self.target_labels) >= bs:
                     break
-        self.target_labels = torch.LongTensor(self.target_labels).cuda()
+        self.target_labels = torch.LongTensor(self.target_labels, device=device)
 
         self.net_teacher = net_teacher
 
@@ -166,11 +167,11 @@ class DeepInversionClass(object):
         prefix = path
         self.prefix = prefix
 
-        local_rank = torch.cuda.current_device()
-        if local_rank==0:
-            create_folder(prefix)
-            create_folder(prefix + "/best_images/")
-            create_folder(self.final_data_path)
+        # local_rank = torch.cuda.current_device()
+        # if local_rank==0:
+        create_folder(prefix)
+        create_folder(prefix + "/best_images/")
+        create_folder(self.final_data_path)
             # save images to folders
             # for m in range(1000):
             #     create_folder(self.final_data_path + "/s{:03d}".format(m))
@@ -193,8 +194,8 @@ class DeepInversionClass(object):
         use_fp16 = self.use_fp16
         save_every = self.save_every
 
-        kl_loss = nn.KLDivLoss(reduction='batchmean').cuda()
-        local_rank = torch.cuda.current_device()
+        kl_loss = nn.KLDivLoss(reduction='batchmean').to(self.device)
+        # local_rank = torch.cuda.current_device()
         best_cost = 1e4
         criterion = self.criterion
 
@@ -216,7 +217,7 @@ class DeepInversionClass(object):
         img_original = self.image_resolution
 
         data_type = torch.half if use_fp16 else torch.float
-        inputs = torch.randn((self.bs, 3, img_original, img_original), requires_grad=True, device='cuda',
+        inputs = torch.randn((self.bs, 3, img_original, img_original), requires_grad=True, device=self.device,
                              dtype=data_type)
         pooling_function = nn.modules.pooling.AvgPool2d(kernel_size=2)
 
@@ -322,9 +323,9 @@ class DeepInversionClass(object):
                          # JS criteria - 0 means full correlation, 1 - means completely different
                         loss_verifier_cig = 1.0 - torch.clamp(loss_verifier_cig, 0.0, 1.0)
 
-                    if local_rank==0:
-                        if iteration % save_every==0:
-                            print('loss_verifier_cig', loss_verifier_cig.item())
+                    # if local_rank==0:
+                    if iteration % save_every==0:
+                        print('loss_verifier_cig', loss_verifier_cig.item())
 
                 # l2 loss on images
                 loss_l2 = torch.norm(inputs_jit.view(self.bs, -1), dim=1).mean()
@@ -340,15 +341,15 @@ class DeepInversionClass(object):
 
                 loss = self.main_loss_multiplier * loss + loss_aux
 
-                if local_rank==0:
-                    if iteration % save_every==0:
-                        print("------------iteration {}----------".format(iteration))
-                        print("total loss", loss.item())
-                        print("loss_r_feature", loss_r_feature.item())
-                        print("main criterion", criterion(outputs, targets).item())
+                # if local_rank==0:
+                if iteration % save_every==0:
+                    print("------------iteration {}----------".format(iteration))
+                    print("total loss", loss.item())
+                    print("loss_r_feature", loss_r_feature.item())
+                    print("main criterion", criterion(outputs, targets).item())
 
-                        if self.hook_for_display is not None:
-                            self.hook_for_display(inputs, targets)
+                    if self.hook_for_display is not None:
+                        self.hook_for_display(inputs, targets)
 
                 # do image update
                 if use_fp16:
@@ -369,12 +370,12 @@ class DeepInversionClass(object):
                     best_cost = loss.item()
 
                 if iteration % save_every==0 and (save_every > 0):
-                    if local_rank==0:
-                        vutils.save_image(inputs,
-                                          '{}/best_images/output_{:05d}_gpu_{}.png'.format(self.prefix,
-                                                                                           iteration // save_every,
-                                                                                           local_rank),
-                                          normalize=True, scale_each=True, nrow=int(10))
+                    # if local_rank==0:
+                    vutils.save_image(inputs,
+                                        '{}/best_images/output_{:05d}_gpu_{}.png'.format(self.prefix,
+                                                                                        iteration // save_every,
+                                                                                        0),
+                                        normalize=True, scale_each=True, nrow=int(10))
 
         if self.store_best_images:
             best_inputs = denormalize(best_inputs)
@@ -385,7 +386,7 @@ class DeepInversionClass(object):
 
     def save_images(self, images, targets):
         # method to store generated images locally
-        local_rank = torch.cuda.current_device()
+        # local_rank = torch.cuda.current_device()
         for id in range(images.shape[0]):
             class_id = targets[id].item()
             # if 0:
@@ -417,7 +418,7 @@ class DeepInversionClass(object):
             net_student = net_student.eval()
 
         if targets is not None:
-            targets = torch.from_numpy(np.array(targets).squeeze()).cuda()
+            targets = torch.from_numpy(np.array(targets).squeeze()).to(self.device)
             if use_fp16:
                 targets = targets.half()
 

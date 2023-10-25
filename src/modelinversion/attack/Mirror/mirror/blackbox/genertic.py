@@ -162,7 +162,7 @@ def genetic_alogrithm(args: MirrorBlackBoxArgs, generate_images_func, target_lab
         population.produce_next_generation(elite)
     
     elite, elite_score = population.find_elite()
-    population.visualize_imgs(os.path.join(args.work_dir, f'{target_label}/'), generate_images_func)
+    population.visualize_imgs(os.path.join(args.result_dir, f'{target_label}'), generate_images_func)
     return elite, elite_score
     
 

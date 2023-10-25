@@ -71,7 +71,7 @@ def calc_knn(feat, iden, path):
 
     return (knn_dist / bs).item()
 
-def get_knn_dist(E, infered_image_path, private_feats_path, resolution):
+def get_knn_dist(E, infered_image_path, private_feats_path, resolution, device='cpu'):
     """
     Get KNN Dist of reconstructed images.
     :param E:
@@ -79,7 +79,7 @@ def get_knn_dist(E, infered_image_path, private_feats_path, resolution):
     :param private_feats_path:
     :return:
     """
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     list_of_idx = os.listdir(infered_image_path)
     list_of_idx = [d for d in list_of_idx if os.path.isdir(os.path.join(infered_image_path, d))]

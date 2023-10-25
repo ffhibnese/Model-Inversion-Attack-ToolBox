@@ -18,7 +18,7 @@ if __name__ == '__main__':
     dataset_name = 'facescrub'
     
     batch_size = 60
-    device = 'cuda'
+    device = 'cpu'
     
     config = GmiAttackConfig(
         target_name=target_name,

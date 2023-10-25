@@ -1,8 +1,12 @@
 import sys
 sys.path.append('.')
+sys.path.append('./src')
+sys.path.append('./src/modelinversion')
 
+from modelinversion.attack.Mirror.attacks import white_attack
+# from modelinversion.attack.PLGMI.reconstruct import plgmi_attack
+from modelinversion.attack.Mirror.config import MirrorWhiteBoxConfig
 from development_config import get_dirs
-from attack import mirror_whitebox_attack
 
 
 if __name__ == '__main__':
@@ -15,6 +19,20 @@ if __name__ == '__main__':
     target_labels = [108, 180] + list(range(18))
     dataset_name = 'celeba'
     
-    calc_knn = eval_name == 'facenet'
+    device = 'cpu'
     
-    mirror_whitebox_attack(genforce_name, target_name, eval_name, target_labels, work_dir, ckpt_dir, dataset_name, result_dir, batch_size=len(target_labels), device='cuda', calc_knn=calc_knn)
+    config = MirrorWhiteBoxConfig(
+        target_name=target_name,
+        eval_name=eval_name,
+        genforce_name=genforce_name,
+        ckpt_dir=ckpt_dir,
+        cache_dir=work_dir,
+        result_dir=result_dir,
+        dataset_name=dataset_name,
+        target_labels=target_labels,
+        batch_size=len(target_labels),
+        device=device
+    )
+    
+    white_attack(config)
+    # mirror_whitebox_attack(genforce_name, target_name, eval_name, target_labels, work_dir, ckpt_dir, dataset_name, result_dir, batch_size=len(target_labels), device='cuda', calc_knn=calc_knn)
