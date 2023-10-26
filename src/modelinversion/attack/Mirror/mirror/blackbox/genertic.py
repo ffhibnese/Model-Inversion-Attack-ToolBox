@@ -7,8 +7,8 @@ import random
 import glob
 import os
 from torch import nn
-from attack.Mirror.utils.img_utils import *
-from attack.Mirror.mirror.select_w import find_closest_latent
+from ...utils.img_utils import *
+from ...mirror.select_w import find_closest_latent
 from types import FunctionType
 
 @dataclass

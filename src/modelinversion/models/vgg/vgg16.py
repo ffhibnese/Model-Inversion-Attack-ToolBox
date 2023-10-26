@@ -15,9 +15,9 @@ from ..evolve import evolve
 """
 
 class VGG16(nn.Module):
-    def __init__(self, n_classes):
+    def __init__(self, n_classes, pretrained=False):
         super(VGG16, self).__init__()
-        model = torchvision.models.vgg16_bn(pretrained=True)
+        model = torchvision.models.vgg16_bn(pretrained=pretrained)
         self.feature = model.features
         self.feat_dim = 512 * 2 * 2
         self.n_classes = n_classes
@@ -44,9 +44,9 @@ class VGG16(nn.Module):
 
 
 class VGG16_vib(nn.Module):
-    def __init__(self, n_classes):
+    def __init__(self, n_classes, pretrained=False):
         super(VGG16_vib, self).__init__()
-        model = torchvision.models.vgg16_bn(pretrained=True)
+        model = torchvision.models.vgg16_bn(pretrained=pretrained)
         self.feature = model.features
         self.feat_dim = 512 * 2 * 2
         self.k = self.feat_dim // 2

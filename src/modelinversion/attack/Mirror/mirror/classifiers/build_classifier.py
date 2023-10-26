@@ -5,7 +5,7 @@ from torch import nn
 import torchvision.models as models
 
 # import vgg_m_face_bn_dag
-from models import *
+from .....models import *
 # import net_sphere
 import os
 
@@ -35,7 +35,8 @@ def get_model(arch_name, device, classifier_dir, dataset_name, use_dropout=False
         model = Vgg_face_dag(use_dropout=use_dropout)
     elif arch_name == 'inception_resnetv1_vggface2':
         path = os.path.join(path, '20180402-114759-vggface2.pt')
-        model = InceptionResnetV1(classify=True, pretrained='vggface2', ckpt_path=path)
+        # model = InceptionResnetV1(classify=True, pretrained='vggface2', ckpt_path=path)
+        model = InceptionResnetV1(classify=True, pretrained=None, ckpt_path=path, num_classes=8631)
     # elif arch_name == 'inception_resnetv1_casia':
     #     model = InceptionResnetV1(classify=True, pretrained='casia-webface')
     else:
@@ -51,13 +52,16 @@ def get_model(arch_name, device, classifier_dir, dataset_name, use_dropout=False
         
     
         # new_state_dict = OrderedDict()
-        for k, v in state_dict.items():
-            name = k
-            if k.startswith('module.'):
-                pl = nn.DataParallel(model)
-                pl.load_state_dict(state_dict)
-                torch.save({'state_dict': pl.module.state_dict()}, path)
-                state_dict = torch.load(path)['state_dict']
-                break
+        # for k, v in state_dict.items():
+        #     name = k
+        #     if k.startswith('module.'):
+        #         pl = nn.DataParallel(model)
+        #         pl.load_state_dict(state_dict)
+        #         torch.save({'state_dict': pl.module.state_dict()}, path)
+        #         state_dict = torch.load(path)['state_dict']
+        #         break
         model.load_state_dict(state_dict)
+    else:
+        print(path)
+        raise RuntimeError('not checkpoint')
     return model.to(device)

@@ -3,6 +3,7 @@ from .mirror.blackbox.blackbox_attack import mirror_blackbox_attack
 from .mirror.whitebox.whitebox_attack import mirror_white_box_attack
 import os
 from .config import MirrorBlackBoxConfig
+from ...utils import Tee
 
 # def blackbox_attack(genforce_name, target_name, eval_name, target_labels, work_dir, ckpt_dir, dataset_name, result_dir=None, batch_size=10, device='cpu', calc_knn=False):
 
@@ -22,6 +23,8 @@ def blackbox_attack(args: MirrorBlackBoxConfig):
     result_dir = os.path.join(args.result_dir, 'blackbox', f'{target_name}_{eval_name}')
     # ckpt_dir = os.path.join(work_dir, 'models')
     presample_dir = os.path.join(work_dir, 'pre_sample', genforce_name)
+    
+    Tee(os.path.join(result_dir, 'attack.log'), 'w')
     
     os.makedirs(cache_dir, exist_ok=True)
     os.makedirs(ckpt_dir, exist_ok=True)
@@ -53,6 +56,8 @@ def white_attack(args: MirrorBlackBoxConfig):
     result_dir = os.path.join(args.result_dir, 'whitebox', f'{target_name}_{eval_name}')
     # ckpt_dir = os.path.join(work_dir, 'models')
     presample_dir = os.path.join(work_dir, 'pre_sample', genforce_name)
+    
+    Tee(os.path.join(result_dir, 'attack.log'), 'w')
     
     os.makedirs(cache_dir, exist_ok=True)
     os.makedirs(ckpt_dir, exist_ok=True)

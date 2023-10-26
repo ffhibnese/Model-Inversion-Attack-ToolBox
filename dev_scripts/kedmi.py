@@ -9,7 +9,7 @@ from modelinversion.attack.KEDMI.config import KedmiAttackConfig
 from development_config import get_dirs
 
 if __name__ == '__main__':
-    dirs = get_dirs('plgmi')
+    dirs = get_dirs('kedmi')
     work_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     
     target_name = 'facenet64'
