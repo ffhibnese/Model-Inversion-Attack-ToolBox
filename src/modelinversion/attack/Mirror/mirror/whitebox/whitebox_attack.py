@@ -1,19 +1,19 @@
 import torch
 from torch import nn
 from dataclasses import dataclass
-from attack.Mirror.utils import create_folder
+from ...utils import create_folder
 import os
-from attack.Mirror.genforce.get_genforce import get_genforce
+from ...genforce.get_genforce import get_genforce
 from torchvision.utils import save_image
-from attack.Mirror.utils.img_utils import clip, crop_img, resize_img, normalize, denormalize, clip_quantile_bound, get_input_resolution
-from attack.Mirror.utils.acc import verify_acc
+from ...utils.img_utils import clip, crop_img, resize_img, normalize, denormalize, clip_quantile_bound, get_input_resolution
+from ...utils.acc import verify_acc
 from PIL import Image
 import numpy as np
 import random
-from attack.Mirror.mirror.classifiers.build_classifier import get_model
-from attack.Mirror.mirror.select_w import find_closest_latent
+from ...mirror.classifiers.build_classifier import get_model
+from ...mirror.select_w import find_closest_latent
 import glob
-from metrics.knn import get_knn_dist
+from .....metrics.knn import get_knn_dist
 from .....utils import Tee
 @dataclass
 class MirrorWhiteBoxArgs:

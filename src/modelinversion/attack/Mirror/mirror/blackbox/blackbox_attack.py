@@ -14,15 +14,15 @@ from tqdm import tqdm
 import numpy as np
 
 from facenet_pytorch import InceptionResnetV1
-from attack.Mirror.utils.img_utils import normalize, clip_quantile_bound,  crop_and_resize, get_input_resolution
-from attack.Mirror.mirror.classifiers.build_classifier import get_model
+from ...utils.img_utils import normalize, clip_quantile_bound,  crop_and_resize, get_input_resolution
+from ...mirror.classifiers.build_classifier import get_model
 from dataclasses import dataclass
-from attack.Mirror.genforce.get_genforce import get_genforce
+from ...genforce.get_genforce import get_genforce
 from .genertic import genetic_alogrithm
 
 from .blackbox_args import MirrorBlackBoxArgs
 
-from metrics.knn import get_knn_dist
+from .....metrics.knn import get_knn_dist
 
 from .....utils import Tee
     
