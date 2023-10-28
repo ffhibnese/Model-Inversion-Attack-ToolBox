@@ -13,22 +13,16 @@ from ...metrics import get_knn_dist
 
 def attack(config: KedmiAttackConfig):
     
-    assert config.eval_name == 'facenet'
-    
     save_dir = os.path.join(config.result_dir, f'{config.gan_dataset_name}_{config.target_name}')
     folder_manager = FolderManager(config.ckpt_dir, None, None, save_dir)
-    
-    # save_dir = os.path.join(result_dir, f'{dataset_name}_{target_name}')
-    # os.makedirs(save_dir, exist_ok=True)
-    # Tee(f'{save_dir}/attack.log', 'w')
 
     print("=> creating model ...")
 
 
     z_dim = 100
     
-    G = Generator(z_dim)
-    D = MinibatchDiscriminator()
+    G = Generator(z_dim).to(config.device)
+    D = MinibatchDiscriminator().to(config.device)
     
     folder_manager.load_state_dict(G, 
                                    ['KEDMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_KEDMI_G.tar'],
@@ -37,19 +31,10 @@ def attack(config: KedmiAttackConfig):
                                    ['KEDMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_KEDMI_D.tar'],
                                    device=config.device)
 
-    if config.target_name == "vgg16":
-        T = VGG16(1000)
-    elif config.target_name == 'ir152':
-        T = IR152(1000)
-    elif config.target_name == "facenet64":
-        T = FaceNet64(1000)
-    else:
-        raise RuntimeError('Target model not exist')
-    T = (T).to(config.device)
+    T = get_model(config.target_name, config.dataset_name, device=config.device)
     folder_manager.load_target_model_state_dict(T, config.dataset_name, config.target_name, device=config.device)
 
-    # Load evaluation model
-    E = FaceNet(1000).to(config.device)
+    E = get_model(config.eval_name, config.dataset_name, device=config.device)
     folder_manager.load_target_model_state_dict(E, config.dataset_name, config.eval_name, device=config.device)
 
     ############         attack     ###########

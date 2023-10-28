@@ -12,10 +12,10 @@ if __name__ == '__main__':
     dirs = get_dirs('plgmi')
     work_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     
-    # target name support: vgg16, ir152, facenet64
-    target_name = 'facenet64'
-    # eval name support: facenet
-    eval_name = 'facenet'
+    # target name support: vgg16, ir152, facenet64, facenet
+    target_name = 'facenet'
+    # eval name support: vgg16, ir152, facenet64, facenet
+    eval_name = 'facenet64'
     # gan target name support: vgg16
     gan_target_name = 'vgg16'
     # dataset name support: celeba

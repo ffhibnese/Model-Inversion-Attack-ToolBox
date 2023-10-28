@@ -23,10 +23,6 @@ from ....utils import FolderManager
 
 
 def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum=0.9, lamda=100, iter_times=1500, clip_range=1, num_seeds=5, device='cpu'):
-    # save_img_dir = os.path.join(save_dir, 'all_imgs')
-    # success_dir = os.path.join(save_dir, 'success_imgs')
-    # os.makedirs(save_img_dir, exist_ok=True)
-    # os.makedirs(success_dir, exist_ok=True)
 
     iden = iden.view(-1).long().to(device)
     criterion = nn.CrossEntropyLoss().to(device)
@@ -36,9 +32,6 @@ def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum
     D.eval()
     T.eval()
     E.eval()
-
-    # flag = torch.zeros(bs)
-    # no = torch.zeros(bs)  # index for saving all success attack images
 
     res = []
     res5 = []
@@ -82,7 +75,6 @@ def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum
             if (i + 1) % 300 == 0:
                 with torch.no_grad():
                     fake_img = G(z.detach())
-                    # eval_prob = E(utils.low2high(fake_img, device)).result
                     eval_prob = E(fake_img).result
                     eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
                     acc = iden.eq(eval_iden.long()).sum().item() * 1.0 / bs
@@ -93,8 +85,6 @@ def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum
 
         with torch.no_grad():
             fake = G(z)
-            # score = T(fake).result
-            # eval_prob = E(utils.low2high(fake, device)).result
             eval_prob = E(fake_img).result
             eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
 
@@ -106,11 +96,6 @@ def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum
                 sample = samples[i]
                 
                 folder_manager.save_result_image(sample, gt)
-                # all_img_class_path = os.path.join(save_img_dir, str(gt))
-                # if not os.path.exists(all_img_class_path):
-                #     os.makedirs(all_img_class_path)
-                # save_tensor_images(sample.detach(),
-                #                    os.path.join(all_img_class_path, "attack_iden_{}_{}.png".format(gt, r_idx)))
 
                 if eval_iden[i].item() == gt:
                     seed_acc[i, r_idx] = 1
@@ -118,13 +103,6 @@ def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum
                     # flag[i] = 1
                     best_img = samples[i]
                     folder_manager.save_result_image(best_img, gt, folder_name='success_imgs')
-                    # success_img_class_path = os.path.join(success_dir, str(gt))
-                    # if not os.path.exists(success_img_class_path):
-                    #     os.makedirs(success_img_class_path)
-                    # save_tensor_images(best_img.detach(), os.path.join(success_img_class_path,
-                    #                                                    "{}_attack_iden_{}_{}.png".format(itr, gt,
-                    #                                                                                      int(no[i]))))
-                    # no[i] += 1
                 _, top5_idx = torch.topk(eval_prob[i], 5)
                 if gt in top5_idx:
                     cnt5 += 1
