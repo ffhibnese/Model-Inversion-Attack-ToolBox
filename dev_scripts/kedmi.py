@@ -18,10 +18,13 @@ if __name__ == '__main__':
     eval_name = 'facenet'
     # gan target name support: vgg16
     gan_target_name = 'vgg16'
-    # dataset name support: celeba, ffhq, facescrub
+    # dataset name support: celeba
     dataset_name = 'celeba'
+    # gan dataset name support: celeba, ffhq, facescrub
+    gan_dataset_name = 'celeba'
     
     batch_size = 60
+    target_labels = list(range(120))
     device = 'cpu'
     
     config = KedmiAttackConfig(
@@ -32,6 +35,8 @@ if __name__ == '__main__':
         result_dir=result_dir,
         dataset_name=dataset_name,
         # dataset_dir=dataset_dir,
+        gan_dataset_name=gan_dataset_name,
+        target_labels=target_labels,
         device=device,
         batch_size=batch_size
     )

@@ -10,6 +10,7 @@ from ...utils import FolderManager
 import numpy as np
 from ...metrics import get_knn_dist
 
+
 def attack(config: GmiAttackConfig):
     
     assert config.eval_name == 'facenet'
@@ -56,10 +57,6 @@ def attack(config: GmiAttackConfig):
 
     aver_acc, aver_acc5, aver_var, aver_var5 = 0, 0, 0, 0
 
-    # iden = torch.from_numpy(np.arange(config.batch_size))
-    
-    
-    
     # evaluate on the first 300 identities only
     for idx in range((len(config.target_labels) - 1) // config.batch_size + 1):
         print("--------------------- Attack batch [%s]------------------------------" % idx)

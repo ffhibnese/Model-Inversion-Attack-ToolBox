@@ -67,7 +67,8 @@ class FolderManager:
         if save_name is None:
             save_name = f'{self.temp_cnt}.jpg'
             self.temp_cnt += 1
-        save_image(img.detch(), save_name, normalize=True)
+        save_path = os.path.join(save_dir, save_name)
+        save_image(img.detach(), save_path, normalize=True)
         
     def save_result_images(self, imgs: torch.Tensor, labels: list, save_names = None, folder_name='all_imgs'):
         

@@ -82,7 +82,8 @@ def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum
             if (i + 1) % 300 == 0:
                 with torch.no_grad():
                     fake_img = G(z.detach())
-                    eval_prob = E(utils.low2high(fake_img, device)).result
+                    # eval_prob = E(utils.low2high(fake_img, device)).result
+                    eval_prob = E(fake_img).result
                     eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
                     acc = iden.eq(eval_iden.long()).sum().item() * 1.0 / bs
                     print("Iteration:{}\tPrior Loss:{:.2f}\tIden Loss:{:.2f}\tAttack Acc:{:.2f}".format(i + 1,
@@ -92,8 +93,9 @@ def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum
 
         with torch.no_grad():
             fake = G(z)
-            score = T(fake).result
-            eval_prob = E(utils.low2high(fake, device)).result
+            # score = T(fake).result
+            # eval_prob = E(utils.low2high(fake, device)).result
+            eval_prob = E(fake_img).result
             eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
 
             cnt, cnt5 = 0, 0
@@ -115,7 +117,7 @@ def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum
                     cnt += 1
                     # flag[i] = 1
                     best_img = samples[i]
-                    folder_manager.save_result_image(best_img, gt)
+                    folder_manager.save_result_image(best_img, gt, folder_name='success_imgs')
                     # success_img_class_path = os.path.join(success_dir, str(gt))
                     # if not os.path.exists(success_img_class_path):
                     #     os.makedirs(success_img_class_path)

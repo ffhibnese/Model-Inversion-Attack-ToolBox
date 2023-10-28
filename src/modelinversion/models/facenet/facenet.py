@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torchvision.models
 from torch.nn.modules.loss import _Loss
 
+from torchvision.transforms.functional import resize
 from ..modelresult import ModelResult
 from ..evolve import evolve
 
@@ -38,6 +39,9 @@ class FaceNet(nn.Module):
     def forward(self, x):
         # print("input shape:", x.shape)
         # import pdb; pdb.set_trace()
+        
+        if x.shape[-1] != self.resolution or x.shape[-2] != self.resolution:
+            x = resize(x, [self.resolution, self.resolution])
 
         feat = self.feature(x)
         feat = feat.view(feat.size(0), -1)
@@ -62,6 +66,10 @@ class FaceNet64(nn.Module):
         self.resolution = 64
 
     def forward(self, x):
+        
+        if x.shape[-1] != self.resolution or x.shape[-2] != self.resolution:
+            x = resize(x, [self.resolution, self.resolution])
+            
         feat = self.feature(x)
         feat = self.output_layer(feat)
         feat = feat.view(feat.size(0), -1)
