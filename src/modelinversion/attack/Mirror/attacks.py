@@ -24,11 +24,14 @@ def blackbox_attack(args: MirrorBlackBoxConfig):
     # ckpt_dir = os.path.join(work_dir, 'models')
     presample_dir = os.path.join(work_dir, 'pre_sample', genforce_name)
     
-    Tee(os.path.join(result_dir, 'attack.log'), 'w')
+    
     
     os.makedirs(cache_dir, exist_ok=True)
     os.makedirs(ckpt_dir, exist_ok=True)
     os.makedirs(presample_dir, exist_ok=True)
+    os.makedirs(result_dir, exist_ok=True)
+    
+    Tee(os.path.join(result_dir, 'attack.log'), 'w')
     
     check_presample_dir = os.path.join(presample_dir, 'img')
     if not os.path.exists(check_presample_dir) or len(os.listdir(check_presample_dir)) == 0:

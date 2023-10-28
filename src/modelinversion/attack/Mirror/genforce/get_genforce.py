@@ -47,7 +47,7 @@ def get_genforce(model_name, device, checkpoint_dir, use_discri=True, use_w_spac
         
     # load checkpoints
     os.makedirs(checkpoint_dir, exist_ok=True)
-    ckpt_path = os.path.join(checkpoint_dir, f'{model_name}.pth')
+    ckpt_path = os.path.join(checkpoint_dir, 'genforce', f'{model_name}.pth')
     
     if not os.path.exists(ckpt_path):
         print(f'Download checkpoint {model_name} from {url} ...')
