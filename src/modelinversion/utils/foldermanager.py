@@ -28,8 +28,9 @@ class FolderManager:
     
     def __init__(self, ckpt_dir, dataset_dir, cache_dir, result_dir) -> None:
         self.config = DirnameConfig(ckpt_dir, dataset_dir, cache_dir, result_dir)
-        for k, v in self.config.__dict__:
-            os.makedirs(v, exist_ok=True)
+        for v in self.config.__dict__.values():
+            if v is not None:
+                os.makedirs(v, exist_ok=True)
             
         self.__tee = Tee(os.path.join(result_dir, 'attack.log'), 'w')
             

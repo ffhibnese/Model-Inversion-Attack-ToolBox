@@ -14,7 +14,7 @@ def attack(config: GmiAttackConfig):
     
     assert config.eval_name == 'facenet'
     
-    save_dir = os.path.join(config.result_dir, f'{config.dataset_name}_{config.target_name}')
+    save_dir = os.path.join(config.result_dir, f'{config.gan_dataset_name}_{config.target_name}')
     folder_manager = FolderManager(config.ckpt_dir, None, None, save_dir)
     
     # save_dir = os.path.join(result_dir, f'{dataset_name}_{target_name}')
@@ -30,10 +30,10 @@ def attack(config: GmiAttackConfig):
     D = DGWGAN(3)
     
     folder_manager.load_state_dict(G, 
-                                   ['GMI', f'{config.dataset_name}_{config.train_gan_target_name.upper()}_GMI_G.tar'],
+                                   ['GMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_GMI_G.tar'],
                                    device=config.device)
     folder_manager.load_state_dict(D, 
-                                   ['GMI', f'{config.dataset_name}_{config.train_gan_target_name.upper()}_GMI_D.tar'],
+                                   ['GMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_GMI_D.tar'],
                                    device=config.device)
 
     if config.target_name == "vgg16":
@@ -64,7 +64,9 @@ def attack(config: GmiAttackConfig):
     for idx in range((len(config.target_labels) - 1) // config.batch_size + 1):
         print("--------------------- Attack batch [%s]------------------------------" % idx)
         
-        iden = torch.tensor(idx * config.batch_size, min((idx+1)*config.batch_size, len(config.target_labels)), device=config.device, dtype=torch.long)
+        iden = torch.tensor(
+            config.target_labels[idx * config.batch_size: min((idx+1)*config.batch_size, len(config.target_labels))], device=config.device, dtype=torch.long
+            )
 
         acc, acc5, var, var5 = inversion(G, D, T, E, iden, folder_manager=folder_manager, lr=2e-2, momentum=0.9, lamda=100,
                                             iter_times=1500, clip_range=1, 
