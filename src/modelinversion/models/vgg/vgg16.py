@@ -9,6 +9,7 @@ from torch.nn.modules.loss import _Loss
 
 from ..modelresult import ModelResult
 from ..evolve import evolve
+from torchvision.transforms.functional import resize
 
 """
     FROM PLGMI
@@ -24,8 +25,14 @@ class VGG16(nn.Module):
         self.bn = nn.BatchNorm1d(self.feat_dim)
         self.bn.bias.requires_grad_(False)  # no shift
         self.fc_layer = nn.Linear(self.feat_dim, self.n_classes)
+        
+        self.resolution = 64
 
     def forward(self, x):
+        
+        if x.shape[-1] != self.resolution or x.shape[-2] != self.resolution:
+            x = resize(x, [self.resolution, self.resolution])
+            
         feature = self.feature(x)
         feature = feature.view(feature.size(0), -1)
         feature = self.bn(feature)
@@ -53,8 +60,14 @@ class VGG16_vib(nn.Module):
         self.n_classes = n_classes
         self.st_layer = nn.Linear(self.feat_dim, self.k * 2)
         self.fc_layer = nn.Linear(self.k, self.n_classes)
+        
+        self.resolution = 64
 
     def forward(self, x, mode="train"):
+        
+        if x.shape[-1] != self.resolution or x.shape[-2] != self.resolution:
+            x = resize(x, [self.resolution, self.resolution])
+            
         feature = self.feature(x)
         feature = feature.view(feature.size(0), -1)
         statis = self.st_layer(feature)

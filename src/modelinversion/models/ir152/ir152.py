@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torchvision.models
 from torch.nn.modules.loss import _Loss
 
+from torchvision.transforms.functional import resize
 from ..modelresult import ModelResult
 from ..evolve import evolve
 
@@ -31,6 +32,8 @@ class IR152(nn.Module):
                                           nn.BatchNorm1d(512))
 
         self.fc_layer = nn.Linear(self.feat_dim, self.num_classes)
+        
+        self.resolution = 64
 
     def forward(self, x):
         feat = self.feature(x)
@@ -57,8 +60,14 @@ class IR152_vib(nn.Module):
         self.fc_layer = nn.Sequential(
             nn.Linear(self.k, self.n_classes),
             nn.Softmax(dim=1))
+        
+        self.resolution = 64
 
     def forward(self, x):
+        
+        if x.shape[-1] != self.resolution or x.shape[-2] != self.resolution:
+            x = resize(x, [self.resolution, self.resolution])
+            
         feature = self.output_layer(self.feature(x))
         feature = feature.view(feature.size(0), -1)
         statis = self.st_layer(feature)
