@@ -115,7 +115,7 @@ def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum
                     cnt += 1
                     # flag[i] = 1
                     best_img = samples[i]
-                    folder_manager.save_result_image(sample, gt)
+                    folder_manager.save_result_image(best_img, gt)
                     # success_img_class_path = os.path.join(success_dir, str(gt))
                     # if not os.path.exists(success_img_class_path):
                     #     os.makedirs(success_img_class_path)
