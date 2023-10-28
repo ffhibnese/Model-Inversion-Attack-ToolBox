@@ -11,5 +11,6 @@ class GmiAttackConfig:
     
     dataset_name: str
     
-    batch_size: int
+    batch_size: int = 60
+    target_labels: int = list(range(300))
     device: str

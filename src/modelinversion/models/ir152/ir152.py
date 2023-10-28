@@ -31,6 +31,8 @@ class IR152(nn.Module):
                                           nn.BatchNorm1d(512))
 
         self.fc_layer = nn.Linear(self.feat_dim, self.num_classes)
+        
+        self.resolution = 64
 
     def forward(self, x):
         feat = self.feature(x)
@@ -57,6 +59,8 @@ class IR152_vib(nn.Module):
         self.fc_layer = nn.Sequential(
             nn.Linear(self.k, self.n_classes),
             nn.Softmax(dim=1))
+        
+        self.resolution = 64
 
     def forward(self, x):
         feature = self.output_layer(self.feature(x))

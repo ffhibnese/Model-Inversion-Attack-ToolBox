@@ -172,6 +172,8 @@ class Resnet50_scratch_dag(nn.Module):
         self.conv5_3_relu = nn.ReLU()
         self.pool5_7x7_s1 = nn.AvgPool2d(kernel_size=[7, 7], stride=[1, 1], padding=0)
         self.classifier = nn.Conv2d(2048, 8631, kernel_size=[1, 1], stride=(1, 1))
+        
+        # self.resolution = 64
 
     def forward(self, data):
         conv1_7x7_s2 = self.conv1_7x7_s2(data)

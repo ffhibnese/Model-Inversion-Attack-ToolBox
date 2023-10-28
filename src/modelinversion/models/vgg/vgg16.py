@@ -24,6 +24,8 @@ class VGG16(nn.Module):
         self.bn = nn.BatchNorm1d(self.feat_dim)
         self.bn.bias.requires_grad_(False)  # no shift
         self.fc_layer = nn.Linear(self.feat_dim, self.n_classes)
+        
+        self.resolution = 64
 
     def forward(self, x):
         feature = self.feature(x)
@@ -53,6 +55,8 @@ class VGG16_vib(nn.Module):
         self.n_classes = n_classes
         self.st_layer = nn.Linear(self.feat_dim, self.k * 2)
         self.fc_layer = nn.Linear(self.k, self.n_classes)
+        
+        self.resolution = 64
 
     def forward(self, x, mode="train"):
         feature = self.feature(x)

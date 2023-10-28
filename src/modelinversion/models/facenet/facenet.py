@@ -26,6 +26,8 @@ class FaceNet(nn.Module):
         self.feat_dim = 512
         self.num_classes = num_classes
         self.fc_layer = nn.Linear(self.feat_dim, self.num_classes)
+        
+        self.resolution = 112
 
     def predict(self, x):
         feat = self.feature(x)
@@ -56,6 +58,8 @@ class FaceNet64(nn.Module):
                                           nn.BatchNorm1d(512))
 
         self.fc_layer = nn.Linear(self.feat_dim, self.num_classes)
+        
+        self.resolution = 64
 
     def forward(self, x):
         feat = self.feature(x)
