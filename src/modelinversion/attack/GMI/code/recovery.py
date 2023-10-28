@@ -267,8 +267,8 @@ def gmi_attack(target_name, eval_name, ckpt_dir, dataset_name, result_dir, batch
     knn_dist = get_knn_dist(E, os.path.join(save_dir, 'all_imgs'), os.path.join(ckpt_dir, 'PLGMI', "celeba_private_feats"), resolution=112, device=device)
     print("KNN Dist %.2f" % knn_dist)
 
-    print("=> Calculate the FID.")
-    fid = calc_fid(recovery_img_path=os.path.join(save_dir, "success_imgs"),
-                   private_img_path= os.path.join(ckpt_dir, 'PLGMI', "datasets", "celeba_private_domain"),
-                   batch_size=batch_size)
-    print("FID %.2f" % fid)
+    # print("=> Calculate the FID.")
+    # fid = calc_fid(recovery_img_path=os.path.join(save_dir, "success_imgs"),
+    #                private_img_path= os.path.join(ckpt_dir, 'PLGMI', "datasets", "celeba_private_domain"),
+    #                batch_size=batch_size)
+    # print("FID %.2f" % fid)

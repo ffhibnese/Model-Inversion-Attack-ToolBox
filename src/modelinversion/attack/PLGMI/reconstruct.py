@@ -267,8 +267,8 @@ def plgmi_attack(attack_args: PlgmiAttackConfig):
     knn_dist = get_knn_dist(E, os.path.join(args.save_dir, 'all_imgs'), os.path.join(ckpt_dir, 'PLGMI', "celeba_private_feats"), resolution=112, device=args.device)
     print("KNN Dist %.2f" % knn_dist)
 
-    print("=> Calculate the FID.")
-    fid = calc_fid(recovery_img_path=os.path.join(args.save_dir, "success_imgs"),
-                   private_img_path= os.path.join(ckpt_dir, 'PLGMI', "datasets", "celeba_private_domain"),
-                   batch_size=batch_size)
-    print("FID %.2f" % fid)
+    # print("=> Calculate the FID.")
+    # fid = calc_fid(recovery_img_path=os.path.join(args.save_dir, "success_imgs"),
+    #                private_img_path= os.path.join(ckpt_dir, 'PLGMI', "datasets", "celeba_private_domain"),
+    #                batch_size=batch_size)
+    # print("FID %.2f" % fid)

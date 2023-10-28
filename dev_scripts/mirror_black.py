@@ -39,7 +39,7 @@ if __name__ == '__main__':
     target_labels = [108, 180] + list(range(18))
     dataset_name = 'vggface2'
     
-    device = 'cuda'
+    device = 'cpu'
     
     config = MirrorBlackBoxConfig(
         target_name=target_name,

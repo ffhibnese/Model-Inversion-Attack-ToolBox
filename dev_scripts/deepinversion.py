@@ -13,6 +13,7 @@ if __name__ == '__main__':
     dirs = get_dirs('deepinversion')
     work_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     
+    # target and eval name from torchvision
     target_name = 'resnet50'
     eval_name = 'mobilenet_v2'
     target_labels = list(range(60))

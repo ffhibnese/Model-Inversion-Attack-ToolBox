@@ -12,9 +12,13 @@ if __name__ == '__main__':
     dirs = get_dirs('kedmi')
     work_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     
+    # target name support: vgg16, ir152, facenet64
     target_name = 'facenet64'
+    # eval name support: facenet
     eval_name = 'facenet'
+    # gan target name support: vgg16
     gan_target_name = 'vgg16'
+    # dataset name support: celeba, ffhq, facescrub
     dataset_name = 'celeba'
     
     batch_size = 60
