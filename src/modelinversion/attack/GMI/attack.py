@@ -70,10 +70,10 @@ def attack(config: GmiAttackConfig):
                                                 device=config.device)
 
         # iden = iden + config.batch_size
-        aver_acc += acc / 5
-        aver_acc5 += acc5 / 5
-        aver_var += var / 5
-        aver_var5 += var5 / 5
+        aver_acc += acc * len(iden) / len(config.target_labels)
+        aver_acc5 += acc5 * len(iden) / len(config.target_labels)
+        aver_var += var * len(iden) / len(config.target_labels)
+        aver_var5 += var5 * len(iden) / len(config.target_labels)
 
     print("Average Acc:{:.2f}\tAverage Acc5:{:.2f}\tAverage Acc_var:{:.4f}\tAverage Acc_var5:{:.4f}".format(aver_acc,
                                                                                                             aver_acc5,
