@@ -5,19 +5,13 @@ class MirrorBlackBoxArgs:
     arch_name:str
     eval_name: str
     genforce_model_name: str
-    genforce_checkpoint_dir: str
+    # genforce_checkpoint_dir: str
     target_labels: list
-    work_dir: str
-    result_dir: str
-    classifiers_checkpoint_dir: str
     batch_size : int
-    use_cache : bool
+    # use_cache : bool
     device: str
-    pre_sample_dir: str
+    # presample_dir: str
     population: int
-    
-    resolution: int
-    eval_resolution: int
     
     log_inverval = 10
     mutation_prob = 0.1

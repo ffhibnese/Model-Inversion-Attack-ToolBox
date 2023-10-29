@@ -21,13 +21,20 @@ target_eval_models_file = {
         'ir152': 'IR152_91.16.tar',
         'facenet64': 'FaceNet64_88.50.tar',
         'facenet': 'FaceNet_95.88.tar'
+    },
+    'vggface2':{
+        'resnet50_scratch_dag': 'resnet50_scratch_dag.pth',
+        'inception_resnetv1': '20180402-114759-vggface2.pt'
     }
+        
 }
 
 class FolderManager:
     
-    def __init__(self, ckpt_dir, dataset_dir, cache_dir, result_dir) -> None:
+    def __init__(self, ckpt_dir, dataset_dir, cache_dir, result_dir, **kwargs) -> None:
         self.config = DirnameConfig(ckpt_dir, dataset_dir, cache_dir, result_dir)
+        for k, v in kwargs.items():
+            setattr(self.config, k, v)
         for v in self.config.__dict__.values():
             if v is not None:
                 os.makedirs(v, exist_ok=True)

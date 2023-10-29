@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 from ..modelresult import ModelResult
+from torchvision.transforms.functional import resize
 
 """ 
     FROM MIRROR
@@ -9,7 +10,7 @@ from ..modelresult import ModelResult
 
 class Resnet50_scratch_dag(nn.Module):
 
-    def __init__(self):
+    def __init__(self, num_classes=8631):
         super(Resnet50_scratch_dag, self).__init__()
         self.meta = {'mean': [131.0912, 103.8827, 91.4953],
                      'std': [1, 1, 1],
@@ -171,11 +172,15 @@ class Resnet50_scratch_dag(nn.Module):
         self.conv5_3_1x1_increase_bn = nn.BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         self.conv5_3_relu = nn.ReLU()
         self.pool5_7x7_s1 = nn.AvgPool2d(kernel_size=[7, 7], stride=[1, 1], padding=0)
-        self.classifier = nn.Conv2d(2048, 8631, kernel_size=[1, 1], stride=(1, 1))
+        self.classifier = nn.Conv2d(2048, num_classes, kernel_size=[1, 1], stride=(1, 1))
         
-        # self.resolution = 64
+        self.resolution = 224
 
     def forward(self, data):
+        
+        if data.shape[-1] != self.resolution or data.shape[-2] != self.resolution:
+            data = resize(data, [self.resolution, self.resolution])
+            
         conv1_7x7_s2 = self.conv1_7x7_s2(data)
         conv1_7x7_s2_bn = self.conv1_7x7_s2_bn(conv1_7x7_s2)
         conv1_7x7_s2_bnxx = self.conv1_relu_7x7_s2(conv1_7x7_s2_bn)

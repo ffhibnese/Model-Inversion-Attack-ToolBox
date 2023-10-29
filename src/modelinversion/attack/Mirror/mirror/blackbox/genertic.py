@@ -10,6 +10,7 @@ from torch import nn
 from ...utils.img_utils import *
 from ...mirror.select_w import find_closest_latent
 from types import FunctionType
+from .....utils import FolderManager
 
 @dataclass
 class VectorizedPopulation:
@@ -87,16 +88,16 @@ class VectorizedPopulation:
             self.population = torch.cat([elite_value.unsqueeze(0), mutated_children], dim=0)
             self.compute_fitness()
         
-    def visualize_imgs(self, file_dir, generate_images_func, k=8):
-        # ws = self.population[:k]
-        for i in range(k):
-            out = generate_images_func(self.population[[i]], raw_img=True)
-            vutils.save_image(out, os.path.join(file_dir, f'{i}.png'))
+    # def visualize_imgs(self, file_dir, generate_images_func, k=8):
+    #     # ws = self.population[:k]
+    #     for i in range(k):
+    #         out = generate_images_func(self.population[[i]], raw_img=True)
+    #         vutils.save_image(out, os.path.join(file_dir, f'{i}.png'))
         
         
-def init_population(args: MirrorBlackBoxArgs, target_label, target_model, compute_fitness_func):
+def init_population(args: MirrorBlackBoxArgs, target_label, target_model, compute_fitness_func, folder_manager: FolderManager):
     
-    w_dir = os.path.join(args.pre_sample_dir, 'w')
+    w_dir = os.path.join(folder_manager.config.presample_dir, 'w')
     
     invert_lrelu = nn.LeakyReLU(negative_slope=5.)
     lrelu = nn.LeakyReLU(negative_slope=0.2)
@@ -136,7 +137,7 @@ def init_population(args: MirrorBlackBoxArgs, target_label, target_model, comput
         w = lrelu(p)
         return w
     
-    select_w, conf = find_closest_latent(target_model, args.resolution, [target_label], k=args.population, arch_name=args.arch_name, pre_sample_dir=args.pre_sample_dir, bs=args.batch_size)
+    select_w, conf = find_closest_latent(target_model, args.device, [target_label], k=args.population, arch_name=args.arch_name, presample_dir=folder_manager.config.presample_dir, bs=args.batch_size)
     
     select_w = select_w[target_label].cpu()
     conf = conf[target_label].cpu()
@@ -146,10 +147,11 @@ def init_population(args: MirrorBlackBoxArgs, target_label, target_model, comput
 
 from tqdm import tqdm
 import math
+from .....utils import FolderManager
 
-def genetic_alogrithm(args: MirrorBlackBoxArgs, generate_images_func, target_label, target_model, compute_fitness_func):
+def genetic_alogrithm(args: MirrorBlackBoxArgs, generate_images_func, target_label, target_model, compute_fitness_func, folder_manager: FolderManager):
     
-    population = init_population(args, target_label=target_label, target_model=target_model, compute_fitness_func=compute_fitness_func)
+    population = init_population(args, target_label=target_label, target_model=target_model, compute_fitness_func=compute_fitness_func, folder_manager=folder_manager)
     
     generations = args.generation
     
@@ -162,7 +164,12 @@ def genetic_alogrithm(args: MirrorBlackBoxArgs, generate_images_func, target_lab
         population.produce_next_generation(elite)
     
     elite, elite_score = population.find_elite()
-    population.visualize_imgs(os.path.join(args.result_dir, f'{target_label}'), generate_images_func)
+    # population.visualize_imgs(os.path.join(args.result_dir, f'{target_label}'), generate_images_func)
+    
+    for i in range(10):
+        out = generate_images_func(population.population[[i]], raw_img=True)
+        # vutils.save_image(out, os.path.join(file_dir, f'{i}.png'))
+        folder_manager.save_result_image(out, target_label)
     return elite, elite_score
     
 

@@ -23,7 +23,7 @@ import torch
 import torchvision.utils as vutils
 from PIL import Image
 import numpy as np
-
+from ...utils import FolderManager
 from .utils.utils import lr_cosine_policy, lr_policy, beta_policy, mom_cosine_policy, clip, denormalize, create_folder
 
 
@@ -68,10 +68,9 @@ def get_image_prior_losses(inputs_jit):
 
 
 class DeepInversionClass(object):
-    def __init__(self, target_labels, bs=84,
+    def __init__(self, target_labels, bs,
                  
-                 use_fp16=True, net_teacher=None, path="./gen_images/",
-                 final_data_path="./gen_images_final/",
+                 net_teacher, folder_manager: FolderManager,
                  parameters=dict(),
                  setting_id=0,
                  jitter=30,
@@ -114,6 +113,7 @@ class DeepInversionClass(object):
         # torch.manual_seed(torch.cuda.current_device())
         
         self.device = device
+        self.folder_manager = folder_manager
         
         self.target_labels = []
         self.bs = bs
@@ -141,7 +141,7 @@ class DeepInversionClass(object):
             self.store_best_images = False
 
         self.setting_id = setting_id
-        self.use_fp16 = use_fp16
+        # self.use_fp16 = use_fp16
         self.save_every = 100
         self.jitter = jitter
         self.criterion = criterion
@@ -161,17 +161,17 @@ class DeepInversionClass(object):
             print("Provide a dictionary with ")
 
         self.num_generations = 0
-        self.final_data_path = final_data_path
+        # self.final_data_path = final_data_path
 
         ## Create folders for images and logs
-        prefix = path
-        self.prefix = prefix
+        # prefix = path
+        # self.prefix = prefix
 
         # local_rank = torch.cuda.current_device()
         # if local_rank==0:
-        create_folder(prefix)
-        create_folder(prefix + "/best_images/")
-        create_folder(self.final_data_path)
+        # create_folder(prefix)
+        # create_folder(prefix + "/best_images/")
+        # create_folder(self.final_data_path)
             # save images to folders
             # for m in range(1000):
             #     create_folder(self.final_data_path + "/s{:03d}".format(m))
@@ -191,7 +191,6 @@ class DeepInversionClass(object):
         print("get_images call")
 
         net_teacher = self.net_teacher
-        use_fp16 = self.use_fp16
         save_every = self.save_every
 
         kl_loss = nn.KLDivLoss(reduction='batchmean').to(self.device)
@@ -216,9 +215,7 @@ class DeepInversionClass(object):
 
         img_original = self.image_resolution
 
-        data_type = torch.half if use_fp16 else torch.float
-        inputs = torch.randn((self.bs, 3, img_original, img_original), requires_grad=True, device=self.device,
-                             dtype=data_type)
+        inputs = torch.randn((self.bs, 3, img_original, img_original), requires_grad=True, device=self.device)
         pooling_function = nn.modules.pooling.AvgPool2d(kernel_size=2)
 
         if self.setting_id==0:
@@ -253,10 +250,6 @@ class DeepInversionClass(object):
                 optimizer = optim.Adam([inputs], lr=self.lr, betas=[0.9, 0.999], eps = 1e-8)
                 do_clip = False
 
-            if use_fp16:
-                static_loss_scale = 256
-                static_loss_scale = "dynamic"
-                _, optimizer = amp.initialize([], optimizer, opt_level="O2", loss_scale=static_loss_scale)
 
             lr_scheduler = lr_cosine_policy(self.lr, 100, iterations_per_layer)
 
@@ -352,66 +345,60 @@ class DeepInversionClass(object):
                         self.hook_for_display(inputs, targets)
 
                 # do image update
-                if use_fp16:
-                    # optimizer.backward(loss)
-                    with amp.scale_loss(loss, optimizer) as scaled_loss:
-                        scaled_loss.backward()
-                else:
-                    loss.backward()
+                loss.backward()
 
                 optimizer.step()
 
                 # clip color outlayers
                 if do_clip:
-                    inputs.data = clip(inputs.data, use_fp16=use_fp16)
+                    inputs.data = clip(inputs.data)
 
                 if best_cost > loss.item() or iteration == 1:
                     best_inputs = inputs.data.clone()
                     best_cost = loss.item()
 
-                if iteration % save_every==0 and (save_every > 0):
-                    # if local_rank==0:
-                    vutils.save_image(inputs,
-                                        '{}/best_images/output_{:05d}_gpu_{}.png'.format(self.prefix,
-                                                                                        iteration // save_every,
-                                                                                        0),
-                                        normalize=True, scale_each=True, nrow=int(10))
+                # if iteration % save_every==0 and (save_every > 0):
+                #     # if local_rank==0:
+                #     vutils.save_image(inputs,
+                #                         '{}/best_images/output_{:05d}_gpu_{}.png'.format(self.prefix,
+                #                                                                         iteration // save_every,
+                #                                                                         0),
+                #                         normalize=True, scale_each=True, nrow=int(10))
 
-        if self.store_best_images:
-            best_inputs = denormalize(best_inputs)
-            self.save_images(best_inputs, targets)
+        # if self.store_best_images:
+        best_inputs = denormalize(best_inputs)
+        # self.save_images(best_inputs, targets)
+        self.folder_manager.save_result_images(best_inputs, targets)
 
         # to reduce memory consumption by states of the optimizer we deallocate memory
         optimizer.state = collections.defaultdict(dict)
 
-    def save_images(self, images, targets):
-        # method to store generated images locally
-        # local_rank = torch.cuda.current_device()
-        for id in range(images.shape[0]):
-            class_id = targets[id].item()
-            # if 0:
-            #     #save into separate folders
-            #     place_to_store = '{}/s{:03d}/img_{:05d}_id{:03d}_gpu_{}_2.jpg'.format(self.final_data_path, class_id,
-            #                                                                               self.num_generations, id,
-            #                                                                               local_rank)
-            # else:
-            #     place_to_store = '{}/img_s{:03d}_{:05d}_id{:03d}_gpu_{}_2.jpg'.format(self.final_data_path, class_id,
-            #                                                                               self.num_generations, id,
-            #                                                                               local_rank)
+    # def save_images(self, images, targets):
+    #     # method to store generated images locally
+    #     # local_rank = torch.cuda.current_device()
+    #     for id in range(images.shape[0]):
+    #         class_id = targets[id].item()
+    #         # if 0:
+    #         #     #save into separate folders
+    #         #     place_to_store = '{}/s{:03d}/img_{:05d}_id{:03d}_gpu_{}_2.jpg'.format(self.final_data_path, class_id,
+    #         #                                                                               self.num_generations, id,
+    #         #                                                                               local_rank)
+    #         # else:
+    #         #     place_to_store = '{}/img_s{:03d}_{:05d}_id{:03d}_gpu_{}_2.jpg'.format(self.final_data_path, class_id,
+    #         #                                                                               self.num_generations, id,
+    #         #                                                                               local_rank)
             
-            save_dir = os.path.join(self.final_data_path, f'{class_id}')
-            os.makedirs(save_dir, exist_ok=True)
-            place_to_store = os.path.join(save_dir, f'{id}.jpg')
+    #         save_dir = os.path.join(self.final_data_path, f'{class_id}')
+    #         os.makedirs(save_dir, exist_ok=True)
+    #         place_to_store = os.path.join(save_dir, f'{id}.jpg')
 
-            image_np = images[id].data.cpu().numpy().transpose((1, 2, 0))
-            pil_image = Image.fromarray((image_np * 255).astype(np.uint8))
-            pil_image.save(place_to_store)
+    #         image_np = images[id].data.cpu().numpy().transpose((1, 2, 0))
+    #         pil_image = Image.fromarray((image_np * 255).astype(np.uint8))
+    #         pil_image.save(place_to_store)
 
     def generate_batch(self, net_student=None, targets=None):
         # for ADI detach student and add put to eval mode
         net_teacher = self.net_teacher
-
-        use_fp16 = self.use_fp16
 
         # fix net_student
         if not (net_student is None):
@@ -419,8 +406,6 @@ class DeepInversionClass(object):
 
         if targets is not None:
             targets = torch.from_numpy(np.array(targets).squeeze()).to(self.device)
-            if use_fp16:
-                targets = targets.half()
 
         self.get_images(net_student=net_student, targets=targets)
 

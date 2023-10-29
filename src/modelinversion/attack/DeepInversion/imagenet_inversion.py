@@ -6,11 +6,38 @@
 # Hongxu Yin, Pavlo Molchanov, Zhizhong Li, Jose M. Alvarez, Arun Mallya, Derek
 # Hoiem, Niraj K. Jha, and Jan Kautz
 # --------------------------------------------------------
+from dataclasses import dataclass
 
-# from __future__ import division, print_function
-# from __future__ import absolute_import
-# from __future__ import division
-# from __future__ import unicode_literals
+@dataclass
+class DeepInversionArgs:
+    
+    # exp_name: str
+    adi_scale: float
+    device: str
+    bs: int
+    lr: float
+    target_name: str
+    eval_name: str
+    do_flip: bool
+    r_feature: float
+    target_labels: list
+    # save_dir: str
+    
+    worldsize = 1
+    local_rank = 0
+    tv_l1 = 0.
+    tv_l2 = 0.0001
+    l2 = 0.00001
+    main_loss_multiplier = 1.
+    
+    store_best_images = True
+    epochs = 20000
+    setting_id = 0
+    first_bn_multiplier = 10
+    
+    # fp16 = False
+    jitter = 30
+    comment = ''
 
 from dataclasses import dataclass
 import argparse
@@ -58,33 +85,23 @@ def validate_one(input, target, model):
     print("Verifier accuracy: ", prec1.item())
 
 
-def run(args):
+def deepinversion_attack(args: DeepInversionArgs, target_model, eval_model, folder_manager):
     torch.manual_seed(args.local_rank)
     device = torch.device(args.device)
 
-    if args.target_name == "resnet50v15":
-        from .models.resnetv15 import build_resnet
-        net = build_resnet("resnet50", "classic")
-    else:
-        print("loading torchvision model for inversion with the name: {}".format(args.target_name))
-        net = models.__dict__[args.target_name](pretrained=True)
+    # if args.target_name == "resnet50v15":
+    #     from .models.resnetv15 import build_resnet
+    #     net = build_resnet("resnet50", "classic")
+    # else:
+    #     print("loading torchvision model for inversion with the name: {}".format(args.target_name))
+    #     net = models.__dict__[args.target_name](pretrained=True)
 
     # print(f'device: {device}')
-    net = net.to(device)
-
-    use_fp16 = args.fp16
-    if use_fp16:
-        net, _ = amp.initialize(net, [], opt_level="O2")
+    # net = net.to(device)
 
     print('==> Resuming from checkpoint..')
 
-    ### load models
-    if args.target_name=="resnet50v15":
-        path_to_model = "./models/resnet50v15/model_best.pth.tar"
-        load_model_pytorch(net, path_to_model, gpu_n=torch.cuda.current_device())
-
-    net.to(device)
-    net.eval()
+    target_model.eval()
 
     # reserved to compute test accuracy on generated images by different networks
     net_verifier = None
@@ -95,28 +112,14 @@ def run(args):
             net_verifier = models.__dict__[args.eval_name](pretrained=True).to(device)
             net_verifier.eval()
 
-            if use_fp16:
-                net_verifier = net_verifier.half()
-
     if args.adi_scale != 0.0:
         student_arch = "resnet18"
         net_verifier = models.__dict__[student_arch](pretrained=True).to(device)
         net_verifier.eval()
 
-        if use_fp16:
-            net_verifier, _ = amp.initialize(net_verifier, [], opt_level="O2")
-
         net_verifier = net_verifier.to(device)
         net_verifier.train()
 
-        if use_fp16:
-            for module in net_verifier.modules():
-                if isinstance(module, nn.BatchNorm2d):
-                    module.eval().half()
-
-    
-
-    exp_name = args.exp_name
     # final images will be stored here:
     # adi_data_path =  os.path.join(exp_name, 'final_images') #"./final_images/%s"%exp_name
     # temporal data and generations will be stored here
@@ -161,15 +164,16 @@ def run(args):
     else:
         hook_for_display = None
 
-    assert not (use_fp16 and device == 'cpu'), 'cpu do not support fp16'
+    # assert not (use_fp16 and device == 'cpu'), 'cpu do not support fp16'
     DeepInversionEngine = DeepInversionClass(target_labels=args.target_labels,
-                                             net_teacher=net,
-                                             final_data_path=args.save_dir,
-                                             path=exp_name,
+                                             net_teacher=target_model,
+                                             folder_manager=folder_manager,
+                                            #  final_data_path=args.save_dir,
+                                            #  path=exp_name,
                                              parameters=parameters,
                                              setting_id=args.setting_id,
                                              bs = bs,
-                                             use_fp16 = args.fp16,
+                                            #  use_fp16 = args.fp16,
                                              jitter = jitter,
                                              criterion=criterion,
                                              coefficients = coefficients,
@@ -181,127 +185,3 @@ def run(args):
         net_student = net_verifier
     DeepInversionEngine.generate_batch(net_student=net_student)
     
-@dataclass
-class DeepInversionArgs:
-    
-    exp_name: str
-    adi_scale: float
-    device: str
-    bs: int
-    lr: float
-    target_name: str
-    eval_name: str
-    do_flip: bool
-    r_feature: float
-    target_labels: list
-    save_dir: str
-    
-    worldsize = 1
-    local_rank = 0
-    tv_l1 = 0.
-    tv_l2 = 0.0001
-    l2 = 0.00001
-    main_loss_multiplier = 1.
-    
-    store_best_images = True
-    epochs = 20000
-    setting_id = 0
-    first_bn_multiplier = 10
-    
-    fp16 = False
-    jitter = 30
-    comment = ''
-    
-# @dataclass
-# class DeepInversionConfig:
-    
-#     target_name: str
-#     eval_name: str
-#     target_labels: list
-    
-#     cache_dir: str
-#     result_dir: str
-#     dataset_name: str
-    
-#     batch_size: int = 60
-#     r_feature=0.01
-#     do_flip = True
-#     adi_scale=0.
-#     lr = 0.25
-    
-#     device = 'cpu'
-
-from .config import DeepInversionConfig
-    
-import os
-def deepinversion_attack(
-    args: DeepInversionConfig
-):
-    print(type(args))
-    dataset_name = args.dataset_name
-    assert dataset_name == 'imagenet'
-    
-    exp_name = os.path.join(args.cache_dir, args.target_name)
-    save_dir = os.path.join(args.result_dir, args.target_name)
-    
-    os.makedirs(exp_name, exist_ok=True)
-    os.makedirs(save_dir, exist_ok=True)
-    
-    args = DeepInversionArgs(
-        exp_name=os.path.join(exp_name, args.target_name), 
-        save_dir=save_dir,
-        adi_scale=args.adi_scale,
-        device=args.device,
-        bs=args.batch_size,
-        lr=args.lr,
-        target_name=args.target_name,
-        eval_name=args.eval_name,
-        # dataset_name = args.dataset_name,
-        do_flip=args.do_flip,
-        r_feature=args.r_feature,
-        target_labels=args.target_labels
-    )
-    
-    print(args)
-    run(args=args)
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--worldsize', type=int, default=1, help='Number of processes participating in the job.')
-    parser.add_argument('--local_rank', '--rank', type=int, default=0, help='Rank of the current process.')
-    parser.add_argument('--adi_scale', type=float, default=0.0, help='Coefficient for Adaptive Deep Inversion')
-    parser.add_argument('--no-cuda', action='store_true')
-
-    parser.add_argument('--epochs', default=20000, type=int, help='batch size')
-    parser.add_argument('--setting_id', default=0, type=int, help='settings for optimization: 0 - multi resolution, 1 - 2k iterations, 2 - 20k iterations')
-    parser.add_argument('--bs', default=64, type=int, help='batch size')
-    parser.add_argument('--jitter', default=30, type=int, help='batch size')
-    parser.add_argument('--comment', default='', type=str, help='batch size')
-    parser.add_argument('--target_name', default='resnet50', type=str, help='model name from torchvision or resnet50v15')
-
-    parser.add_argument('--fp16', action='store_true', help='use FP16 for optimization')
-    parser.add_argument('--exp_name', type=str, default='test', help='where to store experimental data')
-
-    parser.add_argument('--verifier', action='store_true', help='evaluate batch with another model')
-    parser.add_argument('--verifier_arch', type=str, default='mobilenet_v2', help = "arch name from torchvision models to act as a verifier")
-
-    parser.add_argument('--do_flip', action='store_true', help='apply flip during model inversion')
-    parser.add_argument('--random_label', action='store_true', help='generate random label for optimization')
-    parser.add_argument('--r_feature', type=float, default=0.05, help='coefficient for feature distribution regularization')
-    parser.add_argument('--first_bn_multiplier', type=float, default=10., help='additional multiplier on first bn layer of R_feature')
-    parser.add_argument('--tv_l1', type=float, default=0.0, help='coefficient for total variation L1 loss')
-    parser.add_argument('--tv_l2', type=float, default=0.0001, help='coefficient for total variation L2 loss')
-    parser.add_argument('--lr', type=float, default=0.2, help='learning rate for optimization')
-    parser.add_argument('--l2', type=float, default=0.00001, help='l2 loss on the image')
-    parser.add_argument('--main_loss_multiplier', type=float, default=1.0, help='coefficient for the main loss in optimization')
-    parser.add_argument('--store_best_images', action='store_true', help='save best images as separate files')
-
-    args = parser.parse_args()
-    print(args)
-
-    torch.backends.cudnn.benchmark = True
-    run(args)
-
-
-# if __name__ == '__main__':
-#     main()

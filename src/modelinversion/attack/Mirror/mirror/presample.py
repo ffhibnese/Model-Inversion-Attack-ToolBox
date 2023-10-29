@@ -23,7 +23,7 @@ def presample(result_dir, genforce_name, checkpoint_dir, sample_num = 5000, batc
     
     # z = torch.randn((sample_num, batch_size))
     
-    print(z_dir)
+    # print(z_dir)
     
     with torch.no_grad():
         for i in tqdm(range(sample_num // batch_size)):
