@@ -1,8 +1,10 @@
-# ModelInversionAttackBox
+# Model_Inversion_Attack_Box
 
-A toolbox for model inversion attacks.
+A comprehensive benchmark for model inversion attacks, which is easy to get started.
 
 ## Introduction
+
+> TODO
 
 ## Model Inversion Attacks
 
@@ -17,11 +19,18 @@ A toolbox for model inversion attacks.
 |[SecretGen](./src/modelinversion/attack/SecretGen/)|SecretGen: Privacy Recovery on Pre-trained Models via Distribution Discrimination [ECCV'2022](https://link.springer.com/chapter/10.1007/978-3-031-20065-6_9#Abs1)||||
 |[VMI](./src/modelinversion/attack/VMI/)|Variational Model Inversion Attacks [NeurIPS'2021](https://proceedings.neurips.cc/paper/2021/hash/50a074e6a8da4662ae0a29edde722179-Abstract.html)||||
 
+## Model Inversion Defences
+
+|Method|Paper|Source Code|Key Characteristics|Addition Notes|
+|:-:|:-:|:-:|:-:|:-:|
+
+> TODO
+
 ## Environments
 
-(TODO: 配置环境)
+> TODO
 
-## Download checkpoints 
+## Download Checkpoints
 
 Download pre-trained models from [here](https://drive.google.com/drive/folders/1ko8zAK1j9lTSF8FMvacO8mCKHY9evG9L) and place them in `./checkpoints/`. The structure is shown in `./checkpoints_structure.txt`.
 
