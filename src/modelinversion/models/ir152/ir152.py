@@ -36,6 +36,10 @@ class IR152(nn.Module):
         self.resolution = 64
 
     def forward(self, x):
+        
+        if x.shape[-1] != self.resolution or x.shape[-2] != self.resolution:
+            x = resize(x, [self.resolution, self.resolution])
+            
         feat = self.feature(x)
         feat = self.output_layer(feat)
         feat = feat.view(feat.size(0), -1)

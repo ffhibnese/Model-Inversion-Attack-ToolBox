@@ -7,7 +7,7 @@ from torch import nn
 from torch.nn import functional as F
 from facenet_pytorch.models.utils.download import download_url_to_file
 from ..modelresult import ModelResult
-
+from torchvision.transforms.functional import resize
 """
     FROM facenet_pytorch
 """
@@ -202,7 +202,7 @@ class InceptionResnetV1(nn.Module):
             initialized. (default: {None})
         dropout_prob {float} -- Dropout probability. (default: {0.6})
     """
-    def __init__(self, ckpt_path, pretrained=None, classify=False, num_classes=None, dropout_prob=0.6, device=None):
+    def __init__(self, num_classes=8631, pretrained=None, classify=True, dropout_prob=0.6):
         super().__init__()
 
         # Set simple attributes
@@ -210,12 +210,12 @@ class InceptionResnetV1(nn.Module):
         self.classify = classify
         self.num_classes = num_classes
 
-        if pretrained == 'vggface2':
-            tmp_classes = 8631
-        elif pretrained == 'casia-webface':
-            tmp_classes = 10575
-        elif pretrained is None and self.classify and self.num_classes is None:
-            raise Exception('If "pretrained" is not specified and "classify" is True, "num_classes" must be specified')
+        # if pretrained == 'vggface2':
+        #     tmp_classes = 8631
+        # elif pretrained == 'casia-webface':
+        #     tmp_classes = 10575
+        # elif pretrained is None and self.classify and self.num_classes is None:
+        #     raise Exception('If "pretrained" is not specified and "classify" is True, "num_classes" must be specified')
 
 
         # Define layers
@@ -260,17 +260,18 @@ class InceptionResnetV1(nn.Module):
         self.last_linear = nn.Linear(1792, 512, bias=False)
         self.last_bn = nn.BatchNorm1d(512, eps=0.001, momentum=0.1, affine=True)
 
-        if pretrained is not None:
-            self.logits = nn.Linear(512, tmp_classes)
-            load_weights(self, pretrained, ckpt_path)
+        # if pretrained is not None:
+        #     self.logits = nn.Linear(512, tmp_classes)
+        #     load_weights(self, pretrained, ckpt_path)
 
-        if self.classify and self.num_classes is not None:
-            self.logits = nn.Linear(512, self.num_classes)
+        # if self.classify and self.num_classes is not None:
+        self.logits = nn.Linear(512, self.num_classes)
+        self.resolution = 224
 
-        self.device = torch.device('cpu')
-        if device is not None:
-            self.device = device
-            self.to(device)
+        # self.device = torch.device('cpu')
+        # if device is not None:
+        #     self.device = device
+        #     self.to(device)
 
     def forward(self, x):
         """Calculate embeddings or logits given a batch of input image tensors.
@@ -281,6 +282,10 @@ class InceptionResnetV1(nn.Module):
         Returns:
             torch.tensor -- Batch of embedding vectors or multinomial logits.
         """
+        
+        if x.shape[-1] != self.resolution or x.shape[-2] != self.resolution:
+            x = resize(x, [self.resolution, self.resolution])
+            
         x = self.conv2d_1a(x)
         x = self.conv2d_2a(x)
         x = self.conv2d_2b(x)
@@ -305,30 +310,30 @@ class InceptionResnetV1(nn.Module):
         return ModelResult(y, x)
 
 
-def load_weights(mdl, name, ckpt_path):
-    """Download pretrained state_dict and load into model.
+# def load_weights(mdl, name, ckpt_path):
+#     """Download pretrained state_dict and load into model.
 
-    Arguments:
-        mdl {torch.nn.Module} -- Pytorch model.
-        name {str} -- Name of dataset that was used to generate pretrained state_dict.
+#     Arguments:
+#         mdl {torch.nn.Module} -- Pytorch model.
+#         name {str} -- Name of dataset that was used to generate pretrained state_dict.
 
-    Raises:
-        ValueError: If 'pretrained' not equal to 'vggface2' or 'casia-webface'.
-    """
-    if name == 'vggface2':
-        path = 'https://github.com/timesler/facenet-pytorch/releases/download/v2.2.9/20180402-114759-vggface2.pt'
-    elif name == 'casia-webface':
-        path = 'https://github.com/timesler/facenet-pytorch/releases/download/v2.2.9/20180408-102900-casia-webface.pt'
-    else:
-        raise ValueError('Pretrained models only exist for "vggface2" and "casia-webface"')
+#     Raises:
+#         ValueError: If 'pretrained' not equal to 'vggface2' or 'casia-webface'.
+#     """
+#     if name == 'vggface2':
+#         path = 'https://github.com/timesler/facenet-pytorch/releases/download/v2.2.9/20180402-114759-vggface2.pt'
+#     elif name == 'casia-webface':
+#         path = 'https://github.com/timesler/facenet-pytorch/releases/download/v2.2.9/20180408-102900-casia-webface.pt'
+#     else:
+#         raise ValueError('Pretrained models only exist for "vggface2" and "casia-webface"')
 
-    # model_dir = os.path.join(get_torch_home(), 'checkpoints')
-    # os.makedirs(model_dir, exist_ok=True)
+#     # model_dir = os.path.join(get_torch_home(), 'checkpoints')
+#     # os.makedirs(model_dir, exist_ok=True)
 
-    cached_file = ckpt_path #os.path.join(ckpt_path, os.path.basename(path))
-    if not os.path.exists(cached_file):
-        download_url_to_file(path, cached_file)
-        # raise RuntimeError('no cache file')
+#     cached_file = ckpt_path #os.path.join(ckpt_path, os.path.basename(path))
+#     if not os.path.exists(cached_file):
+#         download_url_to_file(path, cached_file)
+#         # raise RuntimeError('no cache file')
 
-    state_dict = torch.load(cached_file)
-    mdl.load_state_dict(state_dict)
+#     state_dict = torch.load(cached_file)
+#     mdl.load_state_dict(state_dict)

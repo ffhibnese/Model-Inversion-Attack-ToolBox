@@ -18,3 +18,4 @@ class DeepInversionConfig:
     do_flip: bool = True
     adi_scale: float=0.
     lr: float = 0.25
+    

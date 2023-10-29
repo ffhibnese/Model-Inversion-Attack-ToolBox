@@ -6,11 +6,11 @@ from attack.Mirror.utils.img_utils import *
 from torch.nn import functional as F
 from tqdm import tqdm
 
-def find_closest_latent(target_model, image_resolution, targets_list, k, arch_name, pre_sample_dir, bs = 10):
+def find_closest_latent(target_model, device, targets_list, k, arch_name, presample_dir, bs = 10):
 
     pre_device = next(target_model.parameters()).device
     
-    device = 'cuda'# next(target_model.parameters()).device
+    # device = 'cuda:2'# next(target_model.parameters()).device
     target_model = target_model.to(device)
     
     target_model.eval()
@@ -18,8 +18,8 @@ def find_closest_latent(target_model, image_resolution, targets_list, k, arch_na
     target_ranked_confidence_dict = collections.defaultdict(list)
     ws = []
     
-    img_dir = os.path.join(pre_sample_dir, 'img')
-    w_dir = os.path.join(pre_sample_dir, 'w')
+    img_dir = os.path.join(presample_dir, 'img')
+    w_dir = os.path.join(presample_dir, 'w')
     
     all_ws_gen_files = sorted(glob.glob(os.path.join(w_dir, 'sample_*.pt')))
     all_img_gen_files = sorted(glob.glob(os.path.join(img_dir, 'sample_*.pt')))
@@ -40,13 +40,13 @@ def find_closest_latent(target_model, image_resolution, targets_list, k, arch_na
             pt_num = len(fake)
             # w = torch.load(ws_file)
             fake = crop_img(fake, arch_name)
-            fake = normalize(resize_img(fake*255., image_resolution), arch_name)
+            fake = normalize(resize_img(fake*255., target_model.resolution), arch_name)
             
             # print(f'>>>>>>>>> target device {next(target_model.parameters()).device}\t fake device {fake.device}')
             
             
             for i in range(0, len(fake), bs):
-                torch.cuda.empty_cache()
+                # torch.cuda.empty_cache()
                 output = F.softmax(target_model(fake[i:min(len(fake), i+bs)]).result, dim=-1)[:, targets_list]
                 outputs.append(output.cpu())
                 
@@ -67,7 +67,7 @@ def find_closest_latent(target_model, image_resolution, targets_list, k, arch_na
     target_topk_conf_dict = {}
     target_topk_idx_dict = {}
     for t, v in target_ranked_confidence_dict.items():
-        print(f'v: {v.shape}, k: {k}')
+        # print(f'v: {v.shape}, k: {k}')
         topk_conf, topk_idx = torch.topk(v, k, dim=0)
         # print(f'{t}: {topk_conf}\t{topk_idx}')
         target_topk_idx_dict[t] = topk_idx.tolist()
