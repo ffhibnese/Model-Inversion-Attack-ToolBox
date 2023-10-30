@@ -112,3 +112,7 @@ cache/
 results/*
 checkpoints/*
 dataset/*
+
+# force into git
+!README.md
+!*.py
