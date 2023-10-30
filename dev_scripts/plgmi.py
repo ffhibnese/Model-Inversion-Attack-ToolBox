@@ -10,12 +10,12 @@ from development_config import get_dirs
 
 if __name__ == '__main__':
     dirs = get_dirs('plgmi')
-    work_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
+    cache_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     
     # target name support: vgg16, ir152, facenet64, facenet
-    target_name = 'facenet'
+    target_name = 'vgg16'
     # eval name support: vgg16, ir152, facenet64, facenet
-    eval_name = 'facenet64'
+    eval_name = 'facenet'
     # gan target name support: vgg16
     gan_target_name = 'vgg16'
     # dataset name support: celeba
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     
     batch_size = 60
     target_labels = list(range(120))
-    device = 'cuda:2'
+    device = 'cuda:3'
     
     config = PlgmiAttackConfig(
         target_name=target_name,
@@ -33,6 +33,8 @@ if __name__ == '__main__':
         cgan_target_name=gan_target_name,
         ckpt_dir=ckpt_dir,
         result_dir=result_dir,
+        dataset_dir = dataset_dir,
+        cache_dir=cache_dir,
         dataset_name=dataset_name,
         # dataset_dir=dataset_dir,
         gan_dataset_name=gan_dataset_name,

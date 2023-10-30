@@ -1,8 +1,30 @@
 import os
 import argparse
+from torchvision import transforms
+from PIL import Image
 
+class CelebaTransform:
+    
+    def __init__(self) -> None:
+        re_size = 64
+        crop_size = 108
+        offset_height = (218 - crop_size) // 2
+        offset_width = (178 - crop_size) // 2
+        crop = lambda x: x[:, offset_height:offset_height + crop_size, offset_width:offset_width + crop_size]
+        self.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Lambda(crop),
+            transforms.ToPILImage(),
+            transforms.Resize((re_size, re_size)),
+            # transforms.ToTensor()
+        ])
+        
+    def trans(self, src_path, dst_path):
+        img = Image.open(src_path)
+        img = self.transform(img)
+        img.save(dst_path)
 
-def split(raw_img_dir, split_file_dir, dst_dir):
+def split(raw_img_dir, split_file_dir, dst_dir, trans):
     with open(split_file_dir) as f:
         data = f.readlines()
     for s in data:
@@ -15,11 +37,15 @@ def split(raw_img_dir, split_file_dir, dst_dir):
             os.makedirs(dst_label_dir, exist_ok=True)
             dst_path = os.path.join(dst_label_dir, s)
             
-            os.system(f'cp {src_path} {dst_path}')
+            trans.trans(src_path, dst_path)
+            # os.system(f'cp {src_path} {dst_path}')
+            
         
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('file_dir', type=str)
+    
+    trans = CelebaTransform()
     
     args = parser.parse_args()
     
@@ -41,4 +67,4 @@ if __name__ == '__main__':
     # split_file_dir = './split_files/private_train.txt'
     # dst_dir = './split/private_re_idx/train'
     for dst_dir, split_file_dir in zip(dst_dirs, split_files):
-        split(raw_img_dir, split_file_dir, dst_dir)
+        split(raw_img_dir, split_file_dir, dst_dir, trans=trans)

@@ -6,6 +6,8 @@ from .config import MirrorBlackBoxConfig
 from ...utils import Tee, FolderManager
 from ...models import get_model
 from .genforce.get_genforce import get_genforce
+from ...metrics import calc_knn, generate_private_feats
+from .utils.img_utils import normalize
 
 # def blackbox_attack(genforce_name, target_name, eval_name, target_labels, work_dir, ckpt_dir, dataset_name, result_dir=None, batch_size=10, device='cpu', calc_knn=False):
 
@@ -96,3 +98,23 @@ def white_attack(config: MirrorBlackBoxConfig):
     # mirror_white_box_attack(target_name, eval_name, genforce_name, target_labels, cache_dir, ckpt_dir, ckpt_dir, result_dir ,dataset_name, presample_dir, False, batch_size=batch_size, calc_knn=calc_knn, device=device)
     
     mirror_white_box_attack(args, target_model, eval_model, folder_manager = folder_manager)
+    
+    print("=> Calculate the KNN Dist.")
+    
+    
+    generate_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, config.target_name)
+    private_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, 'private')
+    
+    if config.dataset_name == 'celeba':
+        private_img_dir = os.path.join(config.dataset_dir, config.dataset_name, 'split', 'private', 'train')
+        transform = None
+    elif config.dataset_name == 'vggface2':
+        transform = lambda img: normalize(img * 255, config.target_name)
+    else:
+        raise NotImplementedError(f'dataset {config.dataset_name} is NOT supported')
+    
+    generate_private_feats(eval_model=eval_model, img_dir=os.path.join(result_dir, 'all_imgs'), save_dir=generate_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None)
+    generate_private_feats(eval_model=eval_model, img_dir=private_img_dir, save_dir=private_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None, exist_ignore=True)
+    
+    knn_dist = calc_knn(generate_feat_save_dir, private_feat_save_dir)
+    print("KNN Dist %.2f" % knn_dist)

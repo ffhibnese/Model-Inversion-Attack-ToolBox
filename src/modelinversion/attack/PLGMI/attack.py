@@ -5,24 +5,12 @@ from ...utils import FolderManager, set_random_seed
 from .models.generators.resnet64 import ResNetGenerator
 from ...models import *
 import torch
-from ...metrics import get_knn_dist
+from ...metrics.knn import generate_private_feats, calc_knn
 
 def attack(config: PlgmiAttackConfig):
-#     plgmi_attack(args)
-    
-# def plgmi_attack(attack_args: PlgmiAttackConfig):
-    
-    # target_name = attack_args.target_name
-    # eval_name = attack_args.eval_name
-    # ckpt_dir = attack_args.ckpt_dir
-    # dataset_name = attack_args.dataset_name
-    # batch_size = attack_args.batch_size
-    # result_dir = attack_args.result_dir
-    # cgan_target_name = attack_args.cgan_target_name
-    # device = attack_args.device
     
     save_dir = os.path.join(config.result_dir, f'{config.dataset_name}_{config.target_name}_{config.cgan_target_name}')
-    folder_manager = FolderManager(config.ckpt_dir, None, None, save_dir)
+    folder_manager = FolderManager(config.ckpt_dir, config.dataset_dir, config.cache_dir, save_dir)
     
     args = PlgmiArgs(config.target_name, config.eval_name, save_dir, config.ckpt_dir, device=config.device,
                      inv_loss_type=config.inv_loss_type,
@@ -72,8 +60,23 @@ def attack(config: PlgmiAttackConfig):
                                                                                                             aver_var5))
 
     print("=> Calculate the KNN Dist.")
-    knn_dist = get_knn_dist(E, os.path.join(args.save_dir, 'all_imgs'), os.path.join(config.ckpt_dir, 'PLGMI', "celeba_private_feats"), resolution=112, device=args.device)
+    
+    
+    generate_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, config.target_name)
+    private_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, 'private')
+    
+    if config.dataset_name == 'celeba':
+        private_img_dir = os.path.join(config.dataset_dir, config.dataset_name, 'split', 'private', 'train')
+    else:
+        raise NotImplementedError(f'dataset {config.dataset_name} is NOT supported')
+    
+    generate_private_feats(eval_model=E, img_dir=os.path.join(save_dir, 'all_imgs'), save_dir=generate_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None)
+    generate_private_feats(eval_model=E, img_dir=private_img_dir, save_dir=private_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None, exist_ignore=True)
+    
+    knn_dist = calc_knn(generate_feat_save_dir, private_feat_save_dir)
     print("KNN Dist %.2f" % knn_dist)
+    
+    
 
     # print("=> Calculate the FID.")
     # fid = calc_fid(recovery_img_path=os.path.join(args.save_dir, "success_imgs"),
