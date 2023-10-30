@@ -110,9 +110,13 @@ cache/
 *.pth
 *.tar
 results/*
-checkpoints/*
-dataset/*
+checkpoints/*/*
+dataset/*/*
+
 
 # force into git
 !README.md
-!*.py
+!/**/*.py
+!checkpoints/**/.gitkeep
+# !dataset/celeba/README.md
+
