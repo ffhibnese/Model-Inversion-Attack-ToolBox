@@ -8,6 +8,8 @@ class PlgmiAttackConfig:
     eval_name: str
     ckpt_dir: str
     result_dir: str
+    dataset_dir: str
+    cache_dir: str
     
     dataset_name: str
     gan_dataset_name: str

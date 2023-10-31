@@ -12,7 +12,7 @@ from kornia import augmentation
 from . import losses as L
 from . import utils
 from ...models import *
-from ...metrics import get_knn_dist, calc_fid
+# from ...metrics import get_knn_dist, calc_fid
 # from ...metrics import knn
 # from ...metrics.fid.fid import calc_fid
 

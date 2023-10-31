@@ -6,7 +6,7 @@ from attack.Mirror.utils.img_utils import *
 from torch.nn import functional as F
 from tqdm import tqdm
 
-def find_closest_latent(target_model, device, targets_list, k, arch_name, presample_dir, bs = 10):
+def find_closest_latent(target_model, device, targets_list, k, arch_name, presample_dir, bs = 10, to_target_transforms=None):
 
     pre_device = next(target_model.parameters()).device
     
@@ -36,7 +36,7 @@ def find_closest_latent(target_model, device, targets_list, k, arch_name, presam
             # ws_file = all_ws_gen_files[idx]
             img_file = all_img_gen_files[idx]
             
-            fake = torch.load(img_file).to(device)
+            fake = torch.load(img_file) #.to(device)
             pt_num = len(fake)
             # w = torch.load(ws_file)
             fake = crop_img(fake, arch_name)
@@ -47,7 +47,12 @@ def find_closest_latent(target_model, device, targets_list, k, arch_name, presam
             
             for i in range(0, len(fake), bs):
                 # torch.cuda.empty_cache()
-                output = F.softmax(target_model(fake[i:min(len(fake), i+bs)]).result, dim=-1)[:, targets_list]
+                
+                inputs = fake[i:min(len(fake), i+bs)]
+                if to_target_transforms is not None:
+                    inputs = to_target_transforms(inputs)
+                    
+                output = F.softmax(target_model(inputs.to(device)).result, dim=-1)[:, targets_list]
                 outputs.append(output.cpu())
                 
         outputs = torch.cat(outputs, dim=0)

@@ -23,4 +23,4 @@ class MirrorBlackBoxArgs:
     use_w_space = True
     repeat_w = True
     
-    calc_knn: bool
+    # calc_knn: bool

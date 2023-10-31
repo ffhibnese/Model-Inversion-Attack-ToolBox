@@ -6,6 +6,10 @@ from .config import MirrorBlackBoxConfig
 from ...utils import Tee, FolderManager
 from ...models import get_model
 from .genforce.get_genforce import get_genforce
+from ...metrics import calc_knn, generate_private_feats
+from .utils.img_utils import normalize
+from torchvision import transforms
+from torchvision.transforms import functional as tv_f
 
 # def blackbox_attack(genforce_name, target_name, eval_name, target_labels, work_dir, ckpt_dir, dataset_name, result_dir=None, batch_size=10, device='cpu', calc_knn=False):
 
@@ -43,7 +47,7 @@ def blackbox_attack(config: MirrorBlackBoxConfig):
         target_labels=target_labels,
         batch_size=batch_size,
         device=device,
-        calc_knn = False
+        # calc_knn = False
     )
     
     
@@ -63,14 +67,14 @@ def white_attack(config: MirrorBlackBoxConfig):
     device = config.device
     target_labels = config.target_labels
     
-    if batch_size % len(target_labels) != 0:
-        raise RuntimeError('batch size shoube be divisioned by number of target labels')
+    # if batch_size % len(target_labels) != 0:
+    #     raise RuntimeError('batch size shoube be divisioned by number of target labels')
     
     cache_dir = os.path.join(config.cache_dir, 'whitebox', f'{target_name}_{eval_name}')
     result_dir = os.path.join(config.result_dir, 'whitebox', f'{target_name}_{eval_name}')
     presample_dir = os.path.join(cache_dir, 'pre_sample', genforce_name)
     
-    folder_manager = FolderManager(ckpt_dir, None, cache_dir, result_dir, presample_dir=presample_dir)
+    folder_manager = FolderManager(ckpt_dir, config.dataset_dir, cache_dir, result_dir, presample_dir=presample_dir)
     
     check_presample_dir = os.path.join(presample_dir, 'img')
     if not os.path.exists(check_presample_dir) or len(os.listdir(check_presample_dir)) == 0:
@@ -82,17 +86,83 @@ def white_attack(config: MirrorBlackBoxConfig):
     eval_model = get_model(config.eval_name, config.dataset_name, device=config.device)
     folder_manager.load_target_model_state_dict(eval_model, config.dataset_name, config.eval_name, device=config.device)
         
-    calc_knn = dataset_name == 'celeba'
+    # calc_knn = dataset_name == 'celeba'
+        
+    
+    
+    to_target_transforms = None
+    
+    if config.dataset_name == 'celeba':
+        re_size = 64
+        crop_size = 108
+        # offset_height = (218 - crop_size) // 2
+        # offset_width = (178 - crop_size) // 2
+        offset_height = (218 - crop_size) // 2
+        offset_width = (178 - crop_size) // 2
+        # crop = lambda x: x[..., offset_height:offset_height + crop_size, offset_width:offset_width + crop_size]
+        crop = lambda x: x[..., 20:108, 20:108]
+        # to_target_transforms = transforms.Compose([
+        #     # transforms.ToTensor(),
+        #     transforms.Lambda(crop),
+        #     # transforms.ToPILImage(),
+        #     transforms.Resize((re_size, re_size)),
+        #     # transforms.ToTensor()
+        # ])
+        def trans(img):
+            img = tv_f.resize(img, (128,128))
+            img = crop(img)
+            img = tv_f.resize(img, (re_size, re_size))
+            return img
+        
+        to_target_transforms = trans
+        
+    gen_num_per_target = 5
         
     args = MirrorWhiteBoxArgs(
         arch_name=config.target_name,
         test_arch_name = config.eval_name,
         genforce_model_name=config.genforce_name,
-        target_labels=target_labels,
+        gen_num_per_target=gen_num_per_target,
+        # target_labels=target_labels,
         device=config.device,
-        calc_knn=calc_knn,
-        batch_size=config.batch_size
+        # calc_knn=calc_knn,
+        # batch_size=config.batch_size,
+        # epoch_num=100
     )
-    # mirror_white_box_attack(target_name, eval_name, genforce_name, target_labels, cache_dir, ckpt_dir, ckpt_dir, result_dir ,dataset_name, presample_dir, False, batch_size=batch_size, calc_knn=calc_knn, device=device)
     
-    mirror_white_box_attack(args, target_model, eval_model, folder_manager = folder_manager)
+    batch_size = batch_size // gen_num_per_target
+    
+    total_acc = 0
+    total_num = 0
+    
+    # for i in range((len(target_labels)-1) // batch_size + 1):
+    #     print(f'----------------attack batch [{i}]------------------')
+    #     input_target_labels = target_labels[i*batch_size: min((i+1)*batch_size, len(target_labels))]
+    #     acc = mirror_white_box_attack(args, target_model, eval_model, folder_manager = folder_manager, to_target_transforms=to_target_transforms, target_labels=input_target_labels)
+        
+    #     add_num = len(input_target_labels) * gen_num_per_target
+    #     total_num += add_num
+    #     total_acc += acc * add_num
+        
+    # avg_acc = total_acc / total_num
+    # print(f'avg acc: {avg_acc: .6f}')
+    
+    print("=> Calculate the KNN Dist.")
+    
+    
+    generate_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, config.target_name)
+    private_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, 'private')
+    
+    if config.dataset_name == 'celeba':
+        private_img_dir = os.path.join(config.dataset_dir, config.dataset_name, 'split', 'private', 'train')
+        transform = None
+    # elif config.dataset_name == 'vggface2':
+    #     transform = lambda img: normalize(img * 255, config.target_name)
+    else:
+        raise NotImplementedError(f'dataset {config.dataset_name} is NOT supported')
+    
+    generate_private_feats(eval_model=eval_model, img_dir=os.path.join(result_dir, 'all_imgs'), save_dir=generate_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None)
+    generate_private_feats(eval_model=eval_model, img_dir=private_img_dir, save_dir=private_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None, exist_ignore=True)
+    
+    knn_dist = calc_knn(generate_feat_save_dir, private_feat_save_dir)
+    print("KNN Dist %.2f" % knn_dist)

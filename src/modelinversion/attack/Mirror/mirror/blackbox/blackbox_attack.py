@@ -22,7 +22,7 @@ from .genertic import genetic_alogrithm
 
 from .blackbox_args import MirrorBlackBoxArgs
 
-from .....metrics.knn import get_knn_dist
+# from .....metrics.knn import get_knn_dist
 
 from .....utils import FolderManager
     
@@ -84,7 +84,8 @@ def mirror_blackbox_attack(
         
     ws = torch.stack(ws)
     imgs = generate_images_func(ws, raw_img=True)
-    compute_conf(eval_net, args.eval_name, targets=args.target_labels, imgs=imgs)
+    acc = compute_conf(eval_net, args.eval_name, targets=args.target_labels, imgs=imgs)
+    return acc
     # vutils.save_image(imgs, f'a.png', nrow=1)
     
     # if args.calc_knn:
@@ -121,6 +122,8 @@ def compute_conf(net, arch_name, targets, imgs):
     print(arch_name)
     print(f'top1 acc: {acc}')
     print(f'topk acc: {topk_acc}')
+    
+    return acc
     
     
             

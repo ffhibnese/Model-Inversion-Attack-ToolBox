@@ -9,7 +9,7 @@ import torch
 from ...models import *
 from ...utils import FolderManager
 import numpy as np
-from ...metrics import get_knn_dist
+from ...metrics import calc_knn, generate_private_feats
 
 def attack(config: KedmiAttackConfig):
     
@@ -65,8 +65,25 @@ def attack(config: KedmiAttackConfig):
                                                                                                             aver_var5))
 
     
+    # print("=> Calculate the KNN Dist.")
+    # knn_dist = get_knn_dist(E, os.path.join(save_dir, 'all_imgs'), os.path.join(config.ckpt_dir, 'PLGMI', "celeba_private_feats"), resolution=112, device=config.device)
+    # print("KNN Dist %.2f" % knn_dist)
+    
     print("=> Calculate the KNN Dist.")
-    knn_dist = get_knn_dist(E, os.path.join(save_dir, 'all_imgs'), os.path.join(config.ckpt_dir, 'PLGMI', "celeba_private_feats"), resolution=112, device=config.device)
+    
+    
+    generate_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, config.target_name)
+    private_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, 'private')
+    
+    if config.dataset_name == 'celeba':
+        private_img_dir = os.path.join(config.dataset_dir, config.dataset_name, 'split', 'private', 'train')
+    else:
+        raise NotImplementedError(f'dataset {config.dataset_name} is NOT supported')
+    
+    generate_private_feats(eval_model=E, img_dir=os.path.join(save_dir, 'all_imgs'), save_dir=generate_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None)
+    generate_private_feats(eval_model=E, img_dir=private_img_dir, save_dir=private_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None, exist_ignore=True)
+    
+    knn_dist = calc_knn(generate_feat_save_dir, private_feat_save_dir)
     print("KNN Dist %.2f" % knn_dist)
     
     # print("=> Calculate the FID.")
