@@ -10,6 +10,7 @@ class MirrorBlackBoxConfig:
     ckpt_dir: str
     cache_dir: str
     result_dir: str
+    dataset_dir: str
     
     dataset_name: str
     
@@ -28,6 +29,7 @@ class MirrorWhiteBoxConfig:
     ckpt_dir: str
     cache_dir: str
     result_dir: str
+    dataset_dir: str
     
     dataset_name: str
     
