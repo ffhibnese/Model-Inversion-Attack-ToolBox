@@ -1,0 +1,15 @@
+data:
+  aux: celeba-aux
+  name: celeba
+  target: celeba-target
+evaluation_cls:
+  class: PretrainedInsightFaceClassifier
+  name: pretrained
+  path: dummy_not_used
+prior_gan:
+  d_path: pretrained/gans/neurips2021-celeba/disc.pt
+  g_path: pretrained/gans/neurips2021-celeba/gen.pt
+  name: dcgan
+target_cls:
+  name: ResNet34
+  path: pretrained/classifiers/neurips2021-celeba-cls/best_ckpt.pt
