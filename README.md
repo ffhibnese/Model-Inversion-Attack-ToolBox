@@ -59,6 +59,10 @@ Also, you are always welcome to contribute and make this repository better!
 
 > TODO: export the conda env file and give instructions to install the environment, including git clone xxx and conda env create -n xxx -f xxx.
 
+## Dataset Preparation
+
+The detail of dataset preparation is placed in `./dataset/<DATASET_NAME>/README.md`.
+
 ## Pre-trained Model Checkpoints
 We prepare all the related pre-trained model files in the following link.   
 Download pre-trained models from [here](https://drive.google.com/drive/folders/1ko8zAK1j9lTSF8FMvacO8mCKHY9evG9L) and place them in `./checkpoints/`. The detailed file path structure is shown in `./checkpoints_structure.txt`.
@@ -66,13 +70,13 @@ Download pre-trained models from [here](https://drive.google.com/drive/folders/1
 Genforces models will be automatically downloaded by running the provided scripts.
 
 ## Run Example
-We provide detailed running scripts of attack algorithms in `/dev_scripts/`.
+We provide detailed running scripts of attack algorithms in `./dev_scripts/`.
 
 An example of running the PLGMI attack is as follows:
 
 > python dev_scripts/plgmi.py
 
-Results are generated in ./results
+Results are generated in `./results`
 
 
 ## Citation
