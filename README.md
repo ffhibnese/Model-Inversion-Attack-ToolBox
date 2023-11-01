@@ -11,7 +11,7 @@
 [Hongyao Yu*](https://github.com/Chrisqcwx),
 [Hao Fang*](https://github.com/ffhibnese),
 [Wenbo Yu](https://github.com/cswbyu),
-[Bin Chen#](https://github.com/BinChen2021)
+[Bin Chen#](https://github.com/BinChen2021),
 [Shu-Tao Xia](https://www.sigs.tsinghua.edu.cn/xst/main.htm)
 
 
