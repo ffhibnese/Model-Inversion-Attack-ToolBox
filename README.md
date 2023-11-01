@@ -24,7 +24,7 @@ Also, you are always welcome to contribute and make this repository better!
 
 PS: We are already in the second development stage where the following updates will be introduced,
 - Representative defense algorithms
-- Better refactor code with `trainer`.
+- Better refactor code with `trainer`
 - A package that can be installed with pip
 
 ## Introduction
@@ -63,8 +63,8 @@ PS: We are already in the second development stage where the following updates w
 > TODO: export the conda env file and give instructions to install the environment, including git clone xxx and conda env create -n xxx -f xxx.
 
 ## Dataset and Model Checkpoints
-For datasets, you can download them according to the file placed in `./dataset/<DATASET_NAME>/README.md`.
-For pre-trained models, we prepare all the related model weights files in the following link.   
+- For datasets, you can download them according to the file placed in `./dataset/<DATASET_NAME>/README.md`.
+- For pre-trained models, we prepare all the related model weights files in the following link.   
 Download pre-trained models [here](https://drive.google.com/drive/folders/1ko8zAK1j9lTSF8FMvacO8mCKHY9evG9L) and place them in `./checkpoints/`. The detailed file path structure is shown in `./checkpoints_structure.txt`.
 
 Genforces models will be automatically downloaded by running the provided scripts.
@@ -80,4 +80,7 @@ Results are generated in `./results`
 
 
 ## Citation
+> Coming soon...
+
+## Acknowledgement
 > Coming soon...
