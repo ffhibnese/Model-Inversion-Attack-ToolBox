@@ -17,12 +17,15 @@
 > 
 Welcome to **MIA**! This repository is a comprehensive open-source Python benchmark for model inversion attacks, which is well-organized and easy to get started. It includes uniform implementations of advanced and representative model inversion methods, formulating a unified and reliable framework for a convenient and fair comparison between different model inversion methods.
 
-> TODO: yixiang, fill in the blank with your email address.
-> 
-If you have any concerns about our toolbox, feel free to contact us at 200110409@stu.hit.edu.cn, fang-h23@mails.tsinghua.edu.cn.
+
+If you have any concerns about our toolbox, feel free to contact us at 200110409@stu.hit.edu.cn, 210110821@stu.hit.edu.cn, and fang-h23@mails.tsinghua.edu.cn.
 
 Also, you are always welcome to contribute and make this repository better! 
 
+PS: We are already in the second development stage where the following updates will be introduced,
+- Representative defense algorithms
+- Better refactor code with `trainer`.
+- A package that can be installed with pip
 
 ## Introduction
 
@@ -59,13 +62,10 @@ Also, you are always welcome to contribute and make this repository better!
 
 > TODO: export the conda env file and give instructions to install the environment, including git clone xxx and conda env create -n xxx -f xxx.
 
-## Dataset Preparation
-
-The detail of dataset preparation is placed in `./dataset/<DATASET_NAME>/README.md`.
-
-## Pre-trained Model Checkpoints
-We prepare all the related pre-trained model files in the following link.   
-Download pre-trained models from [here](https://drive.google.com/drive/folders/1ko8zAK1j9lTSF8FMvacO8mCKHY9evG9L) and place them in `./checkpoints/`. The detailed file path structure is shown in `./checkpoints_structure.txt`.
+## Dataset and Model Checkpoints
+For datasets, you can download them according to the file placed in `./dataset/<DATASET_NAME>/README.md`.
+For pre-trained models, we prepare all the related model weights files in the following link.   
+Download pre-trained models [here](https://drive.google.com/drive/folders/1ko8zAK1j9lTSF8FMvacO8mCKHY9evG9L) and place them in `./checkpoints/`. The detailed file path structure is shown in `./checkpoints_structure.txt`.
 
 Genforces models will be automatically downloaded by running the provided scripts.
 
