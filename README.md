@@ -7,7 +7,7 @@
 ![CUDA 11.1](https://img.shields.io/badge/cuda-11.1-DodgerBlue.svg?style=plastic)
 ![License GPL](https://img.shields.io/badge/license-GPL-DodgerBlue.svg?style=plastic)
 
-[Yixiang Qiu*](final-solution), 
+[Yixiang Qiu*](https://github.com/final-solution), 
 [Hongyao Yu*](https://github.com/Chrisqcwx),
 [Hao Fang*](https://github.com/ffhibnese),
 [Wenbo Yu](https://github.com/cswbyu),
@@ -22,7 +22,7 @@ If you have any concerns about our toolbox, feel free to contact us at 200110409
 
 Also, you are always welcome to contribute and make this repository better! 
 
-PS: We are already in the second development stage where the following updates will be introduced,
+PS: We are already in the second development stage where the following updates will be introduced soon.
 - Representative defense algorithms
 - Better refactor code with `trainer`
 - A package that can be installed with pip
