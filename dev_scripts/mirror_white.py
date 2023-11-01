@@ -22,12 +22,12 @@ if __name__ == '__main__':
     target_name = 'vgg16'
     eval_name = 'facenet'
     genforce_name = 'stylegan_celeba_partial256'
-    target_labels = list(range(60))
+    target_labels = list(range(71, 71+300))
     dataset_name = 'celeba'
     
     batch_size = 30
     
-    device = 'cuda:2'
+    device = 'cuda:0'
     
     config = MirrorWhiteBoxConfig(
         target_name=target_name,

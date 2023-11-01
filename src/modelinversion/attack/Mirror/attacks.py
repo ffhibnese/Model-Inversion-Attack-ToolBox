@@ -10,6 +10,7 @@ from ...metrics import calc_knn, generate_private_feats
 from .utils.img_utils import normalize
 from torchvision import transforms
 from torchvision.transforms import functional as tv_f
+from ...metrics.fid.fid import calc_fid
 
 # def blackbox_attack(genforce_name, target_name, eval_name, target_labels, work_dir, ckpt_dir, dataset_name, result_dir=None, batch_size=10, device='cpu', calc_knn=False):
 
@@ -94,20 +95,8 @@ def white_attack(config: MirrorBlackBoxConfig):
     
     if config.dataset_name == 'celeba':
         re_size = 64
-        crop_size = 108
-        # offset_height = (218 - crop_size) // 2
-        # offset_width = (178 - crop_size) // 2
-        offset_height = (218 - crop_size) // 2
-        offset_width = (178 - crop_size) // 2
-        # crop = lambda x: x[..., offset_height:offset_height + crop_size, offset_width:offset_width + crop_size]
         crop = lambda x: x[..., 20:108, 20:108]
-        # to_target_transforms = transforms.Compose([
-        #     # transforms.ToTensor(),
-        #     transforms.Lambda(crop),
-        #     # transforms.ToPILImage(),
-        #     transforms.Resize((re_size, re_size)),
-        #     # transforms.ToTensor()
-        # ])
+
         def trans(img):
             img = tv_f.resize(img, (128,128))
             img = crop(img)
@@ -123,11 +112,7 @@ def white_attack(config: MirrorBlackBoxConfig):
         test_arch_name = config.eval_name,
         genforce_model_name=config.genforce_name,
         gen_num_per_target=gen_num_per_target,
-        # target_labels=target_labels,
         device=config.device,
-        # calc_knn=calc_knn,
-        # batch_size=config.batch_size,
-        # epoch_num=100
     )
     
     batch_size = batch_size // gen_num_per_target
@@ -135,17 +120,17 @@ def white_attack(config: MirrorBlackBoxConfig):
     total_acc = 0
     total_num = 0
     
-    # for i in range((len(target_labels)-1) // batch_size + 1):
-    #     print(f'----------------attack batch [{i}]------------------')
-    #     input_target_labels = target_labels[i*batch_size: min((i+1)*batch_size, len(target_labels))]
-    #     acc = mirror_white_box_attack(args, target_model, eval_model, folder_manager = folder_manager, to_target_transforms=to_target_transforms, target_labels=input_target_labels)
+    for i in range((len(target_labels)-1) // batch_size + 1):
+        print(f'----------------attack batch [{i}]------------------')
+        input_target_labels = target_labels[i*batch_size: min((i+1)*batch_size, len(target_labels))]
+        acc = mirror_white_box_attack(args, target_model, eval_model, folder_manager = folder_manager, to_target_transforms=to_target_transforms, target_labels=input_target_labels)
         
-    #     add_num = len(input_target_labels) * gen_num_per_target
-    #     total_num += add_num
-    #     total_acc += acc * add_num
+        add_num = len(input_target_labels) * gen_num_per_target
+        total_num += add_num
+        total_acc += acc * add_num
         
-    # avg_acc = total_acc / total_num
-    # print(f'avg acc: {avg_acc: .6f}')
+    avg_acc = total_acc / total_num
+    print(f'avg acc: {avg_acc: .6f}')
     
     print("=> Calculate the KNN Dist.")
     
@@ -166,3 +151,9 @@ def white_attack(config: MirrorBlackBoxConfig):
     
     knn_dist = calc_knn(generate_feat_save_dir, private_feat_save_dir)
     print("KNN Dist %.2f" % knn_dist)
+    
+    print("=> Calculate the FID.")
+    fid = calc_fid(recovery_img_path=os.path.join(result_dir, "all_imgs"),
+                   private_img_path= os.path.join(config.dataset_dir, config.dataset_name, "split", "private", "train"),
+                   batch_size=config.batch_size, device=config.device)
+    print("FID %.2f" % fid)

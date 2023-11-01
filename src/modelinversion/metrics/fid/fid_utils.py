@@ -6,23 +6,6 @@ from scipy import linalg
 
 
 def get_activations(images, model, batch_size=64, dims=2048, device=None):
-    """Calculates the activations of the pool_3 layer for all images.
-
-    Params:
-    -- images      : Numpy array of dimension (n_images, 3, hi, wi). The values
-                     must lie between 0 and 1.
-    -- model       : Instance of inception model
-    -- batch_size  : the images numpy array is split into batches with
-                     batch size batch_size. A reasonable batch size depends
-                     on the hardware.
-    -- dims        : Dimensionality of features returned by Inception
-    -- device      : torch.Device
-
-    Returns:
-    -- A numpy array of dimension (num images, dims) that contains the
-       activations of the given tensor when feeding inception with the
-       query tensor.
-    """
     model.eval()
 
     d0 = images.shape[0]
@@ -57,24 +40,6 @@ def get_activations(images, model, batch_size=64, dims=2048, device=None):
 
 
 def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
-    """Numpy implementation of the Frechet Distance.
-    The Frechet distance between two multivariate Gaussians X_1 ~ N(mu_1, C_1)
-    and X_2 ~ N(mu_2, C_2) is
-            d^2 = ||mu_1 - mu_2||^2 + Tr(C_1 + C_2 - 2*sqrt(C_1*C_2)).
-    Stable version by Dougal J. Sutherland.
-    Params:
-    -- mu1   : Numpy array containing the activations of a layer of the
-               inception net (like returned by the function 'get_predictions')
-               for generated samples.
-    -- mu2   : The sample mean over activations, precalculated on an
-               representive data set.
-    -- sigma1: The covariance matrix over activations for generated samples.
-    -- sigma2: The covariance matrix over activations, precalculated on an
-               representive data set.
-    Returns:
-    --   : The Frechet Distance.
-    """
-
     mu1 = np.atleast_1d(mu1)
     mu2 = np.atleast_1d(mu2)
 
@@ -110,24 +75,6 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
 
 
 def calculate_activation_statistics(images, model, batch_size=64, dims=2048, device=None):
-    """Calculation of the statistics used by the FID.
-    Params:
-    -- images      : Numpy array of dimension (n_images, 3, hi, wi). The values
-                     must lie between 0 and 1.
-    -- model       : Instance of inception model
-    -- batch_size  : The images numpy array is split into batches with
-                     batch size batch_size. A reasonable batch size
-                     depends on the hardware.
-    -- dims        : Dimensionality of features returned by Inception
-    -- device      : If set to True, use GPU
-    -- verbose     : If set to True and parameter out_step is given, the
-                     number of calculated batches is reported.
-    Returns:
-    -- mu    : The mean over samples of the activations of the pool_3 layer of
-               the inception model.
-    -- sigma : The covariance matrix of the activations of the pool_3 layer of
-               the inception model.
-    """
     act = get_activations(images, model, batch_size, dims, device)
     mu = np.mean(act, axis=0)
     sigma = np.cov(act, rowvar=False)

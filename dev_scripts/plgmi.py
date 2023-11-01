@@ -25,7 +25,7 @@ if __name__ == '__main__':
     
     batch_size = 60
     target_labels = list(range(0, 600))
-    device = 'cuda:3'
+    device = 'cuda:0'
     
     config = PlgmiAttackConfig(
         target_name=target_name,

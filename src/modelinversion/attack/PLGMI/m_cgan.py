@@ -13,7 +13,7 @@ from . import losses as L
 from . import utils
 from .dataset import FaceDataset, InfiniteSamplerWrapper, sample_from_data, sample_from_gen
 from .models import inception
-from ...models import VGG16, FaceNet, IR152, FaceNet64
+from ...models import get_model
 from .models.discriminators.snresnet64 import SNResNetProjectionDiscriminator
 from .models.generators.resnet64 import ResNetGenerator
 from torchvision.datasets import ImageFolder
@@ -21,18 +21,19 @@ from torch.utils.data import DataLoader
 import shutil
 from dataclasses import dataclass
 from tqdm import tqdm
+from ...utils import FolderManager, set_random_seed
 
 @dataclass
 class PlgmiCGanArgs:
     
-    dataset_dir: str
+    # dataset_dir: str
     dataset_name: str
     target_name: str
-    cache_dir: str
+    # cache_dir: str
     batch_size: int
     loss_type: str
     inv_loss_type: str
-    gen_ckpt_dir: str
+    # gen_ckpt_dir: str
     
     device: str
     relativistic_loss: bool
@@ -78,93 +79,93 @@ def plgmi_train_cgan(
     # ,
     # device = 'cuda'
 ):
+    
+    folder_manager = FolderManager(ckpt_dir, dataset_dir, cache_dir, None)
     device = 'cuda'
     args = PlgmiCGanArgs(
-        dataset_dir, dataset_name, 
+        # dataset_dir, 
+        dataset_name, 
         target_name, 
-        cache_dir, 
+        # cache_dir, 
         batch_size,
         loss_type,
         inv_loss_type, 
-        gen_ckpt_dir=ckpt_dir,
+        # gen_ckpt_dir=ckpt_dir,
         device=device,
         relativistic_loss=relative_loss
     )
     
-    if target_name.startswith("vgg16"):
-        T = VGG16(1000)
-        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'VGG16_88.26.tar')
-    elif target_name.startswith('ir152'):
-        T = IR152(1000)
-        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'IR152_91.16.tar')
-    elif target_name == "facenet64":
-        T = FaceNet64(1000)
-        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'FaceNet64_88.50.tar')
-    T = (T).to(device)
-    
-    # E = FaceNet(1000)
-    # E = (E).to(device)
-    # path_E = os.path.join(ckpt_dir, 'celeba', 'FaceNet_95.88.tar')
-    
-    if device == 'cpu': 
-        ckp_T = torch.load(path_T, map_location=lambda storage, loc: storage)['state_dict']
-        # ckp_E = torch.load(path_E, map_location=lambda storage, loc: storage)['state_dict']
-    else:
-        ckp_T = torch.load(path_T)['state_dict']
-        # ckp_E = torch.load(path_E)['state_dict']
-        
-        
-    T.load_state_dict(ckp_T, strict=True)
+    # if target_name.startswith("vgg16"):
+    #     T = VGG16(1000)
+    #     path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'VGG16_88.26.tar')
+    # elif target_name.startswith('ir152'):
+    #     T = IR152(1000)
+    #     path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'IR152_91.16.tar')
+    # elif target_name == "facenet64":
+    #     T = FaceNet64(1000)
+    #     path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'FaceNet64_88.50.tar')
+    # T = (T).to(device)
+    T = get_model(target_name, dataset_name, device=device)
+    folder_manager.load_target_model_state_dict(T, dataset_name, target_name, device)
     T.eval()
     
-    # E.load_state_dict(ckp_E, strict=True)
-    # E.eval()
     
-    run(args, T)
+    run(args, T, folder_manager)
     
-def run(args: PlgmiCGanArgs, target_model):
+def run(args: PlgmiCGanArgs, target_model, folder_manager: FolderManager):
     
     seed = 64
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    set_random_seed(seed)
+    
     device = args.device
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
-    torch.backends.cudnn.benchmark = True
     
     def _noise_adder(img):
         return torch.empty_like(img, dtype=img.dtype).uniform_(0.0, 1 / 256.0) + img
     
     if args.dataset_name == 'celeba':
-        re_size = 64
-        crop_size = 108
-        offset_height = (218 - crop_size) // 2
-        offset_width = (178 - crop_size) // 2
-        crop = lambda x: x[:, offset_height:offset_height + crop_size, offset_width:offset_width + crop_size]
+        # re_size = 64
+        # crop_size = 108
+        # offset_height = (218 - crop_size) // 2
+        # offset_width = (178 - crop_size) // 2
+        # crop = lambda x: x[:, offset_height:offset_height + crop_size, offset_width:offset_width + crop_size]
+        my_transform = _noise_adder
     elif args.dataset_name == 'ffhq':
         crop_size = 88
         offset_height = (128 - crop_size) // 2
         offset_width = (128 - crop_size) // 2
         re_size = 64
         crop = lambda x: x[:, offset_height:offset_height + crop_size, offset_width:offset_width + crop_size]
+        
+        my_transform = torchvision.transforms.Compose([
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Lambda(crop),
+            torchvision.transforms.ToPILImage(),
+            torchvision.transforms.Resize((re_size, re_size)),
+            torchvision.transforms.ToTensor(),
+            _noise_adder
+        ])
+        
     elif args.dataset_name == 'facescrub':
         re_size = 64
         crop_size = 64
         offset_height = (64 - crop_size) // 2
         offset_width = (64 - crop_size) // 2
         crop = lambda x: x[:, offset_height:offset_height + crop_size, offset_width:offset_width + crop_size]
+        
+        my_transform = torchvision.transforms.Compose([
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Lambda(crop),
+            torchvision.transforms.ToPILImage(),
+            torchvision.transforms.Resize((re_size, re_size)),
+            torchvision.transforms.ToTensor(),
+            _noise_adder
+        ])
     else:
         print("Wrong Dataname!")
         
-    my_transform = torchvision.transforms.Compose([
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Lambda(crop),
-        torchvision.transforms.ToPILImage(),
-        torchvision.transforms.Resize((re_size, re_size)),
-        torchvision.transforms.ToTensor(),
-        _noise_adder
-    ])
     
-    top_n_selection_dir = os.path.join(args.cache_dir, 'top_n_selection', args.dataset_name, args.target_name)
+    
+    top_n_selection_dir = os.path.join(folder_manager.config.cache_dir, 'top_n_selection', args.dataset_name, args.target_name)
     
     if not os.path.exists(top_n_selection_dir):
         print(f'dst dir: {top_n_selection_dir}')
@@ -181,13 +182,13 @@ def run(args: PlgmiCGanArgs, target_model):
     # sampler = SimpleSampler(train_loader)
     
     # result_dir = os.path.join(args.cache_dir, 'train_cgan', args.dataset_name, )
-    result_ckpt_dir = os.path.join(args.gen_ckpt_dir, 'PLGMI')
+    result_ckpt_dir = os.path.join(folder_manager.config.ckpt_dir, 'PLGMI')
     os.makedirs(result_ckpt_dir, exist_ok=True)
     
     result_D_path = os.path.join(result_ckpt_dir, f'{args.dataset_name}_{args.target_name.upper()}_PLG_MI_D.tar')
     result_G_path = os.path.join(result_ckpt_dir, f'{args.dataset_name}_{args.target_name.upper()}_PLG_MI_G.tar')
     
-    train_img_gen_dir = os.path.join(args.cache_dir, 'train_cgan', 'train_img')
+    train_img_gen_dir = os.path.join(folder_manager.config.cache_dir, 'train_cgan', 'train_img')
     os.makedirs(train_img_gen_dir, exist_ok=True)
     
     _n_cls = args.num_classes

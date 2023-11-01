@@ -11,7 +11,6 @@ from torchvision.datasets import ImageFolder
 from ...models import *
 from tqdm import tqdm
 
-
 # class PublicFFHQ(torch.utils.data.Dataset):
 #     def __init__(self, root='datasets/ffhq/thumbnails128x128/', transform=None):
 #         super(PublicFFHQ, self).__init__()
@@ -43,39 +42,39 @@ from tqdm import tqdm
 #         return len(self.images)
 
 
-class PublicCeleba(torch.utils.data.Dataset):
-    # def __init__(self, file_path='data_files/celeba_ganset.txt',
-                #  img_root='datasets/celeba/img_align_celeba', transform=None):
-    def __init__(self, dataset_dir, transform=None):
-        super(PublicCeleba, self).__init__()
-        self.dataset_dir = dataset_dir
-        self.transform = transform
-        self.images = []
+# class PublicCeleba(torch.utils.data.Dataset):
+#     # def __init__(self, file_path='data_files/celeba_ganset.txt',
+#                 #  img_root='datasets/celeba/img_align_celeba', transform=None):
+#     def __init__(self, dataset_dir, transform=None):
+#         super(PublicCeleba, self).__init__()
+#         self.dataset_dir = dataset_dir
+#         self.transform = transform
+#         self.images = []
         
-        for label in os.listdir(dataset_dir):
-            label_dir = os.path.join(dataset_dir, label)
-            for img_name in os.listdir(label_dir):
-                img_path = os.path.join(label_dir, img_name)
-                self.images.append(img_path)
+#         for label in os.listdir(dataset_dir):
+#             label_dir = os.path.join(dataset_dir, label)
+#             for img_name in os.listdir(label_dir):
+#                 img_path = os.path.join(label_dir, img_name)
+#                 self.images.append(img_path)
 
-        # name_list, label_list = [], []
+#         # name_list, label_list = [], []
 
-        # f = open(self.file_path, "r")
-        # for line in f.readlines():
-        #     img_name = line.strip()
-        #     self.images.append(os.path.join(self.img_root, img_name))
+#         # f = open(self.file_path, "r")
+#         # for line in f.readlines():
+#         #     img_name = line.strip()
+#         #     self.images.append(os.path.join(self.img_root, img_name))
 
-    def __getitem__(self, index):
+#     def __getitem__(self, index):
 
-        img_path = self.images[index]
-        img = Image.open(img_path)
-        if self.transform != None:
-            img = self.transform(img)
+#         img_path = self.images[index]
+#         img = Image.open(img_path)
+#         if self.transform != None:
+#             img = self.transform(img)
 
-        return img, img_path
+#         return img, img_path
 
-    def __len__(self):
-        return len(self.images)
+#     def __len__(self):
+#         return len(self.images)
 
 
 # class PublicFaceScrub(torch.utils.data.Dataset):
@@ -197,46 +196,46 @@ def top_n_selection_impl(T, target_name, dataset_name, data_loader, cache_dir, t
 
 # print(args)
 
-def top_n_selection(target_name, dataset_name, ckpt_dir, dataset_dir, cache_dir, top_n=30, num_classes=1000, batch_size=64, device='cuda'):
+from ...utils import FolderManager
+
+def top_n_selection(target_name, dataset_name, folder_manager: FolderManager, top_n=30, num_classes=1000, batch_size=64, device='cuda'):
     print("=> load target model ...")
     print(f'device: {device}')
         
-    if target_name.startswith("vgg16"):
-        T = VGG16(1000)
-        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'VGG16_88.26.tar')
-    elif target_name.startswith('ir152'):
-        T = IR152(1000)
-        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'IR152_91.16.tar')
-    elif target_name == "facenet64":
-        T = FaceNet64(1000)
-        path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'FaceNet64_88.50.tar')
-    T = (T).to(device)
-    if device == 'cpu': 
-        ckp_T = torch.load(path_T, map_location=lambda storage, loc: storage)['state_dict']
-    else:
-        ckp_T = torch.load(path_T)['state_dict']
-    T.load_state_dict(ckp_T, strict=True)
+    # if target_name.startswith("vgg16"):
+    #     T = VGG16(1000)
+    #     path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'VGG16_88.26.tar')
+    # elif target_name.startswith('ir152'):
+    #     T = IR152(1000)
+    #     path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'IR152_91.16.tar')
+    # elif target_name == "facenet64":
+    #     T = FaceNet64(1000)
+    #     path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'FaceNet64_88.50.tar')
+    # T = (T).to(device)
+    T = get_model(target_name, dataset_name, device=device)
+    
+    folder_manager.load_target_model_state_dict(T, dataset_name, target_name, device)
     T.eval()
 
     print("=> load public dataset ...")
     if dataset_name == 'celeba':
-        re_size = 64
-        crop_size = 108
-        offset_height = (218 - crop_size) // 2
-        offset_width = (178 - crop_size) // 2
-        crop = lambda x: x[:, offset_height:offset_height + crop_size, offset_width:offset_width + crop_size]
-        celeba_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Lambda(crop),
-            transforms.ToPILImage(),
-            transforms.Resize((re_size, re_size)),
-            transforms.ToTensor()
-        ])
+    #     re_size = 64
+    #     crop_size = 108
+    #     offset_height = (218 - crop_size) // 2
+    #     offset_width = (178 - crop_size) // 2
+    #     crop = lambda x: x[:, offset_height:offset_height + crop_size, offset_width:offset_width + crop_size]
+    #     celeba_transform = transforms.Compose([
+    #         transforms.ToTensor(),
+    #         transforms.Lambda(crop),
+    #         transforms.ToPILImage(),
+    #         transforms.Resize((re_size, re_size)),
+    #         transforms.ToTensor()
+    #     ])
         # data_set = ImageFolder(os.path.join(dataset_dir, 'celeba', 'split','public'))
-        data_set = PublicCeleba(os.path.join(dataset_dir, 'celeba', 'split','public'), transform=celeba_transform)
+        data_set = ImageFolder(os.path.join(folder_manager.config.dataset_dir, 'celeba', 'split','public'), transform=transforms.ToTensor())
         data_loader = data.DataLoader(data_set, shuffle=False, batch_size=batch_size)
         
-    top_n_selection_impl(T, target_name, dataset_name, data_loader, cache_dir, top_n, num_classes, device=device)
+    top_n_selection_impl(T, target_name, dataset_name, data_loader, folder_manager.config.cache_dir, top_n, num_classes, device=device)
 # elif args.data_name == 'ffhq':
 #     re_size = 64
 #     crop_size = 88
