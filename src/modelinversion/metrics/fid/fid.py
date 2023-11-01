@@ -11,7 +11,7 @@ from . import inceptionv3
 # from ...models import 
 
 
-def calc_fid(recovery_img_path, private_img_path, batch_size=64):
+def calc_fid(recovery_img_path, private_img_path, batch_size=64, device='cpu'):
     """
     Calculate the FID of the reconstructed image.
     :param recovery_img_path: the dir of reconstructed images
@@ -30,17 +30,6 @@ def calc_fid(recovery_img_path, private_img_path, batch_size=64):
     inception_model = inceptionv3.InceptionV3().to(device)
 
     recovery_list, private_list = [], []
-
-    # get the reconstructed images
-    # list_of_idx = os.listdir(recovery_img_path)  # [0,1,2,3,4,5....]
-    # if len(list_of_idx) == 0:
-    #     return -1000
-    # for idx in list_of_idx:
-    #     success_recovery_num = len(os.listdir(os.path.join(recovery_img_path, idx)))
-    #     for recovery_img in os.listdir(os.path.join(recovery_img_path, idx)):
-    #         image = Image.open(os.path.join(recovery_img_path, idx, recovery_img))
-    #         image = torchvision.transforms.ToTensor()(image).unsqueeze(0)
-    #         recovery_list.append(image.numpy())
     
     recovery_loader = iter(torch.utils.data.DataLoader(
         torchvision.datasets.ImageFolder(
@@ -76,5 +65,7 @@ def calc_fid(recovery_img_path, private_img_path, batch_size=64):
     fid_score = fid_utils.calculate_frechet_distance(
         mu_fake, sigma_fake, mu_real, sigma_real
     )
+    
+    print(f'fid score: {fid_score}')
 
     return fid_score

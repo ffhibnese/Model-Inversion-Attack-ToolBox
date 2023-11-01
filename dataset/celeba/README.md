@@ -11,9 +11,7 @@ Open Terminal here and create a folder:
 mkdir split_files
 ```
 
-> TODO: url
-
-Download split files from [here]() and place them into `./split_files`. The file structure is as follows: 
+Download split files from [here](https://drive.google.com/drive/folders/1-40XCE3fMvHOxWNV8bjfmrAt856HGTAO?usp=drive_link) and place them into `./split_files`. The file structure is as follows: 
 
 ```
 split_files/

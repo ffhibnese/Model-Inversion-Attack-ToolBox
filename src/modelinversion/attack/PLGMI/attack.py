@@ -6,6 +6,7 @@ from .models.generators.resnet64 import ResNetGenerator
 from ...models import *
 import torch
 from ...metrics.knn import generate_private_feats, calc_knn
+from ...metrics.fid.fid import calc_fid
 
 def attack(config: PlgmiAttackConfig):
     
@@ -78,8 +79,8 @@ def attack(config: PlgmiAttackConfig):
     
     
 
-    # print("=> Calculate the FID.")
-    # fid = calc_fid(recovery_img_path=os.path.join(args.save_dir, "success_imgs"),
-    #                private_img_path= os.path.join(ckpt_dir, 'PLGMI', "datasets", "celeba_private_domain"),
-    #                batch_size=batch_size)
-    # print("FID %.2f" % fid)
+    print("=> Calculate the FID.")
+    fid = calc_fid(recovery_img_path=os.path.join(args.save_dir, "all_imgs"),
+                   private_img_path= os.path.join(config.dataset_dir, config.dataset_name, "split", "private", "train"),
+                   batch_size=config.batch_size, device=config.device)
+    print("FID %.2f" % fid)
