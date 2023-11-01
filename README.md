@@ -66,7 +66,7 @@ Download pre-trained models from [here](https://drive.google.com/drive/folders/1
 Genforces models will be automatically downloaded by running the provided scripts.
 
 ## Run Example
-We provide detailed running scripts of attack algorithms in /dev_scripts/.
+We provide detailed running scripts of attack algorithms in `/dev_scripts/`.
 
 An example of running the PLGMI attack is as follows:
 
