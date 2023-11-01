@@ -129,8 +129,9 @@ def white_attack(config: MirrorBlackBoxConfig):
         total_num += add_num
         total_acc += acc * add_num
         
-    avg_acc = total_acc / total_num
-    print(f'avg acc: {avg_acc: .6f}')
+    if total_num != 0:
+        avg_acc = total_acc / total_num
+        print(f'avg acc: {avg_acc: .6f}')
     
     print("=> Calculate the KNN Dist.")
     
