@@ -1,10 +1,39 @@
 # Model_Inversion_Attack_Box
+> TODO: correct the following icons with the correct software version we used.
 
-A comprehensive benchmark for model inversion attacks, which is easy to get started.
+![Python 3.9](https://img.shields.io/badge/python-3.9-DodgerBlue.svg?style=plastic)
+![Pytorch 1.10.0](https://img.shields.io/badge/pytorch-1.10.0-DodgerBlue.svg?style=plastic)
+![torchvision 0.9.0](https://img.shields.io/badge/torchvision-0.9.0-DodgerBlue.svg?style=plastic)
+![CUDA 11.1](https://img.shields.io/badge/cuda-11.1-DodgerBlue.svg?style=plastic)
+![License GPL](https://img.shields.io/badge/license-GPL-DodgerBlue.svg?style=plastic)
+
+[Yixiang Qiu*](final-solution), 
+[Hongyao Yu*](https://github.com/Chrisqcwx),
+[Hao Fang*](https://github.com/ffhibnese),
+[Wenbo Yu](https://github.com/cswbyu)
+[Bin Chen#](https://github.com/BinChen2021)
+
+> TODO: figure out a beautiful name for our work.
+> 
+Welcome to **MIA**! This repository is a comprehensive open-source Python benchmark for model inversion attacks, which is well-organized and easy to get started. It includes uniform implementations of advanced and representative model inversion methods, formulating a unified and reliable framework for a convenient and fair comparison between different model inversion methods.
+
+> TODO: yixiang, fill in the blank with your email address.
+> 
+If you have any concerns about our toolbox, feel free to contact us at ___, fang-h23@mails.tsinghua.edu.cn.
+
+Also, you are always welcome to contribute and make this repository better! 
+
 
 ## Introduction
 
-> TODO
+> TODO: Introduce Model Inversion Attack briefly
+
+## Features
+- Easy to get started.
+- Provide all the pre-trained model files.
+- Always up to date.
+- Well organized and encapsulated.
+- A unified and fair comparison between attack methods.
 
 ## Model Inversion Attacks
 
@@ -24,25 +53,27 @@ A comprehensive benchmark for model inversion attacks, which is easy to get star
 |Method|Paper|Source Code|Key Characteristics|Addition Notes|
 |:-:|:-:|:-:|:-:|:-:|
 
-> TODO
+> Coming soon...
 
 ## Environments
 
 > TODO
 
-## Download Checkpoints
+## Pre-trained Model Checkpoints
+We prepare all the related pre-trained model files in the following link.   
+Download pre-trained models from [here](https://drive.google.com/drive/folders/1ko8zAK1j9lTSF8FMvacO8mCKHY9evG9L) and place them in `./checkpoints/`. The detailed file path structure is shown in `./checkpoints_structure.txt`.
 
-Download pre-trained models from [here](https://drive.google.com/drive/folders/1ko8zAK1j9lTSF8FMvacO8mCKHY9evG9L) and place them in `./checkpoints/`. The structure is shown in `./checkpoints_structure.txt`.
-
-Genforces models will be automatic downloaded when running scripts.
+Genforces models will be automatically downloaded by running the provided scripts.
 
 ## Run Example
+We provide the sh scripts of attack algorithms in ./dev_scripts/.
 
-Examples of attack algorithms is in `./dev_scripts/`. 
+A example for running PLGMI attack:
 
-Example for running PLGMI attack:
-```sh
-python dev_scripts/plgmi.py
-```
+> python dev_scripts/plgmi.py
 
-Results are generated in `./results`
+Results are generated in ./results
+
+
+## Citation
+> Coming soon...
