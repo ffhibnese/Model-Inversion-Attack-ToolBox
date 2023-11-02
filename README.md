@@ -72,11 +72,9 @@ Genforces models will be automatically downloaded by running the provided script
 
 ## :racehorse: Run Examples
 We provide detailed running scripts of attack algorithms in `./dev_scripts/`.
-You can run any attack algorithm simply by:
+You can run any attack algorithm simply by the following instruction and experimental results are generated in `./results` by default:
 > python dev_scripts/xxx.py
-> 
-An example of running the PLGMI attack is as follows and results are generated in `./results` by default:
-> python dev_scripts/plgmi.py
+
 
 ## 📔 Citation
 > Coming soon...
