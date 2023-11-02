@@ -62,7 +62,13 @@ We are already in the second development stage where the following updates will 
 
 ## :wrench: Environments
 
-> TODO: export the conda env file and give instructions to install the environment, including git clone xxx and conda env create -n xxx -f xxx.
+
+
+```sh
+git clone https://github.com/ffhibnese/Model_Inversion_Attack_Box.git
+conda create -n MIA python=3.10
+pip install -r requirements.txt
+```
 
 ## :page_facing_up: Dataset and Model Checkpoints
 - For datasets, you can download them according to the file placed in `./dataset/<DATASET_NAME>/README.md`.
