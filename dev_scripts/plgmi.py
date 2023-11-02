@@ -36,7 +36,6 @@ if __name__ == '__main__':
         dataset_dir = dataset_dir,
         cache_dir=cache_dir,
         dataset_name=dataset_name,
-        # dataset_dir=dataset_dir,
         gan_dataset_name=gan_dataset_name,
         target_labels=target_labels,
         device=device,

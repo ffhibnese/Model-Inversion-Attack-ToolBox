@@ -8,13 +8,13 @@ import torch
 from ...models import *
 from ...utils import FolderManager
 import numpy as np
-from ...metrics import generate_private_feats, calc_knn
+from ...metrics import generate_private_feats, calc_knn, calc_fid
 
 
 def attack(config: GmiAttackConfig):
     
     save_dir = os.path.join(config.result_dir, f'{config.gan_dataset_name}_{config.target_name}')
-    folder_manager = FolderManager(config.ckpt_dir, None, None, save_dir)
+    folder_manager = FolderManager(config.ckpt_dir, config.dataset_dir,config.cache_dir, save_dir)
     
     print("=> creating model ...")
 
@@ -41,28 +41,30 @@ def attack(config: GmiAttackConfig):
     print("=> Begin attacking ...")
 
     aver_acc, aver_acc5, aver_var, aver_var5 = 0, 0, 0, 0
+    
+    if len(config.target_labels) > 0:
 
     # evaluate on the first 300 identities only
-    for idx in range((len(config.target_labels) - 1) // config.batch_size + 1):
-        print("--------------------- Attack batch [%s]------------------------------" % idx)
-        
-        iden = torch.tensor(
-            config.target_labels[idx * config.batch_size: min((idx+1)*config.batch_size, len(config.target_labels))], device=config.device, dtype=torch.long
-            )
+        for idx in range((len(config.target_labels) - 1) // config.batch_size + 1):
+            print("--------------------- Attack batch [%s]------------------------------" % idx)
+            
+            iden = torch.tensor(
+                config.target_labels[idx * config.batch_size: min((idx+1)*config.batch_size, len(config.target_labels))], device=config.device, dtype=torch.long
+                )
 
-        acc, acc5, var, var5 = inversion(G, D, T, E, iden, folder_manager=folder_manager, lr=2e-2, momentum=0.9, lamda=100,
-                                            iter_times=1500, clip_range=1, 
-                                                device=config.device)
+            acc, acc5, var, var5 = inversion(G, D, T, E, iden, folder_manager=folder_manager, lr=2e-2, momentum=0.9, lamda=100,
+                                                iter_times=1500, clip_range=1, 
+                                                    device=config.device)
 
-        aver_acc += acc * len(iden) / len(config.target_labels)
-        aver_acc5 += acc5 * len(iden) / len(config.target_labels)
-        aver_var += var * len(iden) / len(config.target_labels)
-        aver_var5 += var5 * len(iden) / len(config.target_labels)
+            aver_acc += acc * len(iden) / len(config.target_labels)
+            aver_acc5 += acc5 * len(iden) / len(config.target_labels)
+            aver_var += var * len(iden) / len(config.target_labels)
+            aver_var5 += var5 * len(iden) / len(config.target_labels)
 
-    print("Average Acc:{:.2f}\tAverage Acc5:{:.2f}\tAverage Acc_var:{:.4f}\tAverage Acc_var5:{:.4f}".format(aver_acc,
-                                                                                                            aver_acc5,
-                                                                                                            aver_var,
-                                                                                                            aver_var5))
+        print("Average Acc:{:.2f}\tAverage Acc5:{:.2f}\tAverage Acc_var:{:.4f}\tAverage Acc_var5:{:.4f}".format(aver_acc,
+                                                                                                                aver_acc5,
+                                                                                                                aver_var,
+                                                                                                                aver_var5))
 
     
     # print("=> Calculate the KNN Dist.")
@@ -91,3 +93,9 @@ def attack(config: GmiAttackConfig):
     #                private_img_path= os.path.join(ckpt_dir, 'PLGMI', "datasets", "celeba_private_domain"),
     #                batch_size=batch_size)
     # print("FID %.2f" % fid)
+    
+    print("=> Calculate the FID.")
+    fid = calc_fid(recovery_img_path=os.path.join(save_dir, "all_imgs"),
+                   private_img_path= os.path.join(config.dataset_dir, config.dataset_name, "split", "private", "train"),
+                   batch_size=config.batch_size, device=config.device)
+    print("FID %.2f" % fid)

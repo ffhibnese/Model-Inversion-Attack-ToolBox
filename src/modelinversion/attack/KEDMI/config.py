@@ -7,7 +7,9 @@ class KedmiAttackConfig:
     eval_name: str
     gan_target_name: str
     ckpt_dir: str
+    dataset_dir: str
     result_dir: str
+    cache_dir: str
     
     dataset_name: str
     gan_dataset_name: str

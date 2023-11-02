@@ -40,22 +40,24 @@ def attack(config: PlgmiAttackConfig):
     aver_acc, aver_acc5, aver_var, aver_var5 = 0, 0, 0, 0
 
     # evaluate on the first 300 identities only
-    for idx in range((len(config.target_labels) - 1) // config.batch_size + 1):
-        print("--------------------- Attack batch [%s]------------------------------" % idx)
-        
-        iden = torch.tensor(
-            config.target_labels[idx * config.batch_size: min((idx+1)*config.batch_size, len(config.target_labels))], device=config.device, dtype=torch.long
-            )
-        # reconstructed private images
-        acc, acc5, var, var5 = inversion(args, G, T, E, iden, folder_manager=folder_manager, lr=config.lr, iter_times=config.iter_times,
-                                            num_seeds=5)
+    
+    if len(config.target_labels) > 0:
+        for idx in range((len(config.target_labels) - 1) // config.batch_size + 1):
+            print("--------------------- Attack batch [%s]------------------------------" % idx)
+            
+            iden = torch.tensor(
+                config.target_labels[idx * config.batch_size: min((idx+1)*config.batch_size, len(config.target_labels))], device=config.device, dtype=torch.long
+                )
+            # reconstructed private images
+            acc, acc5, var, var5 = inversion(args, G, T, E, iden, folder_manager=folder_manager, lr=config.lr, iter_times=config.iter_times,
+                                                num_seeds=5)
 
-        aver_acc += acc * len(iden) / len(config.target_labels)
-        aver_acc5 += acc5  * len(iden) / len(config.target_labels)
-        aver_var += var  * len(iden) / len(config.target_labels)
-        aver_var5 += var5  * len(iden) / len(config.target_labels)
+            aver_acc += acc * len(iden) / len(config.target_labels)
+            aver_acc5 += acc5  * len(iden) / len(config.target_labels)
+            aver_var += var  * len(iden) / len(config.target_labels)
+            aver_var5 += var5  * len(iden) / len(config.target_labels)
 
-    print("Average Acc:{:.2f}\tAverage Acc5:{:.2f}\tAverage Acc_var:{:.4f}\tAverage Acc_var5:{:.4f}".format(aver_acc,
+        print("Average Acc:{:.2f}\tAverage Acc5:{:.2f}\tAverage Acc_var:{:.4f}\tAverage Acc_var5:{:.4f}".format(aver_acc,
                                                                                                             aver_acc5,
                                                                                                             aver_var,
                                                                                                             aver_var5))
