@@ -1,4 +1,4 @@
-存放预训练模型位置
+Location to store pre-trained model weights.
 
 ## GMI
 
