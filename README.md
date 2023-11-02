@@ -74,11 +74,14 @@ Genforces models will be automatically downloaded by running the provided script
 ## :racehorse: Run Examples
 We provide detailed running scripts of attack algorithms in `./dev_scripts/`.
 You can run any attack algorithm simply by the following instruction and experimental results will be produced in `./results` by default:
-> python dev_scripts/xxx.py
+```sh
+python dev_scripts/xxx.py
+```
 
 
 ## 📔 Citation
 > Coming soon...
 
 ## :sparkles: Acknowledgement
-> Coming soon...
+
+Thanks to authors of [PLGMI](https://github.com/LetheSec/PLG-MI-Attack), who provide high quality codes for datasets , metrics, and three attack methods (GMI, KEDMI and PLGMI), we can easily refactor the codes and apply to other attack methods.
