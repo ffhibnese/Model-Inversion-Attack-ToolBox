@@ -1,4 +1,4 @@
-# Model_Inversion_Attack_Box
+# :fire: Model Inversion Attack Box v1.0 :fire:
 > TODO: correct the following icons with the correct software version we used.
 
 ![Python 3.9](https://img.shields.io/badge/python-3.9-DodgerBlue.svg?style=plastic)
@@ -24,23 +24,25 @@ If you have any concerns about our toolbox, feel free to contact us at 200110409
 
 Also, you are always welcome to contribute and make this repository better! 
 
-PS: We are already in the second development stage where the following updates will be introduced soon.
+
+### :construction: MIA v2.0 is coming soon
+We are already in the second development stage where the following updates will be implemented soon.
 - Representative defense algorithms
 - Better refactor code with `trainer`
 - A package that can be installed with pip
 
-## Introduction
+## :rocket: Introduction
 
 > TODO: Introduce Model Inversion Attack briefly
 
-## Features
+## :bulb: Features
 - Easy to get started.
 - Provide all the pre-trained model files.
 - Always up to date.
 - Well organized and encapsulated.
 - A unified and fair comparison between attack methods.
 
-## Model Inversion Attacks
+## :memo: Model Inversion Attacks
 
 |Method|Paper|Source Code|Key Characteristics|Addition Notes|
 |:-:|:-:|:-:|:-:|:-:|
@@ -53,25 +55,25 @@ PS: We are already in the second development stage where the following updates w
 |[SecretGen](./src/modelinversion/attack/SecretGen/)|SecretGen: Privacy Recovery on Pre-trained Models via Distribution Discrimination [ECCV'2022](https://link.springer.com/chapter/10.1007/978-3-031-20065-6_9#Abs1)||||
 |[VMI](./src/modelinversion/attack/VMI/)|Variational Model Inversion Attacks [NeurIPS'2021](https://proceedings.neurips.cc/paper/2021/hash/50a074e6a8da4662ae0a29edde722179-Abstract.html)||||
 
-## Model Inversion Defences
+## :memo: Model Inversion Defences
 
 |Method|Paper|Source Code|Key Characteristics|Addition Notes|
 |:-:|:-:|:-:|:-:|:-:|
 
 > Coming soon...
 
-## Environments
+## :wrench: Environments
 
 > TODO: export the conda env file and give instructions to install the environment, including git clone xxx and conda env create -n xxx -f xxx.
 
-## Dataset and Model Checkpoints
+## :page_facing_up: Dataset and Model Checkpoints
 - For datasets, you can download them according to the file placed in `./dataset/<DATASET_NAME>/README.md`.
 - For pre-trained models, we prepare all the related model weights files in the following link.   
 Download pre-trained models [here](https://drive.google.com/drive/folders/1ko8zAK1j9lTSF8FMvacO8mCKHY9evG9L) and place them in `./checkpoints/`. The detailed file path structure is shown in `./checkpoints_structure.txt`.
 
 Genforces models will be automatically downloaded by running the provided scripts.
 
-## Run Example
+## :racehorse: Run Example
 We provide detailed running scripts of attack algorithms in `./dev_scripts/`.
 
 An example of running the PLGMI attack is as follows:
@@ -81,8 +83,8 @@ An example of running the PLGMI attack is as follows:
 Results are generated in `./results`
 
 
-## Citation
+## 📔 Citation
 > Coming soon...
 
-## Acknowledgement
+## :sparkles: Acknowledgement
 > Coming soon...
