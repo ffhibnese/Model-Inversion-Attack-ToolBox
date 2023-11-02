@@ -12,7 +12,7 @@ def psnr(fake_imgs, real_imgs, combination=False, factor=1.,eps=1e-6):
 
     Args:
         fake_imgs (Tensor): n fake imgs
-        real_imgs (Tensor): m fake imgs
+        real_imgs (Tensor): m real imgs
         batch_size (int, optional): batch size. Defaults to 60.
         combination (bool, optional): 
             if True:
