@@ -25,7 +25,6 @@ def calc_fid(recovery_img_path, private_img_path, batch_size=64, device='cpu'):
             1 / b.img
             2 / c.img
     """
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     inception_model = inceptionv3.InceptionV3().to(device)
 
