@@ -28,7 +28,7 @@ def blackbox_attack(config: MirrorBlackBoxConfig):
     result_dir = os.path.join(config.result_dir, 'blackbox', f'{target_name}_{eval_name}')
     presample_dir = os.path.join(cache_dir, 'pre_sample', genforce_name)
     
-    folder_manager = FolderManager(ckpt_dir, None, cache_dir, result_dir, presample_dir=presample_dir)
+    folder_manager = FolderManager(ckpt_dir, config.dataset_dir, cache_dir, result_dir, presample_dir=presample_dir)
     
     check_presample_dir = os.path.join(presample_dir, 'img')
     if not os.path.exists(check_presample_dir) or len(os.listdir(check_presample_dir)) == 0:
@@ -51,10 +51,31 @@ def blackbox_attack(config: MirrorBlackBoxConfig):
         # calc_knn = False
     )
     
+    if len(target_labels) > 0:
     
-    generator, _ = get_genforce(config.genforce_name, config.device, config.ckpt_dir, use_discri=False, use_w_space=args.use_w_space, use_z_plus_space=False, repeat_w=args.repeat_w)
+        generator, _ = get_genforce(config.genforce_name, config.device, config.ckpt_dir, use_discri=False, use_w_space=args.use_w_space, use_z_plus_space=False, repeat_w=args.repeat_w)
+        
+        mirror_blackbox_attack(args, generator, target_model, eval_model, folder_manager=folder_manager)
     
-    mirror_blackbox_attack(args, generator, target_model, eval_model, folder_manager=folder_manager)
+    print("=> Calculate the KNN Dist.")
+    
+    
+    generate_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, config.target_name)
+    private_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, 'private')
+    
+    if config.dataset_name == 'celeba':
+        private_img_dir = os.path.join(config.dataset_dir, config.dataset_name, 'split', 'private', 'train')
+        transform = None
+    # elif config.dataset_name == 'vggface2':
+    #     transform = lambda img: normalize(img * 255, config.target_name)
+    else:
+        raise NotImplementedError(f'dataset {config.dataset_name} is NOT supported')
+    
+    generate_private_feats(eval_model=eval_model, img_dir=os.path.join(result_dir, 'all_imgs'), save_dir=generate_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None)
+    generate_private_feats(eval_model=eval_model, img_dir=private_img_dir, save_dir=private_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None, exist_ignore=True)
+    
+    knn_dist = calc_knn(generate_feat_save_dir, private_feat_save_dir)
+    print("KNN Dist %.2f" % knn_dist)
     
 def white_attack(config: MirrorBlackBoxConfig):
     # work_dir = config.cache_dir
