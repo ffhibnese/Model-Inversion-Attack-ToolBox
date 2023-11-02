@@ -141,6 +141,7 @@ def ssim_ssim(img1, img2, window, window_size, channel, size_average = True):
         return ssim_map.mean(1).mean(1).mean(1)
 
 def ssim(img1, img2, window_size = 11, size_average = True):
+    # 单张图片计算
     (_, channel, _, _) = img1.size()
     window = ssim_create_window(window_size, channel)
     
@@ -164,6 +165,7 @@ def ssim_permute(ref_batch, img_batch, batched=False, factor=1.0):
     ### SSIM regarding permutation ### 
     ssims = []
     for i in range (img_batch.shape[0]):
+        # 对img batch每一个分别和ref计算
         img_repeat = img_batch[i].unsqueeze(0).repeat(img_batch.shape[0], 1, 1, 1)
         _, candidate_ssims = ssim_batch(ref_batch, img_repeat)
         mx = torch.max(torch.stack(candidate_ssims).view(1, -1))
