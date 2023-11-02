@@ -25,6 +25,7 @@ Also, you are always welcome to contribute and make this repository better!
 ### :construction: MIA v2.0 is coming soon
 We are already in the second development stage where the following updates will be implemented soon.
 - Representative defense algorithms
+- Able to train your own generative model
 - Better refactor code with `trainer`
 - A package that can be installed with pip
 
@@ -72,7 +73,7 @@ Genforces models will be automatically downloaded by running the provided script
 
 ## :racehorse: Run Examples
 We provide detailed running scripts of attack algorithms in `./dev_scripts/`.
-You can run any attack algorithm simply by the following instruction and experimental results are generated in `./results` by default:
+You can run any attack algorithm simply by the following instruction and experimental results will be produced in `./results` by default:
 > python dev_scripts/xxx.py
 
 
