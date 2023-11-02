@@ -70,15 +70,13 @@ Download pre-trained models [here](https://drive.google.com/drive/folders/1ko8zA
 
 Genforces models will be automatically downloaded by running the provided scripts.
 
-## :racehorse: Run Example
+## :racehorse: Run Examples
 We provide detailed running scripts of attack algorithms in `./dev_scripts/`.
-
-An example of running the PLGMI attack is as follows:
-
+You can run any attack algorithm simply by:
+> python dev_scripts/xxx.py
+> 
+An example of running the PLGMI attack is as follows and results are generated in `./results` by default:
 > python dev_scripts/plgmi.py
-
-Results are generated in `./results`
-
 
 ## 📔 Citation
 > Coming soon...
