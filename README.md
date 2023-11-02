@@ -41,20 +41,20 @@ We are already in the second development stage where the following updates will 
 
 ## :memo: Model Inversion Attacks
 
-|Method|Paper|Source Code|Key Characteristics|Addition Notes|
+|Method|Paper|Publication|Key Characteristics|Additional Notes|
 |:-:|:-:|:-:|:-:|:-:|
-|[C2FMI](./src/modelinversion/attack/C2FMI/)|C2FMI: Corse-to-Fine Black-box Model Inversion Attack [TDSC'2023](https://ieeexplore.ieee.org/abstract/document/10148574)||||
-|[DeepInversion](./src/modelinversion/attack/DeepInversion/)| Dreaming to Distill: Data-Free Knowledge Transfer via DeepInversion [CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Yin_Dreaming_to_Distill_Data-Free_Knowledge_Transfer_via_DeepInversion_CVPR_2020_paper.html)||||
-|[GMI](./src/modelinversion/attack/GMI/)| The Secret Revealer: Generative Model-Inversion Attacks Against Deep Neural Networks [CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Zhang_The_Secret_Revealer_Generative_Model-Inversion_Attacks_Against_Deep_Neural_Networks_CVPR_2020_paper.html)||||
-|[KEDMI](./src/modelinversion/attack/KEDMI/)|Knowledge-Enriched Distributional Model Inversion Attacks [ICCV'2021](https://openaccess.thecvf.com/content/ICCV2021/html/Chen_Knowledge-Enriched_Distributional_Model_Inversion_Attacks_ICCV_2021_paper.html)||||
-|[Mirror](./src/modelinversion/attack/Mirror/)|MIRROR: Model Inversion for Deep LearningNetwork with High Fidelity [NDSS'2022](https://www.ndss-symposium.org/ndss-paper/auto-draft-203/)||||
-|[PLGMI](./src/modelinversion/attack/PLGMI/)|Pseudo Label-Guided Model Inversion Attack via Conditional Generative Adversarial Network [AAAI'2023](https://ojs.aaai.org/index.php/AAAI/article/view/25442)||||
-|[SecretGen](./src/modelinversion/attack/SecretGen/)|SecretGen: Privacy Recovery on Pre-trained Models via Distribution Discrimination [ECCV'2022](https://link.springer.com/chapter/10.1007/978-3-031-20065-6_9#Abs1)||||
-|[VMI](./src/modelinversion/attack/VMI/)|Variational Model Inversion Attacks [NeurIPS'2021](https://proceedings.neurips.cc/paper/2021/hash/50a074e6a8da4662ae0a29edde722179-Abstract.html)||||
+|[C2FMI](./src/modelinversion/attack/C2FMI/)|C2FMI: Corse-to-Fine Black-box Model Inversion Attack|[TDSC'2023](https://ieeexplore.ieee.org/abstract/document/10148574)|||
+|[DeepInversion](./src/modelinversion/attack/DeepInversion/)|Dreaming to Distill: Data-Free Knowledge Transfer via DeepInversion|[CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Yin_Dreaming_to_Distill_Data-Free_Knowledge_Transfer_via_DeepInversion_CVPR_2020_paper.html)|||
+|[GMI](./src/modelinversion/attack/GMI/)|The Secret Revealer: Generative Model-Inversion Attacks Against Deep Neural Networks|[CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Zhang_The_Secret_Revealer_Generative_Model-Inversion_Attacks_Against_Deep_Neural_Networks_CVPR_2020_paper.html)|||
+|[KEDMI](./src/modelinversion/attack/KEDMI/)|Knowledge-Enriched Distributional Model Inversion Attacks|[ICCV'2021](https://openaccess.thecvf.com/content/ICCV2021/html/Chen_Knowledge-Enriched_Distributional_Model_Inversion_Attacks_ICCV_2021_paper.html)|||
+|[Mirror](./src/modelinversion/attack/Mirror/)|MIRROR: Model Inversion for Deep LearningNetwork with High Fidelity|[NDSS'2022](https://www.ndss-symposium.org/ndss-paper/auto-draft-203/)|||
+|[PLGMI](./src/modelinversion/attack/PLGMI/)|Pseudo Label-Guided Model Inversion Attack via Conditional Generative Adversarial Network|[AAAI'2023](https://ojs.aaai.org/index.php/AAAI/article/view/25442)|||
+|[SecretGen](./src/modelinversion/attack/SecretGen/)|SecretGen: Privacy Recovery on Pre-trained Models via Distribution Discrimination|[ECCV'2022](https://link.springer.com/chapter/10.1007/978-3-031-20065-6_9#Abs1)|||
+|[VMI](./src/modelinversion/attack/VMI/)|Variational Model Inversion Attacks|[NeurIPS'2021](https://proceedings.neurips.cc/paper/2021/hash/50a074e6a8da4662ae0a29edde722179-Abstract.html)|||
 
 ## :memo: Model Inversion Defences
 
-|Method|Paper|Source Code|Key Characteristics|Addition Notes|
+|Method|Paper|Publication|Key Characteristics|Additional Notes|
 |:-:|:-:|:-:|:-:|:-:|
 
 > Coming soon...
