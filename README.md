@@ -93,4 +93,5 @@ python dev_scripts/xxx.py
 
 ## :sparkles: Acknowledgement
 We express great gratitude for all the researchers' contributions to the **model inversion** community. 
-In particular, we thank the authors of [PLGMI](https://github.com/LetheSec/PLG-MI-Attack), who provide high-quality codes for datasets, metrics, and three attack methods. We are very grateful for their great devotion.  
+
+In particular, we thank the authors of [PLGMI](https://github.com/LetheSec/PLG-MI-Attack) for their high-quality codes for datasets, metrics, and three attack methods. It's their great devotion that helps us make **MIA** better!  
