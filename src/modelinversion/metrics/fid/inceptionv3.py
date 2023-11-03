@@ -2,7 +2,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
-
+from ...models import ModelResult
 
 class InceptionV3(nn.Module):
     """Pretrained InceptionV3 network returning feature maps"""
@@ -139,4 +139,5 @@ class InceptionV3(nn.Module):
             if idx == self.last_needed_block:
                 break
 
-        return outp
+        # return outp
+        return ModelResult(None, outp)

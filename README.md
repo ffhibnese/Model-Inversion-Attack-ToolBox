@@ -84,7 +84,7 @@ Genforces models will be automatically downloaded by running the provided script
 We provide detailed running scripts of attack algorithms in `./dev_scripts/`.
 You can run any attack algorithm simply by the following instruction and experimental results will be produced in `./results` by default:
 ```sh
-python dev_scripts/xxx.py
+python dev_scripts/<ATTACK_METHOD>.py
 ```
 
 

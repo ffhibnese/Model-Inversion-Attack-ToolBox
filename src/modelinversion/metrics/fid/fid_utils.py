@@ -27,7 +27,7 @@ def get_activations(images, model, batch_size=64, dims=2048, device=None):
             batch = batch.to(device)
 
         with torch.no_grad():
-            pred = model(batch)[0]
+            pred = model(batch).feat[0]
 
         # If model output is not scalar, apply global spatial average pooling.
         # This happens if you choose a dimensionality not equal 2048.

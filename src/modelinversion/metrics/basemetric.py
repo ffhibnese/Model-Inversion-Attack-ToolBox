@@ -25,6 +25,12 @@ class BaseMetric:
         
     # def generate_feature(self)
     
+    def get_recover_loader(self):
+        return self.get_dataloader(self.recover_imgs_dir)
+    
+    def get_real_loader(self):
+        return self.get_dataloader(self.recover_imgs_dir)
+    
     def get_dataloader(self, imgs_dir):
         if self.label_spec:
             def label_spec_loader(imgs_dir):
