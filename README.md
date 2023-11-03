@@ -61,12 +61,15 @@ We are already in the second development stage where the following updates will 
 > Coming soon...
 
 ## :wrench: Environments
-
-
-
+**MIA** can be built up with the following step:
+1. Clone this repository and create the virtual environment by Anaconda.
 ```sh
 git clone https://github.com/ffhibnese/Model_Inversion_Attack_Box.git
+cd ./Model_Inversion_Attack_Box
 conda create -n MIA python=3.10
+```
+2. Install the related dependencies:
+```
 pip install -r requirements.txt
 ```
 
@@ -89,5 +92,5 @@ python dev_scripts/xxx.py
 > Coming soon...
 
 ## :sparkles: Acknowledgement
-
-Thanks to authors of [PLGMI](https://github.com/LetheSec/PLG-MI-Attack), who provide high quality codes for datasets , metrics, and three attack methods (GMI, KEDMI and PLGMI), we can easily refactor the codes and apply to other attack methods.
+We express great gratitude for all the researchers' contributions to the **model inversion** community. 
+In particular, we thank the authors of [PLGMI](https://github.com/LetheSec/PLG-MI-Attack), who provide high-quality codes for datasets, metrics, and three attack methods. 💓We are very grateful for their great devotion.
