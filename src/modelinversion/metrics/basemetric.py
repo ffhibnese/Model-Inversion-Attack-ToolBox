@@ -17,25 +17,34 @@ IMG_SUFFIX = (
 
 class BaseMetricCalculator:
     
-    def __init__(self, model, recover_imgs_dir, real_imgs_dir, batch_size = 60, label_spec = True, device='cpu') -> None:
+    def __init__(self, model, 
+                 recover_imgs_dir, real_imgs_dir, 
+                 recover_feat_dir=None, real_feat_dir=None,
+                 batch_size = 60, label_spec = True, device='cpu') -> None:
         self.recover_imgs_dir = recover_imgs_dir
         self.real_imgs_dir = real_imgs_dir
+        self.recover_feat_dir = recover_feat_dir
+        self.real_feat_dir = real_feat_dir
         self.device = device
         self.model = model.to(self.device)
+        
         self.label_spec = label_spec
         self.batch_size = batch_size
         
     def generate_feature(self, save_dir, dataloader):
-        results = collections.defaultdict(list)
-        for imgs, labels in dataloader:
-            imgs = imgs.to(self.device)
-            feature = self.model(imgs).feat[-1]
-            label = labels[0].item()
-            results[label].append(feature.detach().cpu().numpy())
-            
-        for label, feats in results.items():
-            feats = np.concatenate(feats, axis=0)
-            np.save(os.path.join(save_dir, f'{label}.npy'), feats)
+        self.model.eval()
+        os.makedirs(save_dir, exist_ok=True)
+        with torch.no_grad():
+            results = collections.defaultdict(list)
+            for imgs, labels in dataloader:
+                imgs = imgs.to(self.device)
+                feature = self.model(imgs).feat[-1]
+                label = labels[0].item()
+                results[label].append(feature.detach().cpu().numpy())
+                
+            for label, feats in results.items():
+                feats = np.concatenate(feats, axis=0)
+                np.save(os.path.join(save_dir, f'{label}.npy'), feats)
             
     def calculate(self):
         raise NotImplementedError()
