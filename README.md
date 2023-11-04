@@ -43,12 +43,12 @@ We are already in the second development stage where the following updates will 
 
 |Method|Paper|Publication|Key Characteristics|Additional Notes|
 |:-:|:-:|:-:|:-:|:-:|
-|[C2FMI](./src/modelinversion/attack/C2FMI/)|C2FMI: Corse-to-Fine Black-box Model Inversion Attack|[TDSC'2023](https://ieeexplore.ieee.org/abstract/document/10148574)|||
-|[DeepInversion](./src/modelinversion/attack/DeepInversion/)|Dreaming to Distill: Data-Free Knowledge Transfer via DeepInversion|[CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Yin_Dreaming_to_Distill_Data-Free_Knowledge_Transfer_via_DeepInversion_CVPR_2020_paper.html)|||
-|[GMI](./src/modelinversion/attack/GMI/)|The Secret Revealer: Generative Model-Inversion Attacks Against Deep Neural Networks|[CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Zhang_The_Secret_Revealer_Generative_Model-Inversion_Attacks_Against_Deep_Neural_Networks_CVPR_2020_paper.html)|||
-|[KEDMI](./src/modelinversion/attack/KEDMI/)|Knowledge-Enriched Distributional Model Inversion Attacks|[ICCV'2021](https://openaccess.thecvf.com/content/ICCV2021/html/Chen_Knowledge-Enriched_Distributional_Model_Inversion_Attacks_ICCV_2021_paper.html)|||
-|[Mirror](./src/modelinversion/attack/Mirror/)|MIRROR: Model Inversion for Deep LearningNetwork with High Fidelity|[NDSS'2022](https://www.ndss-symposium.org/ndss-paper/auto-draft-203/)|||
-|[PLGMI](./src/modelinversion/attack/PLGMI/)|Pseudo Label-Guided Model Inversion Attack via Conditional Generative Adversarial Network|[AAAI'2023](https://ojs.aaai.org/index.php/AAAI/article/view/25442)|||
+|[C2FMI](./src/modelinversion/attack/C2FMI/)|C2FMI: Corse-to-Fine Black-box Model Inversion Attack|[TDSC'2023](https://ieeexplore.ieee.org/abstract/document/10148574)|whitebox, blackbox||
+|[DeepInversion](./src/modelinversion/attack/DeepInversion/)|Dreaming to Distill: Data-Free Knowledge Transfer via DeepInversion|[CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Yin_Dreaming_to_Distill_Data-Free_Knowledge_Transfer_via_DeepInversion_CVPR_2020_paper.html)|whitebox||
+|[GMI](./src/modelinversion/attack/GMI/)|The Secret Revealer: Generative Model-Inversion Attacks Against Deep Neural Networks|[CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Zhang_The_Secret_Revealer_Generative_Model-Inversion_Attacks_Against_Deep_Neural_Networks_CVPR_2020_paper.html)|whitebox||
+|[KEDMI](./src/modelinversion/attack/KEDMI/)|Knowledge-Enriched Distributional Model Inversion Attacks|[ICCV'2021](https://openaccess.thecvf.com/content/ICCV2021/html/Chen_Knowledge-Enriched_Distributional_Model_Inversion_Attacks_ICCV_2021_paper.html)|whitebox||
+|[Mirror](./src/modelinversion/attack/Mirror/)|MIRROR: Model Inversion for Deep LearningNetwork with High Fidelity|[NDSS'2022](https://www.ndss-symposium.org/ndss-paper/auto-draft-203/)|whitebox, blackbox||
+|[PLGMI](./src/modelinversion/attack/PLGMI/)|Pseudo Label-Guided Model Inversion Attack via Conditional Generative Adversarial Network|[AAAI'2023](https://ojs.aaai.org/index.php/AAAI/article/view/25442)|whitebox||
 |[SecretGen](./src/modelinversion/attack/SecretGen/)|SecretGen: Privacy Recovery on Pre-trained Models via Distribution Discrimination|[ECCV'2022](https://link.springer.com/chapter/10.1007/978-3-031-20065-6_9#Abs1)|||
 |[VMI](./src/modelinversion/attack/VMI/)|Variational Model Inversion Attacks|[NeurIPS'2021](https://proceedings.neurips.cc/paper/2021/hash/50a074e6a8da4662ae0a29edde722179-Abstract.html)|||
 
@@ -68,7 +68,7 @@ cd ./Model_Inversion_Attack_Box
 conda create -n MIA python=3.10
 ```
 2. Install the related dependencies:
-```
+```sh
 pip install -r requirements.txt
 ```
 
@@ -81,9 +81,9 @@ Genforces models will be automatically downloaded by running the provided script
 
 ## :racehorse: Run Examples
 We provide detailed running scripts of attack algorithms in `./dev_scripts/`.
-You can run any attack algorithm simply by the following instruction and experimental results will be produced in `./results` by default:
+You can run any attack algorithm simply by the following instruction and experimental results will be produced in `./results/<ATTACK_METHOD>/` by default:
 ```sh
-python dev_scripts/xxx.py
+python dev_scripts/<ATTACK_METHOD>.py
 ```
 
 
