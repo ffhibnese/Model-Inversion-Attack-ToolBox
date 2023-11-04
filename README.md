@@ -1,10 +1,9 @@
 # :fire: Model Inversion Attack Box v1.0 :fire:
-> TODO: correct the following icons with the correct software version we used.
 
 ![Python 3.10](https://img.shields.io/badge/python-3.10-DodgerBlue.svg?style=plastic)
-![Pytorch 1.10.0](https://img.shields.io/badge/pytorch-1.10.0-DodgerBlue.svg?style=plastic)
-![torchvision 0.9.0](https://img.shields.io/badge/torchvision-0.9.0-DodgerBlue.svg?style=plastic)
-![CUDA 11.1](https://img.shields.io/badge/cuda-11.1-DodgerBlue.svg?style=plastic)
+![Pytorch 2.0.1](https://img.shields.io/badge/pytorch-2.0.1-DodgerBlue.svg?style=plastic)
+![torchvision 0.15.2](https://img.shields.io/badge/torchvision-0.15.2-DodgerBlue.svg?style=plastic)
+![CUDA 11.8](https://img.shields.io/badge/cuda-11.8-DodgerBlue.svg?style=plastic)
 ![License GPL](https://img.shields.io/badge/license-GPL-DodgerBlue.svg?style=plastic)
 
 [Yixiang Qiu*](https://github.com/final-solution), 
