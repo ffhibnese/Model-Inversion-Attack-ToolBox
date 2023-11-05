@@ -80,7 +80,8 @@ def attack(config: KedmiAttackConfig):
     if config.dataset_name == 'celeba':
         private_img_dir = os.path.join(config.dataset_dir, config.dataset_name, 'split', 'private', 'train')
     else:
-        raise NotImplementedError(f'dataset {config.dataset_name} is NOT supported')
+        print(f'dataset {config.dataset_name} is NOT supported for KNN and FID')
+        return
     
     generate_private_feats(eval_model=E, img_dir=os.path.join(save_dir, 'all_imgs'), save_dir=generate_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None)
     generate_private_feats(eval_model=E, img_dir=private_img_dir, save_dir=private_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None, exist_ignore=True)
@@ -88,11 +89,6 @@ def attack(config: KedmiAttackConfig):
     knn_dist = calc_knn(generate_feat_save_dir, private_feat_save_dir)
     print("KNN Dist %.2f" % knn_dist)
     
-    # print("=> Calculate the FID.")
-    # fid = calc_fid(recovery_img_path=os.path.join(save_dir, "success_imgs"),
-    #                private_img_path= os.path.join(ckpt_dir, 'PLGMI', "datasets", "celeba_private_domain"),
-    #                batch_size=batch_size)
-    # print("FID %.2f" % fid)
 
     print("=> Calculate the FID.")
     fid = calc_fid(recovery_img_path=os.path.join(save_dir, "all_imgs"),
