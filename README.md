@@ -30,7 +30,9 @@ We are already in the second development stage where the following updates will 
 
 ## :rocket: Introduction
 
-> TODO: Introduce Model Inversion Attack briefly
+**Model inversion attack** is an emerging powerful private data theft attack, where a malicious attacker is able to reconstruct data with the same distribution as the training dataset of the target model. 
+
+The reason why we developed this toolbox is that the research line of **MI** suffers from a lack of unified standards and reliable implementations of former studies. We hope our work can further help people in this area and promote the progress of their valuable research.
 
 ## :bulb: Features
 - Easy to get started.
