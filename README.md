@@ -71,7 +71,7 @@ conda create -n MIA python=3.10
 pip install -r requirements.txt
 ```
 
-## :page_facing_up: Dataset and Model Checkpoints
+## :page_facing_up: Datasets and Model Checkpoints
 - For datasets, you can download them according to the file placed in `./dataset/<DATASET_NAME>/README.md`.
 - For pre-trained models, we prepare all the related model weights files in the following link.   
 Download pre-trained models [here](https://drive.google.com/drive/folders/1ko8zAK1j9lTSF8FMvacO8mCKHY9evG9L) and place them in `./checkpoints/`. The detailed file path structure is shown in `./checkpoints_structure.txt`.
@@ -90,6 +90,6 @@ python dev_scripts/<ATTACK_METHOD>.py
 > Coming soon...
 
 ## :sparkles: Acknowledgement
-We express great gratitude for all the researchers' contributions to the **model inversion** community. 
+We express great gratitude for all the researchers' contributions to the **Model Inversion** community. 
 
 In particular, we thank the authors of [PLGMI](https://github.com/LetheSec/PLG-MI-Attack) for their high-quality codes for datasets, metrics, and three attack methods. It's their great devotion that helps us make **MIA** better!  
