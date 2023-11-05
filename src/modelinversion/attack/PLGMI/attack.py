@@ -71,7 +71,8 @@ def attack(config: PlgmiAttackConfig):
     if config.dataset_name == 'celeba':
         private_img_dir = os.path.join(config.dataset_dir, config.dataset_name, 'split', 'private', 'train')
     else:
-        raise NotImplementedError(f'dataset {config.dataset_name} is NOT supported')
+        print(f'dataset {config.dataset_name} is NOT supported for KNN and FID')
+        return
     
     generate_private_feats(eval_model=E, img_dir=os.path.join(save_dir, 'all_imgs'), save_dir=generate_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None)
     generate_private_feats(eval_model=E, img_dir=private_img_dir, save_dir=private_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None, exist_ignore=True)
