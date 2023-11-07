@@ -48,7 +48,6 @@ parser.add_argument('--mask_size', type=int, default=32, help='size of random ma
 opt = parser.parse_args()
 print(opt)
 
-
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
 np.random.seed(0)
