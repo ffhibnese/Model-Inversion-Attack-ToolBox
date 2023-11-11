@@ -55,7 +55,7 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 |[SecretGen](./src/modelinversion/attack/SecretGen/)|SecretGen: Privacy Recovery on Pre-trained Models via Distribution Discrimination|[ECCV'2022](https://link.springer.com/chapter/10.1007/978-3-031-20065-6_9#Abs1)|whitebox, blackbox|instance-level, data augmentation|
 |[VMI](./src/modelinversion/attack/VMI/)|Variational Model Inversion Attacks|[NeurIPS'2021](https://proceedings.neurips.cc/paper/2021/hash/50a074e6a8da4662ae0a29edde722179-Abstract.html)|whitebox|variational inference, special loss function|
 
-## :memo: Model Inversion Defences
+## :memo: Model Inversion Defenses
 
 > Coming soon...
 
