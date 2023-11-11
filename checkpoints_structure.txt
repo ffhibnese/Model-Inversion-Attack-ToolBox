@@ -11,12 +11,12 @@ checkpoints
 │   ├── ffhq_VGG16_GMI_D.tar
 │   └── ffhq_VGG16_GMI_G.tar
 ├── KEDMI
-│   ├── celeba_VGG16_GMI_D.tar
-│   ├── celeba_VGG16_GMI_G.tar
-│   ├── facescrub_VGG16_GMI_D.tar
-│   ├── facescrub_VGG16_GMI_G.tar
-│   ├── ffhq_VGG16_GMI_D.tar
-│   └── ffhq_VGG16_GMI_G.tar
+│   ├── celeba_VGG16_KEDMI_D.tar
+│   ├── celeba_VGG16_KEDMI_G.tar
+│   ├── facescrub_VGG16_KEDMI_D.tar
+│   ├── facescrub_VGG16_KEDMI_G.tar
+│   ├── ffhq_VGG16_KEDMI_D.tar
+│   └── ffhq_VGG16_KEDMI_G.tar
 ├── Mirror
 ├── PLGMI
 │   ├── celeba_IR152_PLG_MI_D.tar
@@ -33,16 +33,17 @@ checkpoints
 ├── README.md
 ├── SecretGen
 ├── target_eval
-│   ├── celeba
-│   │   ├── FaceNet64_88.50.tar
-│   │   ├── FaceNet_95.88.tar
-│   │   ├── IR152_91.16.tar
-│   │   └── VGG16_88.26.tar
-│   ├── vggface
-│   │   └── vgg_face_dag.pth
-│   └── vggface2
-│       ├── 20180402-114759-vggface2.pt
-│       └── resnet50_scratch_dag.pth
+│   └── nodefense
+│       ├── celeba
+│       │   ├── FaceNet64_88.50.tar
+│       │   ├── FaceNet_95.88.tar
+│       │   ├── IR152_91.16.tar
+│       │   └── VGG16_88.26.tar
+│       ├── vggface
+│       │   └── vgg_face_dag.pth
+│       └── vggface2
+│           ├── 20180402-114759-vggface2.pt
+│           └── resnet50_scratch_dag.pth
 └── VMI
 
-14 directories, 31 files
+15 directories, 31 files

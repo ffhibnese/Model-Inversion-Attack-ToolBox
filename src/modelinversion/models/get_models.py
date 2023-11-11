@@ -6,7 +6,10 @@ from .inception.incv1 import InceptionResnetV1
 import torchvision.models as tv_models
 
 
-def get_model(model_name, dataset_name, device='cpu'):
+def get_model(model_name: str, dataset_name: str, device='cpu'):
+    
+    model_name = model_name.lower()
+    dataset_name = dataset_name.lower()
 
     if dataset_name == 'celeba':
         num_classes = 1000
