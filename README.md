@@ -4,7 +4,6 @@
 ![Pytorch 2.0.1](https://img.shields.io/badge/pytorch-2.0.1-DodgerBlue.svg?style=plastic)
 ![torchvision 0.15.2](https://img.shields.io/badge/torchvision-0.15.2-DodgerBlue.svg?style=plastic)
 ![CUDA 11.8](https://img.shields.io/badge/cuda-11.8-DodgerBlue.svg?style=plastic)
-![License GPL](https://img.shields.io/badge/license-GPL-DodgerBlue.svg?style=plastic)
 
 [Yixiang Qiu*](https://github.com/final-solution), 
 [Hongyao Yu*](https://github.com/Chrisqcwx),
