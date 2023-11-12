@@ -28,13 +28,14 @@ if __name__ == '__main__':
     beta = 0.003
     
     device = 'cuda'
-    args = BaseTrainArgs(
+    args = VibTrainArgs(
         model_name=model_name,
         dataset_name=dataset_name,
         epoch_num=epoch_num,
         defense_type=defense_type,
         tqdm_strategy=TqdmStrategy.ITER,
-        device=device
+        device=device,
+        beta = beta
     )
     
     model = get_model(model_name, dataset_name, device, backbone_pretrain=True, defense_type=defense_type)
