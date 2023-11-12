@@ -5,6 +5,11 @@ from .resnet.resnet50_scratch_dag import Resnet50_scratch_dag
 from .inception.incv1 import InceptionResnetV1
 import torchvision.models as tv_models
 
+NUM_CLASSES = {
+    'celeba': 1000,
+    'vggface2': 8631
+}
+
 
 def get_model(model_name: str, dataset_name: str, device='cpu'):
     

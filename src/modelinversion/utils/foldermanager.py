@@ -31,7 +31,7 @@ target_eval_models_file = {
 
 class FolderManager:
     
-    def __init__(self, ckpt_dir, dataset_dir, cache_dir, result_dir, **kwargs) -> None:
+    def __init__(self, ckpt_dir, dataset_dir, cache_dir, result_dir, log_filename='attack.log', **kwargs) -> None:
         self.config = DirnameConfig(ckpt_dir, dataset_dir, cache_dir, result_dir)
         for k, v in kwargs.items():
             setattr(self.config, k, v)
@@ -39,7 +39,7 @@ class FolderManager:
             if v is not None:
                 os.makedirs(v, exist_ok=True)
             
-        self.__tee = Tee(os.path.join(result_dir, 'attack.log'), 'w')
+        self.__tee = Tee(os.path.join(result_dir, log_filename), 'w')
             
         self.temp_cnt = 0
         
@@ -98,7 +98,7 @@ class FolderManager:
 class DefenseFolderManager(FolderManager):
     
     def __init__(self, attack_ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir, defense_type = 'no_defense', **kwargs) -> None:
-        super().__init__(attack_ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir = defense_ckpt_dir, **kwargs)
+        super().__init__(attack_ckpt_dir, dataset_dir, cache_dir, result_dir, log_filename='defense.log', defense_ckpt_dir = defense_ckpt_dir, **kwargs)
         
         self.defense_type = defense_type
         
@@ -118,23 +118,26 @@ class DefenseFolderManager(FolderManager):
                 state_dict = state_dict['model']
         model.load_state_dict(state_dict, strict=True)
         
-    def save_target_model_state_dict(self, target_model, dataset_name, target_name, defense_type='no_defense'):
+    def save_target_model_state_dict(self, target_model, dataset_name, target_name):
         
-        if defense_type == 'no_defense':
+        if self.defense_type == 'no_defense':
             super().save_target_model_state_dict(target_model, dataset_name, target_name)
             return
         
-        target_filename = f'{target_name}_{dataset_name}_{defense_type}.pt'
+        target_filename = f'{target_name}_{dataset_name}_{self.defense_type}.pt'
         # super().save_state_dict(target_model, [defense_type, dataset_name, target_filename])
         
-        dirname = os.path.join(self.config.defense_ckpt_dir, defense_type, dataset_name)
+        dirname = os.path.join(self.config.defense_ckpt_dir, self.defense_type, dataset_name)
         os.makedirs(dirname, exist_ok=True)
         # nn.DataParallel()
         if isinstance(target_model, nn.DataParallel):
             target_model = target_model.module
         torch.save({'state_dict': target_model.state_dict()}, os.path.join(dirname, target_filename))
         
-    def load_target_model_state_dict(self, target_model, dataset_name, target_name, device, defense_type='no_defense'):
+    def load_target_model_state_dict(self, target_model, dataset_name, target_name, device, defense_type=None):
+        
+        if defense_type is None:
+            defense_type = self.defense_type
         
         if defense_type == 'no_defense':
             super().load_target_model_state_dict(target_model, dataset_name, target_name, device)

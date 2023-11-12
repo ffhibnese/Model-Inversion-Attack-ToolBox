@@ -28,7 +28,7 @@ class TqdmStrategy(Enum):
     
 
 @dataclass
-class TrainArgs:
+class BaseTrainArgs:
     
     model_name: str
     dataset_name: str
@@ -37,7 +37,7 @@ class TrainArgs:
     
     defense_type: str = field(default='no_defense', metadata={'help': 'Defense Type, default: no_defense'})
     
-    tqdm_strategy: TqdmStrategy = field(default=TqdmStrategy.EPOCH, metadata={'help': 'Where to use tqdm. NONE: no use; EPOCH: the whole training; ITER: in an epoch'})
+    tqdm_strategy: TqdmStrategy = field(default=TqdmStrategy.ITER, metadata={'help': 'Where to use tqdm. NONE: no use; EPOCH: the whole training; ITER: in an epoch'})
     
     device: str = field(default='cpu', metadata={'help': 'Device for train. cpu, cuda, cuda:0, ...'})
     
@@ -45,7 +45,7 @@ class TrainArgs:
 
 class BaseTrainer(metaclass=ABCMeta):
     
-    def __init__(self, args: TrainArgs, folder_manager: DefenseFolderManager, model: Module, optimizer: Optimizer, lr_scheduler: LRScheduler = None, **kwargs) -> None:
+    def __init__(self, args: BaseTrainArgs, folder_manager: DefenseFolderManager, model: Module, optimizer: Optimizer, lr_scheduler: LRScheduler = None, **kwargs) -> None:
         self.args = args
         
         self.model = model
@@ -53,12 +53,21 @@ class BaseTrainer(metaclass=ABCMeta):
         
         self.lr_scheduler = lr_scheduler
         self.folder_manager = folder_manager
+        # self.criterion = criterion
         
             
         
     @abstractmethod
-    def calc_loss(self, result: ModelResult, labels: torch.LongTensor):
+    def calc_loss(self, inputs, result: ModelResult, labels: torch.LongTensor):
         raise NotImplementedError()
+    
+    def calc_acc(self, result: ModelResult, labels: torch.LongTensor):
+        res = result.result
+        assert res.ndim <= 2
+        
+        pred = torch.argmax(res, dim=-1)
+        # print((pred == labels).float())
+        return (pred == labels).float().mean()
     
     def _update_step(self, loss):
         self.optimizer.zero_grad()
@@ -77,26 +86,61 @@ class BaseTrainer(metaclass=ABCMeta):
         
         result = self.model(inputs)
         
-        loss = self.calc_loss(result, labels)
+        loss = self.calc_loss(inputs, result, labels)
+        acc = self.calc_acc(result, labels)
         self._update_step(loss)
         
-        return loss
+        return {
+            'loss': loss,
+            'acc': acc
+        }
         
     
     def _train_loop(self, dataloader: DataLoader):
             
-        loss_accumulator = Accumulator(1)
+        self.model.train()
+        accumulator = Accumulator(2)
             
         iter_times = 0
         for i, batch in enumerate(dataloader):
             iter_times += 1
             inputs, labels = self.prepare_input_label(batch)
-            loss = self._train_step(inputs, labels)
-            loss_accumulator.add(loss)
+            step_res = self._train_step(inputs, labels)
+            loss = step_res['loss']
+            acc = step_res['acc']
+            accumulator.add(loss, acc)
             
-        return loss_accumulator.avg(0), iter_times
+        return accumulator.avg()
+    
+    @torch.no_grad()
+    def _test_step(self, inputs, labels):
+        self.model.eval()
+        
+        result = self.model(inputs)
+        
+        acc = self.calc_acc(result, labels)
+        
+        return {
+            'acc': acc
+        }
+    
+    @torch.no_grad()
+    def _test_loop(self, dataloader: DataLoader):
+        
+        
+        accumulator = Accumulator(1)
             
-    def train(self, dataloader: DataLoader):
+        iter_times = 0
+        for i, batch in enumerate(dataloader):
+            iter_times += 1
+            inputs, labels = self.prepare_input_label(batch)
+            step_res = self._test_step(inputs, labels)
+            acc = step_res['acc']
+            accumulator.add(acc)
+            
+        return accumulator.avg()
+            
+    def train(self, trainloader: DataLoader, testloader: DataLoader = None):
         
         epochs = range(self.args.epoch_num)
         if self.args.tqdm_strategy == TqdmStrategy.EPOCH:
@@ -104,9 +148,17 @@ class BaseTrainer(metaclass=ABCMeta):
         
         for epoch in epochs:
             if self.args.tqdm_strategy == TqdmStrategy.ITER:
-                dataloader = tqdm(dataloader)
+                trainloader = tqdm(trainloader)
+                    
             
-            self._train_loop(dataloader)
+            loss, acc = self._train_loop(trainloader)
+            print(f'epoch {epoch}\t train loss: {loss:.6f}\t train acc: {acc:.6f}')
+            if testloader is not None:
+                if self.args.tqdm_strategy == TqdmStrategy.ITER:
+                    testloader = tqdm(testloader)
+                test_acc, = self._test_loop(testloader)
+                print(f'epoch {epoch}\t test acc: {test_acc:.6f}')
+            
             
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
@@ -116,31 +168,28 @@ class BaseTrainer(metaclass=ABCMeta):
 
 class RegTrainer(BaseTrainer):
     
-    def __init__(self, args: TrainArgs, folder_manager: DefenseFolderManager, model: Module, optimizer: Optimizer, scheduler: LRScheduler=None, criterion = None, **kwargs) -> None:
+    def __init__(self, args: BaseTrainArgs, folder_manager: DefenseFolderManager, model: Module, optimizer: Optimizer, scheduler: LRScheduler=None, **kwargs) -> None:
         super().__init__(args, folder_manager, model, optimizer, scheduler, **kwargs)
         
-        assert criterion is not None, 'criterion can not be none'
-        self.criterion = criterion
         
-    def calc_loss(self, result: ModelResult, labels: LongTensor):
+    def calc_loss(self, inputs, result: ModelResult, labels: LongTensor):
         pred_res = result.result
-        return self.criterion(pred_res, labels)
+        # return self.criterion(pred_res, labels)
+        return F.cross_entropy(pred_res, labels)
     
 class VibTrainer(BaseTrainer):
     
-    def __init__(self, args: TrainArgs, folder_manager: DefenseFolderManager, model: Module, optimizer: Optimizer, scheduler: LRScheduler=None, criterion = None, beta: float=1e-2, **kwargs) -> None:
+    def __init__(self, args: BaseTrainArgs, folder_manager: DefenseFolderManager, model: Module, optimizer: Optimizer, scheduler: LRScheduler=None, beta: float=1e-2, **kwargs) -> None:
         super().__init__(args, folder_manager, model, optimizer, scheduler, **kwargs)
         
-        assert criterion is not None, 'criterion can not be none'
-        self.criterion = criterion
         self.beta = beta
         
     
-    def calc_loss(self, result: ModelResult, labels: LongTensor):
+    def calc_loss(self, inputs, result: ModelResult, labels: LongTensor):
         pred_res = result.result
         mu = result.addition_info['mu']
         std = result.addition_info['std']
-        cross_loss = self.criterion(pred_res, labels)
+        cross_loss = F.cross_entropy(pred_res, labels)
         info_loss = - 0.5 * (1 + 2 * std.log() - mu.pow(2) - std.pow(2)).sum(dim=1).mean()
         loss = cross_loss + self.beta * info_loss
         return loss

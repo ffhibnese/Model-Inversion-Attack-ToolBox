@@ -10,6 +10,7 @@ class Accumulator:
     def add(self, *args):
         # self.data = [a + float(b) for a, b in zip(self.data, args)]
         assert len(args) == len(self.data)
+        self.num += 1
         for i, add_item in enumerate(args):
             if isinstance(add_item, torch.Tensor):
                 add_item = add_item.item()

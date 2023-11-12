@@ -17,11 +17,12 @@ if __name__ == '__main__':
     lr = 0.01
     
     device = 'cuda'
-    args = TrainArgs(
+    args = BaseTrainArgs(
         model_name=model_name,
         dataset_name=dataset_name,
         epoch_num=epoch_num,
         defense_type='no_defense',
+        tqdm_strategy=TqdmStrategy.ITER,
         device=device
     )
     
@@ -33,10 +34,13 @@ if __name__ == '__main__':
     
     folder_manager = DefenseFolderManager('./checkpoints', None, None, './result/no_defense', './checkpoints_defense')
     
-    trainer = RegTrainer(args, folder_manager, model, optimizer, None, nn.CrossEntropyLoss().to(device))
+    trainer = RegTrainer(args, folder_manager, model, optimizer, None)
     
     from torchvision.datasets import ImageFolder
-    dataset = ImageFolder('./dataset/celeba/split/private/train', transform=ToTensor())
-    dataloader = DataLoader(dataset, 32, shuffle=True, pin_memory=True)
+    trainset = ImageFolder('./dataset/celeba/split/private/train', transform=ToTensor())
+    trainloader = DataLoader(trainset, 32, shuffle=True, pin_memory=True)
     
-    trainer.train(dataloader)
+    testset = ImageFolder('./dataset/celeba/split/private/test', transform=ToTensor())
+    testloader = DataLoader(testset, 32, shuffle=False, pin_memory=True)
+    
+    trainer.train(trainloader, testloader)
