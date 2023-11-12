@@ -8,6 +8,7 @@ from torch.nn import functional as F
 from facenet_pytorch.models.utils.download import download_url_to_file
 from ..modelresult import ModelResult
 from torchvision.transforms.functional import resize
+from ..base import BaseTargetModel
 """
     FROM facenet_pytorch
 """
@@ -184,7 +185,7 @@ class Mixed_7a(nn.Module):
         return out
 
 
-class InceptionResnetV1(nn.Module):
+class InceptionResnetV1(BaseTargetModel):
     """Inception Resnet V1 model with optional loading of pretrained weights.
 
     Model parameters can be loaded based on pretraining on the VGGFace2 or CASIA-Webface
@@ -272,6 +273,9 @@ class InceptionResnetV1(nn.Module):
         # if device is not None:
         #     self.device = device
         #     self.to(device)
+        
+    def get_feature_dim(self):
+        return 512
 
     def forward(self, x):
         """Calculate embeddings or logits given a batch of input image tensors.
@@ -303,11 +307,11 @@ class InceptionResnetV1(nn.Module):
         x = self.dropout(x)
         x = self.last_linear(x.view(x.shape[0], -1))
         x = self.last_bn(x)
-        if self.classify:
-            y = self.logits(x)
-        else:
-            y = F.normalize(x, p=2, dim=1)
-        return ModelResult(y, x)
+        # if self.classify:
+        y = self.logits(x)
+        # else:
+        #     y = F.normalize(x, p=2, dim=1)
+        return ModelResult(y, [x])
 
 
 # def load_weights(mdl, name, ckpt_path):

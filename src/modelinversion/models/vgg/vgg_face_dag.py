@@ -5,12 +5,13 @@ import torch
 import torch.nn as nn
 
 from ..modelresult import ModelResult
+from ..base import BaseTargetModel
 
 """ 
     FROM MIRROR
 """
 
-class Vgg_face_dag(nn.Module):
+class Vgg_face_dag(BaseTargetModel):
 
     def __init__(self, use_dropout=False):
         super(Vgg_face_dag, self).__init__()
@@ -67,6 +68,9 @@ class Vgg_face_dag(nn.Module):
             print(f'fc_dropout_probs: {fc_dropout_probs}\n'
                   f'conv_dropout_probs: {conv_dropout_probs}'
                   )
+            
+    def get_feature_dim(self):
+        return 4096
 
     def forward(self, x0):
         if self.use_dropout:

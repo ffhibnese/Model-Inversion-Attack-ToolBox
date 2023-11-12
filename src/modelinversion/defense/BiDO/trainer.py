@@ -3,7 +3,7 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.nn import functional as F
 from ...models import ModelResult
-from ...utils import DefenseFolderManager, traverse_module, OutputHook, BaseHook
+from ...utils import FolderManager, traverse_module, OutputHook, BaseHook
 from ..base import BaseTrainArgs, BaseTrainer
 from torch import LongTensor
 import torch
@@ -24,7 +24,7 @@ class BiDOTrainArgs(BaseTrainArgs):
     
 class BiDOTrainer(BaseTrainer):
     
-    def __init__(self, args: BiDOTrainArgs, folder_manager: DefenseFolderManager, model: Module, optimizer: Optimizer, lr_scheduler: LRScheduler = None, **kwargs) -> None:
+    def __init__(self, args: BiDOTrainArgs, folder_manager: FolderManager, model: Module, optimizer: Optimizer, lr_scheduler: LRScheduler = None, **kwargs) -> None:
         super().__init__(args, folder_manager, model, optimizer, lr_scheduler, **kwargs)
         
         self.hiddens_hooks: list[BaseHook] = []

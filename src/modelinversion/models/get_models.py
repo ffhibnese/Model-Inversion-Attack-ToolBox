@@ -4,6 +4,7 @@ from .vgg.vgg16 import VGG16
 from .resnet.resnet50_scratch_dag import Resnet50_scratch_dag
 from .inception.incv1 import InceptionResnetV1
 import torchvision.models as tv_models
+from .defense_wrapper import VibWrapper
 
 NUM_CLASSES = {
     'celeba': 1000,
@@ -11,7 +12,7 @@ NUM_CLASSES = {
 }
 
 
-def get_model(model_name: str, dataset_name: str, device='cpu', backbone_pretrain=False):
+def get_model(model_name: str, dataset_name: str, device='cpu', backbone_pretrain=False, defense_type='no_defense'):
     
     model_name = model_name.lower()
     dataset_name = dataset_name.lower()
@@ -40,5 +41,8 @@ def get_model(model_name: str, dataset_name: str, device='cpu', backbone_pretrai
         model = InceptionResnetV1(num_classes)
     else:
         raise RuntimeError(f'model {model_name} is NOT supported')
+    
+    if defense_type.lower() in ['mid', 'vib']:
+        model = VibWrapper(model, model.get_feature_dim(), num_classes)
     
     return model.to(device)

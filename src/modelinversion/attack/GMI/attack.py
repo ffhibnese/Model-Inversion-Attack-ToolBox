@@ -31,7 +31,7 @@ def attack(config: GmiAttackConfig):
                                    ['GMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_GMI_D.tar'],
                                    device=config.device)
 
-    T = get_model(config.target_name, config.dataset_name, device=config.device)
+    T = get_model(config.target_name, config.dataset_name, device=config.device, defense_type=config.defense_type)
     folder_manager.load_target_model_state_dict(T, config.dataset_name, config.target_name, device=config.device, defense_type=config.defense_type)
 
     E = get_model(config.eval_name, config.dataset_name, device=config.device)
