@@ -5,8 +5,16 @@ from .resnet.resnet50_scratch_dag import Resnet50_scratch_dag
 from .inception.incv1 import InceptionResnetV1
 import torchvision.models as tv_models
 
+NUM_CLASSES = {
+    'celeba': 1000,
+    'vggface2': 8631
+}
 
-def get_model(model_name, dataset_name, device='cpu'):
+
+def get_model(model_name: str, dataset_name: str, device='cpu', backbone_pretrain=False):
+    
+    model_name = model_name.lower()
+    dataset_name = dataset_name.lower()
 
     if dataset_name == 'celeba':
         num_classes = 1000
@@ -19,7 +27,7 @@ def get_model(model_name, dataset_name, device='cpu'):
     
     
     if model_name == 'vgg16':
-        model = VGG16(num_classes)
+        model = VGG16(num_classes, pretrained=backbone_pretrain)
     elif model_name == 'ir152':
         model = IR152(num_classes)
     elif model_name == 'facenet':

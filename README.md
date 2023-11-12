@@ -56,8 +56,9 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 
 ## :memo: Model Inversion Defenses
 
-> Coming soon...
-
+|Method|Paper|Publication|Key Characteristics|
+|:-:|:-:|:-:|:-:|
+|[BiDO](./src/modelinversion/defense/BiDO/)|Bilateral Dependency Optimization: Defending Against Model-inversion Attacks|[KDD'2022](https://dl.acm.org/doi/abs/10.1145/3534678.3539376)|special loss function|
 ## :wrench: Environments
 **MIA** can be built up with the following steps:
 1. Clone this repository and create the virtual environment by Anaconda.

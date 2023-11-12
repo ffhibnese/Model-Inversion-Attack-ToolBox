@@ -14,7 +14,7 @@ from ...metrics import calc_knn, generate_private_feats, calc_fid
 def attack(config: KedmiAttackConfig):
     
     save_dir = os.path.join(config.result_dir, f'{config.gan_dataset_name}_{config.target_name}')
-    folder_manager = FolderManager(config.ckpt_dir, config.dataset_dir, config.cache_dir, save_dir)
+    folder_manager = FolderManager(config.ckpt_dir, config.dataset_dir, config.cache_dir, save_dir, config.defense_ckpt_dir, config.defense_type)
 
     print("=> creating model ...")
 
@@ -32,7 +32,7 @@ def attack(config: KedmiAttackConfig):
                                    device=config.device)
 
     T = get_model(config.target_name, config.dataset_name, device=config.device)
-    folder_manager.load_target_model_state_dict(T, config.dataset_name, config.target_name, device=config.device)
+    folder_manager.load_target_model_state_dict(T, config.dataset_name, config.target_name, device=config.device, defense_type=config.defense_type)
 
     E = get_model(config.eval_name, config.dataset_name, device=config.device)
     folder_manager.load_target_model_state_dict(E, config.dataset_name, config.eval_name, device=config.device)
