@@ -125,11 +125,10 @@ class DefenseFolderManager(FolderManager):
             return
         
         target_filename = f'{target_name}_{dataset_name}_{self.defense_type}.pt'
-        # super().save_state_dict(target_model, [defense_type, dataset_name, target_filename])
         
         dirname = os.path.join(self.config.defense_ckpt_dir, self.defense_type, dataset_name)
         os.makedirs(dirname, exist_ok=True)
-        # nn.DataParallel()
+
         if isinstance(target_model, nn.DataParallel):
             target_model = target_model.module
         torch.save({'state_dict': target_model.state_dict()}, os.path.join(dirname, target_filename))

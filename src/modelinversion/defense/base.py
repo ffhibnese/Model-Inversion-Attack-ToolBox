@@ -164,7 +164,7 @@ class BaseTrainer(metaclass=ABCMeta):
                 self.lr_scheduler.step()
                 
         # torch.save(self.model.state_dict(), 'aa.pth')
-        self.folder_manager.save_target_model_state_dict(self.model, self.args.dataset_name, self.args.model_name, defense_type=self.args.defense_type)
+        self.folder_manager.save_target_model_state_dict(self.model, self.args.dataset_name, self.args.model_name)
 
 class RegTrainer(BaseTrainer):
     

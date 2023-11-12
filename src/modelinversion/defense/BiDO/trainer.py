@@ -73,6 +73,6 @@ class BiDOTrainer(BaseTrainer):
             hidden_input_loss, hidden_output_loss = self.objective_fn(h_hidden, h_label, h_data, 5., self.args.kernel_type)
             
             total_loss += self.args.coef_hidden_input * hidden_input_loss
-            total_loss += self.args.coef_hidden_output * hidden_output_loss
+            total_loss += - self.args.coef_hidden_output * hidden_output_loss
         
         return total_loss

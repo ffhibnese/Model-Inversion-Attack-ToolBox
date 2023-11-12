@@ -34,12 +34,16 @@ if __name__ == '__main__':
         defense_type='bido',
         device=device,
         bido_loss_type=bido_loss_type,
-        # coef_hidden_input=0,
-        # coef_hidden_output=0
+        # coef_hidden_input=0.05,
+        # coef_hidden_output=0.5
     )
     
     model = get_model(model_name, dataset_name, device=device)
     optimizer = torch.optim.Adam(model.parameters(), lr)
+    # optimizer = torch.optim.SGD(
+    #     model.parameters(),
+    #     lr=lr
+    # )
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60], gamma=0.5)
     
     trainer = BiDOTrainer(train_args, folder_manager, model=model, optimizer=optimizer, scheduler=scheduler)
