@@ -29,7 +29,7 @@ target_eval_models_file = {
         
 }
 
-class FolderManager:
+class BaseFolderManager:
     
     def __init__(self, ckpt_dir, dataset_dir, cache_dir, result_dir, log_filename='attack.log', **kwargs) -> None:
         self.config = DirnameConfig(ckpt_dir, dataset_dir, cache_dir, result_dir)
@@ -39,7 +39,9 @@ class FolderManager:
             if v is not None:
                 os.makedirs(v, exist_ok=True)
             
-        self.__tee = Tee(os.path.join(result_dir, log_filename), 'w')
+        log_filename = os.path.join(result_dir, log_filename)
+        print (f'log file is placed in {log_filename}')
+        self.__tee = Tee(log_filename, 'w')
             
         self.temp_cnt = 0
         
@@ -48,6 +50,8 @@ class FolderManager:
         if isinstance(relative_paths, str):
             relative_paths = [relative_paths]
         path = os.path.join(self.config.ckpt_dir, *relative_paths)
+        
+        print(f'load {model.__class__.__name__} state dict from {path}')
         
         if not os.path.exists(path):
             raise RuntimeError(f'path `{path}` is NOT EXISTED!')
@@ -71,7 +75,7 @@ class FolderManager:
         target_filename = f'{target_name}_{dataset_name}.pt'
         self.save_state_dict(target_model, ['target_eval', dataset_name, target_filename])
         
-    def load_target_model_state_dict(self, target_model, dataset_name, target_name, device):
+    def load_target_model_state_dict(self, target_model, dataset_name, target_name, device, **kwargs):
         try:
             target_filename = target_eval_models_file[dataset_name][target_name]
         except:
@@ -95,10 +99,11 @@ class FolderManager:
             save_name = None if save_names is None else save_names[i]
             self.save_result_image(imgs[i], labels[i], save_name=save_name, folder_name=folder_name)
             
-class DefenseFolderManager(FolderManager):
+class FolderManager(BaseFolderManager):
     
-    def __init__(self, attack_ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir, defense_type = 'no_defense', **kwargs) -> None:
-        super().__init__(attack_ckpt_dir, dataset_dir, cache_dir, result_dir, log_filename='defense.log', defense_ckpt_dir = defense_ckpt_dir, **kwargs)
+    def __init__(self, attack_ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir=None, defense_type = 'no_defense', **kwargs) -> None:
+        # log_filename = 'attack.log' if defense_ckpt_dir is None else 'defense.log'
+        super().__init__(attack_ckpt_dir, dataset_dir, cache_dir, result_dir, log_filename=f'{defense_type}.log', defense_ckpt_dir = defense_ckpt_dir, **kwargs)
         
         self.defense_type = defense_type
         
@@ -107,6 +112,8 @@ class DefenseFolderManager(FolderManager):
         if isinstance(relative_paths, str):
             relative_paths = [relative_paths]
         path = os.path.join(self.config.defense_ckpt_dir, *relative_paths)
+        
+        print(f'load {model.__class__.__name__} state dict from {path}')
         
         if not os.path.exists(path):
             raise RuntimeError(f'path `{path}` is NOT EXISTED!')
@@ -136,8 +143,8 @@ class DefenseFolderManager(FolderManager):
     def load_target_model_state_dict(self, target_model, dataset_name, target_name, device, defense_type=None):
         
         if defense_type is None:
-            defense_type = self.defense_type
-        
+            defense_type = 'no_defense'
+            
         if defense_type == 'no_defense':
             super().load_target_model_state_dict(target_model, dataset_name, target_name, device)
         else:

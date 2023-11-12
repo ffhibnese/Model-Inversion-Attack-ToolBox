@@ -8,7 +8,6 @@ from ..base import BaseTrainArgs, BaseTrainer
 from torch import LongTensor
 import torch
 from dataclasses import dataclass, field
-from abc import ABCMeta, abstractmethod
 from ...models.get_models import NUM_CLASSES
 from .kernel import hsic_objective, coco_objective
 

@@ -4,7 +4,7 @@ sys.path.append('./src')
 sys.path.append('./src/modelinversion')
 
 from modelinversion.defense.BiDO import BiDOTrainArgs, BiDOTrainer
-from modelinversion.utils import DefenseFolderManager
+from modelinversion.utils import FolderManager
 from modelinversion.models import get_model
 from torchvision.transforms import ToTensor
 import torch
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     dirs = get_dirs('bido')
     cache_dir, result_dir, ckpt_dir, dataset_dir, defense_ckpt_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir'], dirs['defense_ckpt_dir']
     
-    folder_manager = DefenseFolderManager(ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir, 'bido')
+    folder_manager = FolderManager(ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir, 'bido')
     
     model_name = 'vgg16'
     dataset_name = 'celeba'
@@ -38,7 +38,7 @@ if __name__ == '__main__':
         # coef_hidden_output=0.5
     )
     
-    model = get_model(model_name, dataset_name, device=device)
+    model = get_model(model_name, dataset_name, device=device, backbone_pretrain=True)
     optimizer = torch.optim.Adam(model.parameters(), lr)
     # optimizer = torch.optim.SGD(
     #     model.parameters(),

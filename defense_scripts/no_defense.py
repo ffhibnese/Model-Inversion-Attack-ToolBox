@@ -3,11 +3,12 @@ sys.path.append('.')
 sys.path.append('./src')
 sys.path.append('./src/modelinversion')
 
-from modelinversion.defense.base import *
-from modelinversion.utils import DefenseFolderManager
+from modelinversion.defense import *
+from modelinversion.utils import FolderManager
 from modelinversion.models import get_model
 from torchvision.transforms import ToTensor
 import torch
+from torch.utils.data import DataLoader
 
 if __name__ == '__main__':
     
@@ -26,13 +27,13 @@ if __name__ == '__main__':
         device=device
     )
     
-    model = get_model(model_name, dataset_name, device)
+    model = get_model(model_name, dataset_name, device, backbone_pretrain=True)
     optimizer = torch.optim.SGD(
         model.parameters(),
         lr=lr
     )
     
-    folder_manager = DefenseFolderManager('./checkpoints', None, None, './result/no_defense', './checkpoints_defense')
+    folder_manager = FolderManager('./checkpoints', None, None, './results/no_defense', './checkpoints_defense')
     
     trainer = RegTrainer(args, folder_manager, model, optimizer, None)
     

@@ -11,7 +11,7 @@ NUM_CLASSES = {
 }
 
 
-def get_model(model_name: str, dataset_name: str, device='cpu'):
+def get_model(model_name: str, dataset_name: str, device='cpu', backbone_pretrain=False):
     
     model_name = model_name.lower()
     dataset_name = dataset_name.lower()
@@ -27,7 +27,7 @@ def get_model(model_name: str, dataset_name: str, device='cpu'):
     
     
     if model_name == 'vgg16':
-        model = VGG16(num_classes)
+        model = VGG16(num_classes, pretrained=backbone_pretrain)
     elif model_name == 'ir152':
         model = IR152(num_classes)
     elif model_name == 'facenet':

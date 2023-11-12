@@ -17,3 +17,6 @@ class GmiAttackConfig:
     batch_size: int = 60
     target_labels: list = field(default_factory = lambda : list(range(300)))
     device: str = 'cpu'
+    
+    defense_type: str = 'no_defense'
+    defense_ckpt_dir: str= None

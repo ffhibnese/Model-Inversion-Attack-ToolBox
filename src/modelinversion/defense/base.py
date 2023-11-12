@@ -8,7 +8,7 @@ from ..models import ModelResult, get_model
 from torch import nn
 import torch.nn.functional as F
 from dataclasses import dataclass, field
-from ..utils import DefenseFolderManager, Accumulator
+from ..utils import FolderManager, Accumulator
 from tqdm import tqdm
 from abc import abstractmethod, ABCMeta
 from enum import Enum
@@ -53,7 +53,6 @@ class BaseTrainer(metaclass=ABCMeta):
         
         self.lr_scheduler = lr_scheduler
         self.folder_manager = folder_manager
-        # self.criterion = criterion
         
             
         
@@ -163,34 +162,8 @@ class BaseTrainer(metaclass=ABCMeta):
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
                 
-        # torch.save(self.model.state_dict(), 'aa.pth')
         self.folder_manager.save_target_model_state_dict(self.model, self.args.dataset_name, self.args.model_name)
 
-class RegTrainer(BaseTrainer):
+
     
-    def __init__(self, args: BaseTrainArgs, folder_manager: DefenseFolderManager, model: Module, optimizer: Optimizer, scheduler: LRScheduler=None, **kwargs) -> None:
-        super().__init__(args, folder_manager, model, optimizer, scheduler, **kwargs)
-        
-        
-    def calc_loss(self, inputs, result: ModelResult, labels: LongTensor):
-        pred_res = result.result
-        # return self.criterion(pred_res, labels)
-        return F.cross_entropy(pred_res, labels)
-    
-class VibTrainer(BaseTrainer):
-    
-    def __init__(self, args: BaseTrainArgs, folder_manager: DefenseFolderManager, model: Module, optimizer: Optimizer, scheduler: LRScheduler=None, beta: float=1e-2, **kwargs) -> None:
-        super().__init__(args, folder_manager, model, optimizer, scheduler, **kwargs)
-        
-        self.beta = beta
-        
-    
-    def calc_loss(self, inputs, result: ModelResult, labels: LongTensor):
-        pred_res = result.result
-        mu = result.addition_info['mu']
-        std = result.addition_info['std']
-        cross_loss = F.cross_entropy(pred_res, labels)
-        info_loss = - 0.5 * (1 + 2 * std.log() - mu.pow(2) - std.pow(2)).sum(dim=1).mean()
-        loss = cross_loss + self.beta * info_loss
-        return loss
-    
+
