@@ -3,12 +3,13 @@ import torch
 import torch.nn as nn
 from ..modelresult import ModelResult
 from torchvision.transforms.functional import resize
+from ..base import BaseTargetModel
 
 """ 
     FROM MIRROR
 """
 
-class Resnet50_scratch_dag(nn.Module):
+class Resnet50_scratch_dag(BaseTargetModel):
 
     def __init__(self, num_classes=8631):
         super(Resnet50_scratch_dag, self).__init__()
@@ -175,6 +176,9 @@ class Resnet50_scratch_dag(nn.Module):
         self.classifier = nn.Conv2d(2048, num_classes, kernel_size=[1, 1], stride=(1, 1))
         
         self.resolution = 224
+        
+    def get_feature_dim(self):
+        return 2048
 
     def forward(self, data):
         
@@ -358,7 +362,7 @@ class Resnet50_scratch_dag(nn.Module):
         classifier = classifier_preflatten.view(classifier_preflatten.size(0), -1)
         # return classifier, pool5_7x7_s1
         # return pool5_7x7_s1, classifier
-        return ModelResult(classifier, pool5_7x7_s1)
+        return ModelResult(classifier, [pool5_7x7_s1.view(classifier_preflatten.size(0), -1)])
 
 def resnet50_scratch_dag(weights_path=None, **kwargs):
     """

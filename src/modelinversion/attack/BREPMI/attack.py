@@ -14,7 +14,7 @@ def attack(config: BrepAttackConfig):
     
     args = BrepArgs(batch_dim_for_initial_points=config.batch_size)
     
-    T = get_model(config.target_name, config.dataset_name, config.device)
+    T = get_model(config.target_name, config.dataset_name, config.device, defense_type=config.defense_type)
     folder_manager.load_target_model_state_dict(T, config.dataset_name, config.target_name, device=config.device, defense_type=config.defense_type)
     
     E = get_model(config.eval_name, config.dataset_name, config.device)

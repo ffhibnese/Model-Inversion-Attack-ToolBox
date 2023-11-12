@@ -45,7 +45,7 @@ class BaseTrainArgs:
 
 class BaseTrainer(metaclass=ABCMeta):
     
-    def __init__(self, args: BaseTrainArgs, folder_manager: DefenseFolderManager, model: Module, optimizer: Optimizer, lr_scheduler: LRScheduler = None, **kwargs) -> None:
+    def __init__(self, args: BaseTrainArgs, folder_manager: FolderManager, model: Module, optimizer: Optimizer, lr_scheduler: LRScheduler = None, **kwargs) -> None:
         self.args = args
         
         self.model = model

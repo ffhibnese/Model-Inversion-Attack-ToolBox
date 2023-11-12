@@ -4,14 +4,14 @@ from torch import LongTensor
 from ..base import BaseTrainer, BaseTrainArgs
 from ...models import ModelResult
 import torch.nn.functional as F
-from ...utils import DefenseFolderManager
+from ...utils import FolderManager
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 
 class VibTrainer(BaseTrainer):
     
-    def __init__(self, args: BaseTrainArgs, folder_manager: DefenseFolderManager, model: Module, optimizer: Optimizer, scheduler: LRScheduler=None, beta: float=1e-2, **kwargs) -> None:
+    def __init__(self, args: BaseTrainArgs, folder_manager: FolderManager, model: Module, optimizer: Optimizer, scheduler: LRScheduler=None, beta: float=1e-2, **kwargs) -> None:
         super().__init__(args, folder_manager, model, optimizer, scheduler, **kwargs)
         
         self.beta = beta
