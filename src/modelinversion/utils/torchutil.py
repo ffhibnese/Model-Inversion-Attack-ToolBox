@@ -3,12 +3,14 @@ from typing import Callable
 from torch.nn import Module
 from abc import abstractmethod, ABCMeta
 
-def traverse_module(module: nn.Module, fn: Callable):
+def traverse_module(module: nn.Module, fn: Callable, call_middle=False):
 
     children = list(module.children())
     if len(children) == 0:
         fn(module)
     else:
+        if call_middle:
+            fn(module)
         for child in children:
             traverse_module(child, fn)
             
