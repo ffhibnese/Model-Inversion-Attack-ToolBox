@@ -29,9 +29,9 @@ def attack(config: BrepAttackConfig):
     E.eval()
     G.eval()
     
-    # acc = brep_attack(args, G, T, E, config.target_labels, folder_manager, device=config.device)
+    acc = brep_attack(args, G, T, E, config.target_labels, folder_manager, device=config.device)
     
-    # print(f'eval acc: {acc:.6f}')
+    print(f'eval acc: {acc:.6f}')
     
     generate_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, config.target_name)
     private_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, 'private')
