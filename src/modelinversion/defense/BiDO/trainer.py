@@ -1,4 +1,4 @@
-from torch.nn import Module, MaxPool2d
+from torch.nn import Module, MaxPool2d, Sequential
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.nn import functional as F
@@ -28,7 +28,7 @@ class BiDOTrainer(BaseTrainer):
         super().__init__(args, folder_manager, model, optimizer, lr_scheduler, **kwargs)
         
         self.hiddens_hooks: list[BaseHook] = []
-        traverse_module(self.model, self._add_hook)
+        traverse_module(self.model, self._add_hook, call_middle=True)
         assert len(self.hiddens_hooks) > 0
         
         if self.args.bido_loss_type == 'hisc':
@@ -41,11 +41,15 @@ class BiDOTrainer(BaseTrainer):
         
     def _to_onehot(self, y, num_classes):
         """ 1-hot encodes a tensor """
-        return torch.squeeze(torch.eye(num_classes)[y.cpu()], dim=1)
+        # return torch.squeeze(torch.eye(num_classes)[y.cpu()], dim=1)
+        return torch.zeros((len(y), num_classes)).to(self.args.device).scatter_(1, y.reshape(-1, 1), 1.)
     
     def _add_hook(self, module: Module):
         if self.args.model_name == 'vgg16':
             if isinstance(module, MaxPool2d):
+                self.hiddens_hooks.append(OutputHook(module))
+        elif self.args.model_name in ['ir152', 'facenet64', 'facenet']:
+            if isinstance(module, Sequential):
                 self.hiddens_hooks.append(OutputHook(module))
         else:
             raise RuntimeError(f'model {self.args.model_name} is not support for BiDO')
