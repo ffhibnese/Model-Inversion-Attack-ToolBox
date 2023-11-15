@@ -3,8 +3,8 @@ from tqdm import tqdm
 from torchvision.transforms import Resize
 from torchvision import utils as uts
 from torch.nn import functional as F
-from utils.DE_mask import Optimizer as post_opt
-from utils.DE_mask import DE_c2b_5_bin2
+from .utils.DE_mask import Optimizer as post_opt
+from .utils.DE_mask import DE_c2b_5_bin2
 
 
 # resize生成的图像为指定形状

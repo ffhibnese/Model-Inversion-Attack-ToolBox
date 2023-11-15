@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 @dataclass
 class C2FMIConfig:
     
-    target_path: str
+    target_name: str
     eval_path: str
     gan_path: str
     emb_path: str   # path of the embedding model
@@ -28,7 +28,7 @@ class C2FMIConfig:
     emb_classes: int = 10575        # 提取出来的特征数
     init_lr: float = 0.02
     step: int = 50                  # 第一阶段迭代次数
-    face_shape: list = [160, 160]   # 图片分辨率
+    face_shape: list = field(default_factory = lambda : [160, 160])   # 图片分辨率
     
     emb_backbone: str = 'inception_resnetv1'    #backbone of embedding model
     tar_backbone: str = 'mobile_net'            #backbone of target model

@@ -59,6 +59,10 @@ class FolderManager:
                 state_dict = state_dict['state_dict']
             elif 'model' in state_dict:
                 state_dict = state_dict['model']
+            elif 'g_ema' in state_dict:
+                state_dict = state_dict['g_ema']
+            elif 'map' in state_dict:
+                state_dict = state_dict['map']
         model.load_state_dict(state_dict, strict=True)
         
     def load_target_model_state_dict(self, target_model, dataset_name, target_name, device):

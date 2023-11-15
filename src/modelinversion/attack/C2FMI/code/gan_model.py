@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from op import FusedLeakyReLU, fused_leaky_relu, upfirdn2d, conv2d_gradfix
+from .op import FusedLeakyReLU, fused_leaky_relu, upfirdn2d, conv2d_gradfix
 
 
 class PixelNorm(nn.Module):

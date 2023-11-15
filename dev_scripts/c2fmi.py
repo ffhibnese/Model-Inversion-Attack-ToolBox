@@ -17,6 +17,9 @@ if __name__ == '__main__':
     # dataset name support:
     dataset_name = 'FaceScrub'
     
+    # gan dataset name support: celeba
+    gan_dataset_name = 'celeba'
+    
     emb_name = 'casia-InceptionResnet-Train_Acc0.984-Val_Acc0.971.pth'
     gan_name = '150000.pt'
     p2f_name = '10_pre2feat_FM2CI_keep100_loss_3.9467.pt'
@@ -29,7 +32,7 @@ if __name__ == '__main__':
     device = 'cuda:0'
     
     config = C2FMIConfig(
-        target_path=target_name,
+        target_name=target_name,
         eval_path=None,
         gan_path=gan_name,
         emb_path=emb_name,
@@ -41,6 +44,7 @@ if __name__ == '__main__':
         cache_dir=work_dir,
         
         dataset_name=dataset_name,
+        gan_dataset_name=gan_dataset_name,
         
         batch_size=batch_size,
         target_labels=target_labels,

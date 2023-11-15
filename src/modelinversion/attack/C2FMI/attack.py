@@ -41,7 +41,7 @@ def attack(config: C2FMIConfig):
     P2f = predict2feature(tar_classes, trunc)
     
     folder_manager.load_state_dict(G, ['C2FMI', config.gan_path], device=device)
-    folder_manager.load_target_model_state_dict(T, config.dataset_name, config.target_path, device=device)
+    folder_manager.load_target_model_state_dict(T, config.dataset_name, config.target_name, device=device)
     folder_manager.load_state_dict(Embed, ['C2FMI', config.emb_path], device=device)
     folder_manager.load_state_dict(P2f, ['C2FMI', config.p2f_pth], device=device)
     
