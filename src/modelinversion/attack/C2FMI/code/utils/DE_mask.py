@@ -246,6 +246,7 @@ class DE_c2b_5_bin2(object):
             tmp += beta*(self.pop[i2]-self.pop[i3])
         return tmp
 
+    # 执行max_gen代差分进化
     def run(self, disturb=0.0):
         pbar = tqdm(range(self.max_gen))
         for i in pbar:
@@ -262,6 +263,7 @@ class DE_c2b_5_bin2(object):
 
     def get_img(self, num_imgs, only_best=False):
         imgs = self.optim.gen_img(self.pop[0:num_imgs])
-        fitness_par = self.optim.cal_fitness(self.pop)
-        best_id = np.argmax(fitness_par)
-        self.optim.save_img(imgs, best_id, only_best)
+        # fitness_par = self.optim.cal_fitness(self.pop)
+        # best_id = np.argmax(fitness_par)
+        # self.optim.save_img(imgs, best_id, only_best)
+        return imgs

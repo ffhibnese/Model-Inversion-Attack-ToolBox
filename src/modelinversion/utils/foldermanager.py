@@ -25,8 +25,10 @@ target_eval_models_file = {
     'vggface2':{
         'resnet50_scratch_dag': 'resnet50_scratch_dag.pth',
         'inception_resnetv1': '20180402-114759-vggface2.pt'
-    }
-        
+    },
+    'FaceScrub':{
+        'MobileNet':'FaceScrub-MobileNet-Train_Acc0.9736-Val_Acc0.9613.pth'
+    }  
 }
 
 class FolderManager:
@@ -63,7 +65,7 @@ class FolderManager:
         try:
             target_filename = target_eval_models_file[dataset_name][target_name]
         except:
-            raise RuntimeError(f'ckeckpoint of model {target_name} dataset {dataset_name} is NOT supported')
+            raise RuntimeError(f'checkpoint of model {target_name} dataset {dataset_name} is NOT supported')
         return self.load_state_dict( target_model, ['target_eval', dataset_name, target_filename], device)
             
     def save_result_image(self, img: torch.Tensor, label: int, save_name = None, folder_name='all_imgs'):

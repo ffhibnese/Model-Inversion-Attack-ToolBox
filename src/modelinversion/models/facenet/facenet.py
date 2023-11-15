@@ -77,3 +77,6 @@ class FaceNet64(nn.Module):
         # __, iden = torch.max(out, dim=1)
         # iden = iden.view(-1, 1)
         return ModelResult(out, [feat])
+
+
+
