@@ -1,14 +1,14 @@
 from dataclasses import dataclass, field
 
 @dataclass
-class GmiAttackConfig:
+class BrepAttackConfig:
     
     target_name: str
-    eval_name: str
     gan_target_name: str
+    eval_name: str
     ckpt_dir: str
-    dataset_dir: str
     result_dir: str
+    dataset_dir: str
     cache_dir: str
     
     dataset_name: str

@@ -3,12 +3,13 @@ sys.path.append('.')
 sys.path.append('./src')
 sys.path.append('./src/modelinversion')
 
-from modelinversion.attack.KEDMI.attack import attack as kedmi_attack
-from modelinversion.attack.KEDMI.config import KedmiAttackConfig
+from modelinversion.attack.BREPMI.attack import attack as brep_Attack
+# from modelinversion.attack.PLGMI.reconstruct import plgmi_attack
+from modelinversion.attack.BREPMI.config import BrepAttackConfig
 from development_config import get_dirs
 
 if __name__ == '__main__':
-    dirs = get_dirs('kedmi')
+    dirs = get_dirs('brep')
     work_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     
     # target name support: vgg16, ir152, facenet64, facenet
@@ -26,7 +27,7 @@ if __name__ == '__main__':
     target_labels = list(range(120))
     device = 'cuda:2'
     
-    config = KedmiAttackConfig(
+    config = BrepAttackConfig(
         target_name=target_name,
         eval_name=eval_name,
         gan_target_name=gan_target_name,
@@ -41,4 +42,4 @@ if __name__ == '__main__':
         batch_size=batch_size
     )
     
-    kedmi_attack(config)
+    brep_Attack(config)

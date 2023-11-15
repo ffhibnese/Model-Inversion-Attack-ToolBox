@@ -31,9 +31,9 @@ target_eval_models_file = {
     }  
 }
 
-class FolderManager:
+class BaseFolderManager:
     
-    def __init__(self, ckpt_dir, dataset_dir, cache_dir, result_dir, **kwargs) -> None:
+    def __init__(self, ckpt_dir, dataset_dir, cache_dir, result_dir, log_filename='attack.log', **kwargs) -> None:
         self.config = DirnameConfig(ckpt_dir, dataset_dir, cache_dir, result_dir)
         for k, v in kwargs.items():
             setattr(self.config, k, v)
@@ -41,7 +41,9 @@ class FolderManager:
             if v is not None:
                 os.makedirs(v, exist_ok=True)
             
-        self.__tee = Tee(os.path.join(result_dir, 'attack.log'), 'w')
+        log_filename = os.path.join(result_dir, log_filename)
+        print (f'log file is placed in {log_filename}')
+        self.__tee = Tee(log_filename, 'w')
             
         self.temp_cnt = 0
         
@@ -50,6 +52,8 @@ class FolderManager:
         if isinstance(relative_paths, str):
             relative_paths = [relative_paths]
         path = os.path.join(self.config.ckpt_dir, *relative_paths)
+        
+        print(f'load {model.__class__.__name__} state dict from {path}')
         
         if not os.path.exists(path):
             raise RuntimeError(f'path `{path}` is NOT EXISTED!')
@@ -65,12 +69,24 @@ class FolderManager:
                 state_dict = state_dict['map']
         model.load_state_dict(state_dict, strict=True)
         
-    def load_target_model_state_dict(self, target_model, dataset_name, target_name, device):
+    def save_state_dict(self, model: nn.Module, relative_paths):
+        dirname = os.path.join(self.config.ckpt_dir, *relative_paths[:-1])
+        os.makedirs(dirname, exist_ok=True)
+        # nn.DataParallel()
+        if isinstance(model, nn.DataParallel):
+            model = model.module
+        torch.save({'state_dict': model.state_dict()}, os.path.join(dirname, relative_paths[-1]))
+        
+    def save_target_model_state_dict(self, target_model, dataset_name, target_name):
+        target_filename = f'{target_name}_{dataset_name}.pt'
+        self.save_state_dict(target_model, ['target_eval', dataset_name, target_filename])
+        
+    def load_target_model_state_dict(self, target_model, dataset_name, target_name, device, **kwargs):
         try:
             target_filename = target_eval_models_file[dataset_name][target_name]
         except:
-            raise RuntimeError(f'checkpoint of model {target_name} dataset {dataset_name} is NOT supported')
-        return self.load_state_dict( target_model, ['target_eval', dataset_name, target_filename], device)
+            target_filename = f'{target_name}_{dataset_name}.pt'
+        self.load_state_dict( target_model, ['target_eval', dataset_name, target_filename], device)
             
     def save_result_image(self, img: torch.Tensor, label: int, save_name = None, folder_name='all_imgs'):
         if isinstance(label, torch.Tensor):
@@ -88,3 +104,56 @@ class FolderManager:
         for i in range(len(labels)):
             save_name = None if save_names is None else save_names[i]
             self.save_result_image(imgs[i], labels[i], save_name=save_name, folder_name=folder_name)
+            
+class FolderManager(BaseFolderManager):
+    
+    def __init__(self, attack_ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir=None, defense_type = 'no_defense', **kwargs) -> None:
+        # log_filename = 'attack.log' if defense_ckpt_dir is None else 'defense.log'
+        super().__init__(attack_ckpt_dir, dataset_dir, cache_dir, result_dir, log_filename=f'{defense_type}.log', defense_ckpt_dir = defense_ckpt_dir, **kwargs)
+        
+        self.defense_type = defense_type
+        
+    def load_defense_state_dict(self, model: nn.Module, relative_paths, device):
+        
+        if isinstance(relative_paths, str):
+            relative_paths = [relative_paths]
+        path = os.path.join(self.config.defense_ckpt_dir, *relative_paths)
+        
+        print(f'load {model.__class__.__name__} state dict from {path}')
+        
+        if not os.path.exists(path):
+            raise RuntimeError(f'path `{path}` is NOT EXISTED!')
+        state_dict = torch.load(path, map_location=device)
+        if isinstance(state_dict, dict):
+            if 'state_dict' in state_dict:
+                state_dict = state_dict['state_dict']
+            elif 'model' in state_dict:
+                state_dict = state_dict['model']
+        model.load_state_dict(state_dict, strict=True)
+        
+    def save_target_model_state_dict(self, target_model, dataset_name, target_name):
+        
+        if self.defense_type == 'no_defense':
+            super().save_target_model_state_dict(target_model, dataset_name, target_name)
+            return
+        
+        target_filename = f'{target_name}_{dataset_name}_{self.defense_type}.pt'
+        
+        dirname = os.path.join(self.config.defense_ckpt_dir, self.defense_type, dataset_name)
+        os.makedirs(dirname, exist_ok=True)
+
+        if isinstance(target_model, nn.DataParallel):
+            target_model = target_model.module
+        torch.save({'state_dict': target_model.state_dict()}, os.path.join(dirname, target_filename))
+        
+    def load_target_model_state_dict(self, target_model, dataset_name, target_name, device, defense_type=None):
+        
+        if defense_type is None:
+            defense_type = 'no_defense'
+            
+        if defense_type == 'no_defense':
+            super().load_target_model_state_dict(target_model, dataset_name, target_name, device)
+        else:
+            target_filename = f'{target_name}_{dataset_name}_{defense_type}.pt'
+            self.load_defense_state_dict(target_model, [defense_type, dataset_name, target_filename], device)
+            

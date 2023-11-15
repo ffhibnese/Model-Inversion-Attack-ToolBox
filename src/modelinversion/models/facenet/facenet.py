@@ -10,6 +10,7 @@ from torch.nn.modules.loss import _Loss
 from torchvision.transforms.functional import resize
 from ..modelresult import ModelResult
 from ..evolve import evolve
+from ..base import BaseTargetModel
 
 """
     FROM PLGMI
@@ -20,7 +21,7 @@ class Flatten(nn.Module):
         return input.view(input.size(0), -1)
 
 
-class FaceNet(nn.Module):
+class FaceNet(BaseTargetModel):
     def __init__(self, num_classes=1000):
         super(FaceNet, self).__init__()
         self.feature = evolve.IR_50_112((112, 112))
@@ -29,6 +30,9 @@ class FaceNet(nn.Module):
         self.fc_layer = nn.Linear(self.feat_dim, self.num_classes)
         
         self.resolution = 112
+        
+    def get_feature_dim(self):
+        return 512
 
     def predict(self, x):
         feat = self.feature(x)
@@ -49,7 +53,7 @@ class FaceNet(nn.Module):
         return ModelResult(out, [feat])
 
 
-class FaceNet64(nn.Module):
+class FaceNet64(BaseTargetModel):
     def __init__(self, num_classes=1000):
         super(FaceNet64, self).__init__()
         self.feature = evolve.IR_50_64((64, 64))
@@ -64,6 +68,9 @@ class FaceNet64(nn.Module):
         self.fc_layer = nn.Linear(self.feat_dim, self.num_classes)
         
         self.resolution = 64
+        
+    def get_feature_dim(self):
+        return 512
 
     def forward(self, x):
         
