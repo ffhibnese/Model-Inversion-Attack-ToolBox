@@ -45,6 +45,11 @@ def attack(config: C2FMIConfig):
     folder_manager.load_state_dict(Embed, ['C2FMI', config.emb_path], device=device)
     folder_manager.load_state_dict(P2f, ['C2FMI', config.p2f_pth], device=device)
     
+    G.to(device)
+    T.to(device)
+    Embed.to(device)
+    P2f.to(device)
+    
     G.eval()
     T.eval()
     Embed.eval()
@@ -76,7 +81,7 @@ def attack(config: C2FMIConfig):
         lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=200, gamma=0.95)
 
         imgs = inversion_attack(G, T, Embed, P2f, target_label, latent_in, step, optimizer,
-                         lr_scheduler, face_shape, img_size, input_latent, only_best)
+                         lr_scheduler, face_shape, img_size, input_latent, tar_classes, trunc, device, only_best)
+        folder_manager.temp_cnt = 0
         for k,img in enumerate(imgs):
-            folder_manager.temp_cnt = 0
             folder_manager.save_result_image(img, target_label)
