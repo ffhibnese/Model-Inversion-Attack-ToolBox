@@ -8,6 +8,7 @@ from .code.gan_model import Generator
 from .code.models.facenet import Facenet
 from .code.models.predict2feature import predict2feature
 from .code.reconstruct import inversion_attack,eval_acc
+from ...metrics import calc_knn, generate_private_feats
 
 def attack(config: C2FMIConfig):
     save_dir = os.path.join(config.result_dir, f'{config.gan_dataset_name}_{config.target_name}')
@@ -101,3 +102,17 @@ def attack(config: C2FMIConfig):
     print(f'{config.dataset_name} attack avg. confidence: {conf_avg:.6f}')
     
     # 记录KNN Dist
+    generate_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, config.target_name)
+    private_feat_save_dir = os.path.join(config.cache_dir, config.dataset_name, config.eval_name, 'private')
+    
+    if config.dataset_name == 'celeba':
+        private_img_dir = os.path.join(config.dataset_dir, config.dataset_name, 'split', 'private', 'train')
+    else:
+        print(f'dataset {config.dataset_name} is NOT supported for KNN and FID')
+        return
+    
+    generate_private_feats(eval_model=E, img_dir=os.path.join(save_dir, 'all_imgs'), save_dir=generate_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None)
+    generate_private_feats(eval_model=E, img_dir=private_img_dir, save_dir=private_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None, exist_ignore=True)
+    
+    knn_dist = calc_knn(generate_feat_save_dir, private_feat_save_dir)
+    print("KNN Dist %.2f" % knn_dist)

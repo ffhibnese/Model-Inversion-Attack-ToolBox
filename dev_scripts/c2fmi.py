@@ -31,8 +31,9 @@ if __name__ == '__main__':
     tar_backbone  = 'mobile_net'
     
     batch_size = 16
-    target_labels = list(range(1))
+    target_labels = list(range(100))
     device = 'cuda:0'
+    mask = 100
     
     config = C2FMIConfig(
         target_name=target_name,
@@ -52,6 +53,7 @@ if __name__ == '__main__':
         batch_size=batch_size,
         target_labels=target_labels,
         device=device,
+        mask=mask,
         
         emb_backbone=emb_backbone,
         tar_backbone=tar_backbone
