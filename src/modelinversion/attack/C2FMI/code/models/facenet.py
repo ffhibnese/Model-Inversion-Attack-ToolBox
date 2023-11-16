@@ -1,12 +1,12 @@
 import torch
 from torch import nn
-from models.mobile_net import MobileNetV1
-from models.inception_resnetv1 import InceptionResnetV1
+from .mobile_net import MobileNetV1
+from .inception_resnetv1 import InceptionResnetV1
 from torch.nn import functional as F
-from models.swin_transformer import SwinTransformer
-from models.MobileFaceNet import MobileFaceNet
+from .swin_transformer import SwinTransformer
+from .MobileFaceNet import MobileFaceNet
 from torchvision.transforms import Resize
-from models.model_irse import IR_50
+from .model_irse import IR_50
 
 class mobilenet_part(nn.Module):
     def __init__(self, pretrained_dir):

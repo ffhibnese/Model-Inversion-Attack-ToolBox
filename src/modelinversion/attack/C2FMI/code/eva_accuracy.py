@@ -8,6 +8,7 @@ from tqdm import tqdm
 import dlib
 import numpy as np
 
+# 处理参数
 device        = 'cuda'
 img_size      = 256
 dataset       = 'facescrub'  # dataset
@@ -26,6 +27,7 @@ test_model.load_state_dict(torch.load(facenet_path, map_location='cpu'), strict=
 test_model.to(device)
 test_model.eval()
 
+# 记录评价指标ACC
 acc_number = 0
 top5_acc_number = 0
 conf_sum   = 0

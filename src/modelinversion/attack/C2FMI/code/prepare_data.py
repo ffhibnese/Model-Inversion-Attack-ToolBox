@@ -42,14 +42,11 @@ def resize_worker(img_file, sizes, resample):
 def prepare(
     env, dataset, n_worker, sizes=(128, 256, 512, 1024), resample=Image.LANCZOS
 ):
-
-
     resize_fn = partial(resize_worker, sizes=sizes, resample=resample)
 
     files = sorted(dataset.imgs, key=lambda x: x[0])
     files = [(i, file) for i, (file, label) in enumerate(files)]
     total = 0
-
 
     with multiprocessing.Pool(n_worker) as pool:
         for i, imgs in tqdm(pool.imap_unordered(resize_fn, files)):
@@ -90,8 +87,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    args.out = 'lmdb_dataset/'
-    args.path = '../data/CelebA/Img/img_align_celeba_jpg/'
+    args.out = "lmdb_dataset/"
+    args.path = "../data/CelebA/Img/img_align_celeba_jpg/"
 
     resample_map = {"lanczos": Image.LANCZOS, "bilinear": Image.BILINEAR}
     resample = resample_map[args.resample]
@@ -100,7 +97,7 @@ if __name__ == "__main__":
 
     print(f"Make dataset of image sizes:", ", ".join(str(s) for s in sizes))
 
-    imgset = datasets.ImageFolder(args.path) # imgset.{classes,class_to_idx,imgs}
+    imgset = datasets.ImageFolder(args.path)  # imgset.{classes,class_to_idx,imgs}
 
-    with lmdb.open(args.out, map_size=1024 ** 4, readahead=False) as env:
+    with lmdb.open(args.out, map_size=1024**4, readahead=False) as env:
         prepare(env, imgset, args.n_worker, sizes=sizes, resample=resample)

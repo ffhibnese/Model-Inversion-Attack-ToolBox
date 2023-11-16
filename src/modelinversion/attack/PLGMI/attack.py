@@ -11,7 +11,7 @@ from ...metrics.fid.fid import calc_fid
 def attack(config: PlgmiAttackConfig):
     
     save_dir = os.path.join(config.result_dir, f'{config.dataset_name}_{config.target_name}_{config.cgan_target_name}')
-    folder_manager = FolderManager(config.ckpt_dir, config.dataset_dir, config.cache_dir, save_dir)
+    folder_manager = FolderManager(config.ckpt_dir, config.dataset_dir, config.cache_dir, save_dir, config.defense_ckpt_dir, config.defense_type)
     
     args = PlgmiArgs(config.target_name, config.eval_name, save_dir, config.ckpt_dir, device=config.device,
                      inv_loss_type=config.inv_loss_type,
@@ -30,8 +30,8 @@ def attack(config: PlgmiAttackConfig):
     ).to(config.device)
     folder_manager.load_state_dict(G, ['PLGMI', f'{config.gan_dataset_name}_{config.cgan_target_name.upper()}_PLG_MI_G.tar'], device=args.device)
 
-    T = get_model(config.target_name, config.dataset_name, device=config.device)
-    folder_manager.load_target_model_state_dict(T, config.dataset_name, config.target_name, device=config.device)
+    T = get_model(config.target_name, config.dataset_name, device=config.device, defense_type=config.defense_type)
+    folder_manager.load_target_model_state_dict(T, config.dataset_name, config.target_name, device=config.device, defense_type=config.defense_type)
 
     E = get_model(config.eval_name, config.dataset_name, device=config.device)
     folder_manager.load_target_model_state_dict(E, config.dataset_name, config.eval_name, device=config.device)
@@ -71,7 +71,8 @@ def attack(config: PlgmiAttackConfig):
     if config.dataset_name == 'celeba':
         private_img_dir = os.path.join(config.dataset_dir, config.dataset_name, 'split', 'private', 'train')
     else:
-        raise NotImplementedError(f'dataset {config.dataset_name} is NOT supported')
+        print(f'dataset {config.dataset_name} is NOT supported for KNN and FID')
+        return
     
     generate_private_feats(eval_model=E, img_dir=os.path.join(save_dir, 'all_imgs'), save_dir=generate_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None)
     generate_private_feats(eval_model=E, img_dir=private_img_dir, save_dir=private_feat_save_dir, batch_size=config.batch_size, device=config.device, transforms=None, exist_ignore=True)

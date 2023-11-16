@@ -4,7 +4,6 @@ sys.path.append('./src')
 sys.path.append('./src/modelinversion')
 
 from modelinversion.attack.KEDMI.attack import attack as kedmi_attack
-# from modelinversion.attack.PLGMI.reconstruct import plgmi_attack
 from modelinversion.attack.KEDMI.config import KedmiAttackConfig
 from development_config import get_dirs
 
@@ -25,7 +24,7 @@ if __name__ == '__main__':
     
     batch_size = 60
     target_labels = list(range(120))
-    device = 'cpu'
+    device = 'cuda:2'
     
     config = KedmiAttackConfig(
         target_name=target_name,

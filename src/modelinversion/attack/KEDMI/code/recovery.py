@@ -14,7 +14,6 @@ from torch.autograd import Variable
 from . import utils
 from ....models import *
 from .discri import *
-from ....metrics.knn import get_knn_dist
 from ....metrics.fid.fid import calc_fid
 from ....utils import Tee
 from .generator import *
@@ -63,7 +62,7 @@ def dist_inversion(G, D, T, E, iden, folder_manager, lr=2e-2, momentum=0.9, lamd
     # scheduler = torch.optim.lr_scheduler.StepLR(solver, 1800, gamma=0.1)
 
     for i in range(iter_times):
-        z = reparameterize(mu, log_var)
+        z = reparameterize(mu, log_var).to(device)
         fake = G(z)
         
         _, label = D(fake)
@@ -106,7 +105,7 @@ def dist_inversion(G, D, T, E, iden, folder_manager, lr=2e-2, momentum=0.9, lamd
         seed_acc = torch.zeros((bs, 5))
         for random_seed in range(num_seeds):
             tf = time.time()
-            z = reparameterize(mu, log_var)
+            z = reparameterize(mu, log_var).to(device)
             fake = G(z)
             # score = T(fake).result
             eval_prob = E(fake).result

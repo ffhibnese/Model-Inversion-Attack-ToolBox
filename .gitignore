@@ -110,9 +110,10 @@ cache/
 *.pth
 *.tar
 results/*
-checkpoints/*/*
+# checkpoints/*/*
 dataset/*/*
 
+nohup.txt
 
 # force into git
 !README.md
