@@ -113,6 +113,7 @@ results/*
 # checkpoints/*/*
 dataset/*/*
 
+nohup.txt
 
 # force into git
 !README.md

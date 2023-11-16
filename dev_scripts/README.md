@@ -15,6 +15,17 @@ Here are pretrained models for each attack algorithm.
     + resnet50_scratch_dag
     + inception_resnetv1
 
++ FaceScrub
+    + MobileNet
+    + BackboneMobileFaceNet
+
+## C2FMI
+
+dataset_name - target_name/eval_name:
+
++ FaceScrub
+    + target / eval models for FaceScrub
+
 ## DeepInversion
 
 target_name/eval_name:
