@@ -12,12 +12,13 @@ from utils.DE_mask import Optimizer as post_opt
 from utils.DE_mask import DE_c2b_5_bin, DE_c2b_5_bin2
 
 
+# resize生成的图像为指定形状
 def resize_img_gen_shape(img_gen, trans):
     t_img = trans(img_gen)
     face_input = t_img.clamp(min=-1, max=1).add(1).div(2)
     return face_input
 
-
+# 第二阶段的gradient-free攻击
 def post_de(latent_in, generator, target_model, target_label, idx):
 
     x = latent_in[idx]
@@ -27,26 +28,28 @@ def post_de(latent_in, generator, target_model, target_label, idx):
     task.run(disturb=0.00)
     task.get_img(32, only_best=True)
 
-
+# 为隐向量施加扰动
 def disturb_latent(latent_in, disturb_strenth):
     latent_n = latent_in
     disturb = torch.randn_like(latent_n) * disturb_strenth
     return latent_n + disturb
 
-
+# 反演攻击
 def inversion_attack(generator, target_model, embed_model, p2f, target_label, latent_in, attack_step, optimizer,
                      lr_scheduler, face_shape, img_size, input_is_latent):
 
+    # 分别攻击某一种类别
     print(f'start attack label-{target_label}!')
-    save_dir   = 'gen_figures/'
+    save_dir   = 'gen_figures/'     # 保存路径
     pbar = tqdm(range(attack_step))
-    t_resize = Resize(face_shape)
+    t_resize = Resize(face_shape)   # resize图片为160×160
 
-
+    # 第1阶段训练
     for i in pbar:
-        _disturb  = 0.0
+        _disturb  = 0.02 * (1 - i / attack_step) #扰动因子
         mut_stren = 0.5
 
+        # 根据扰动后的隐向量，生成对应图片
         latent_n = disturb_latent(latent_in, _disturb)
         imgs_gen, _ = generator([latent_n], input_is_latent=input_is_latent)
         batch = imgs_gen.shape[0]
@@ -61,34 +64,44 @@ def inversion_attack(generator, target_model, embed_model, p2f, target_label, la
                 normalize=True,
                 range=(-1, 1),
                 )
+            
+        # 完成50轮迭代后，获得第一阶段的粗粒度隐向量结果
         if (i+1) % attack_step == 0:
             with torch.no_grad():
+                # 用target测试粗粒度隐向量的效果
                 face_in = resize_img_gen_shape(imgs_gen, t_resize)
                 before_no, _ = target_model.forward_feature(face_in)
                 predicti = target_model.forward_classifier(before_no)
 
+                # 展示正确标签的预测置信度
                 ppff   = F.softmax(predicti, dim=1)
                 print('\nprediction: ')
                 for k in range(batch):
                     tmp = ppff[k][target_label].item()
                     print(f'predict{k}:{tmp}\n')
 
+                # 获取当前batch各个隐向量的索引
                 idx = list(range(batch))
 
         # ------------------------------------------
         face_input = resize_img_gen_shape(imgs_gen, t_resize)
 
+        # 特征提取
         before_norm, outputs1 = embed_model.forward_feature(face_input)
         embedding = embed_model.forward_classifier(before_norm)
 
+        # 获得正确的预测标签
         prediction = torch.abs(torch.randn([batch,tar_classes])).cuda()
         prediction[:,target_label] = 1e18
         prediction = F.normalize(prediction, dim=1)
+        
+        # 根据inverse network获得映射到的特征，从而计算L2损失
         inverse_feature = p2f(prediction)
         mse_loss = F.mse_loss(embedding, inverse_feature)
         loss = mse_loss
 
         # ------------------------------------------
+        # 然后对隐向量进行优化
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -128,15 +141,15 @@ if __name__ == '__main__':
     emb_backbone  = 'inception_resnetv1'
     tar_backbone  = 'mobile_net'
 
-    tar_classes   = 526
+    tar_classes   = 526         # 总的目标类数
     emb_classes   = 10575
 
     input_latent  = True
-    init_lr       = 0.02
-    init_label    = 0
-    fina_label    = 1
-    step          = 50
-    face_shape    = [160, 160]
+    init_lr       = 0.02        # 初始学习率
+    init_label    = 0           # 攻击的起始标签
+    fina_label    = 1           # 攻击的截止标签
+    step          = 50          # 第1阶段迭代次数
+    face_shape    = [160, 160]  # 图片分辨率
     batch         = 16  # or 8
     load_init     = False
 
@@ -157,11 +170,13 @@ if __name__ == '__main__':
     embed_model.to('cuda')
     embed_model.eval()
 
+    # inverse network
     p2f = predict2feature(tar_classes, trunc)
     p2f.load_state_dict(torch.load(p2f_dir, map_location='cpu')['map'], strict=True)
     p2f.to('cuda')
     p2f.eval()
 
+    # 获得待优化的初始隐向量
     with torch.no_grad():
         noise_samples = torch.randn(n_mean_latent, 512, device=device)
         latents       = g_ema.style(noise_samples)
@@ -176,6 +191,7 @@ if __name__ == '__main__':
 
     print(f'attack from {init_label} to {fina_label-1}')
     for target_label in range(init_label, fina_label):
+        # 为当前batch的每一个隐向量进行初始化
         with torch.no_grad():
             for i in range(batch):
                 j   = random.randint(0, n_mean_latent//10-100)

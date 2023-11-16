@@ -25,8 +25,11 @@ target_eval_models_file = {
     'vggface2':{
         'resnet50_scratch_dag': 'resnet50_scratch_dag.pth',
         'inception_resnetv1': '20180402-114759-vggface2.pt'
-    }
-        
+    },
+    'FaceScrub':{
+        'MobileNet':'FaceScrub-MobileNet-Train_Acc0.9736-Val_Acc0.9613.pth',
+        'BackboneMobileFaceNet':'FaceScrub-BackboneMobileFaceNet-Epoch4-Train_Acc0.992-Val_Acc0.971.pth'
+    }  
 }
 
 class BaseFolderManager:
@@ -61,6 +64,10 @@ class BaseFolderManager:
                 state_dict = state_dict['state_dict']
             elif 'model' in state_dict:
                 state_dict = state_dict['model']
+            elif 'g_ema' in state_dict:
+                state_dict = state_dict['g_ema']
+            elif 'map' in state_dict:
+                state_dict = state_dict['map']
         model.load_state_dict(state_dict, strict=True)
         
     def save_state_dict(self, model: nn.Module, relative_paths):
@@ -92,6 +99,7 @@ class BaseFolderManager:
             self.temp_cnt += 1
         save_path = os.path.join(save_dir, save_name)
         save_image(img.detach(), save_path, normalize=True)
+        return save_path
         
     def save_result_images(self, imgs: torch.Tensor, labels: list, save_names = None, folder_name='all_imgs'):
         
