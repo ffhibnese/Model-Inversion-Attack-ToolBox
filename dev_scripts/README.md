@@ -19,7 +19,7 @@ Here are pretrained models for each attack algorithm.
     + MobileNet
     + BackboneMobileFaceNet
 
-## GMI
+## C2FMI
 
 dataset_name - target_name/eval_name:
 
