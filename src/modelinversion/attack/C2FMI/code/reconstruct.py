@@ -1,8 +1,9 @@
 import torch
 import dlib
 import numpy as np
+from PIL import Image
 from tqdm import tqdm
-from torchvision.transforms import Resize
+from torchvision.transforms import Resize,ToPILImage
 from torchvision import utils as uts
 from torch.nn import functional as F
 from .utils.DE_mask import Optimizer as post_opt
@@ -120,14 +121,16 @@ def inversion_attack(generator, target_model, embed_model, p2f, target_label, la
     # stage II
     return post_de(latent_in, generator, target_model, target_label, idx, trunc, only_best, device=device, face_shape=face_shape)
 
-def eval_acc(E, target_labels, imgs, face_shape, device):
+def eval_acc(E, target_labels, paths, face_shape, device):
     acc_number = 0
     top5_acc_number = 0
     conf_sum   = 0
     detector   = dlib.get_frontal_face_detector()
     for i, label in enumerate(target_labels):
+        # 加载图片
         label_ = label
-        _, cropped = detect_crop_face(imgs[i], detector)
+        img = Image.open(paths[i])
+        _, cropped = detect_crop_face(img, detector)
         face_input = facenet_input_preprocessing(cropped, face_shape).to(device)
         
         # 获得target model的预测结果
@@ -136,7 +139,7 @@ def eval_acc(E, target_labels, imgs, face_shape, device):
         conf = F.softmax(prediction, dim=1)
         out  = torch.max(conf, dim=1)
         _, rank_ = conf[0].sort(descending=True)
-        rank = rank_.to(device)
+        rank = rank_.to('cpu')
         
         if label_ == out[1].item():
             acc_number += 1

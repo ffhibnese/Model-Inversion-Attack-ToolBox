@@ -50,11 +50,13 @@ def attack(config: C2FMIConfig):
     
     G.to(device)
     T.to(device)
+    E.to(device)
     Embed.to(device)
     P2f.to(device)
     
     G.eval()
     T.eval()
+    E.eval()
     Embed.eval()
     P2f.eval()
     
@@ -72,7 +74,7 @@ def attack(config: C2FMIConfig):
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.9)
 
     print(f'attack from {target_labels[0]} to {target_labels[-1]}')
-    best_images = []
+    img_paths = []
     for target_label in target_labels:
         # 为当前batch的每一个隐向量进行初始化
         with torch.no_grad():
@@ -89,11 +91,11 @@ def attack(config: C2FMIConfig):
                          lr_scheduler, face_shape, img_size, input_latent, tar_classes, trunc, device, only_best)
         
         # 记录图片
-        folder_manager.save_result_image(imgs[best_id], target_label)
-        best_images.append(imgs[best_id])
+        path = folder_manager.save_result_image(imgs[best_id], target_label)
+        img_paths.append(path)
         
     # 记录acc
-    acc, top5_acc, conf_avg = eval_acc(E, target_labels=target_labels, imgs=best_images, face_shape=face_shape, device=device)
+    acc, top5_acc, conf_avg = eval_acc(E, target_labels=target_labels, paths=img_paths, face_shape=face_shape, device=device)
     print(f'{config.dataset_name} attack accuracy: {acc:.6f}')
     print(f'{config.dataset_name} top-5 attack accuracy: {top5_acc:.6f}')
     print(f'{config.dataset_name} attack avg. confidence: {conf_avg:.6f}')

@@ -99,6 +99,7 @@ class BaseFolderManager:
             self.temp_cnt += 1
         save_path = os.path.join(save_dir, save_name)
         save_image(img.detach(), save_path, normalize=True)
+        return save_path
         
     def save_result_images(self, imgs: torch.Tensor, labels: list, save_names = None, folder_name='all_imgs'):
         
