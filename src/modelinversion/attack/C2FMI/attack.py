@@ -17,24 +17,25 @@ def attack(config: C2FMIConfig):
     print("=> creating model ...")
     
     # get parameters
-    device = config.device
-    img_size = config.img_size
-    tar_backbone = config.tar_backbone
-    tar_classes = config.tar_classes
-    emb_backbone = config.emb_backbone
-    emb_classes = config.emb_classes
-    emb_backbone = config.emb_backbone
-    tar_backbone = config.tar_backbone
-    eva_backbone = config.eva_backbone
-    trunc = config.mask
-    n_mean_latent = config.n_mean_latent
-    batch = config.batch_size
-    init_lr = config.init_lr
-    target_labels = config.target_labels
-    step = config.step
-    face_shape = config.face_shape
-    only_best = config.only_best
-    input_latent  = True
+    if True:
+        device = config.device
+        img_size = config.img_size
+        tar_backbone = config.tar_backbone
+        tar_classes = config.tar_classes
+        emb_backbone = config.emb_backbone
+        emb_classes = config.emb_classes
+        emb_backbone = config.emb_backbone
+        tar_backbone = config.tar_backbone
+        eva_backbone = config.eva_backbone
+        trunc = config.mask
+        n_mean_latent = config.n_mean_latent
+        batch = config.batch_size
+        init_lr = config.init_lr
+        target_labels = config.target_labels
+        step = config.step
+        face_shape = config.face_shape
+        only_best = config.only_best
+        input_latent  = True
     
     # load models
     G = Generator(img_size, 512, 8, channel_multiplier=1)
