@@ -27,7 +27,8 @@ target_eval_models_file = {
         'inception_resnetv1': '20180402-114759-vggface2.pt'
     },
     'FaceScrub':{
-        'MobileNet':'FaceScrub-MobileNet-Train_Acc0.9736-Val_Acc0.9613.pth'
+        'MobileNet':'FaceScrub-MobileNet-Train_Acc0.9736-Val_Acc0.9613.pth',
+        'BackboneMobileFaceNet':'FaceScrub-BackboneMobileFaceNet-Epoch4-Train_Acc0.992-Val_Acc0.971.pth'
     }  
 }
 

@@ -59,6 +59,7 @@ class Optimizer(object):
         face_input = t_img.clamp(min=-1, max=1).add(1).div(2)
         return face_input
 
+    # 计算预测置信度
     def cal_fitness(self, x):
         with torch.no_grad():
             imgs_gen = self.gen_img(x)
@@ -263,7 +264,9 @@ class DE_c2b_5_bin2(object):
 
     def get_img(self, num_imgs, only_best=False):
         imgs = self.optim.gen_img(self.pop[0:num_imgs])
-        # fitness_par = self.optim.cal_fitness(self.pop)
-        # best_id = np.argmax(fitness_par)
-        # self.optim.save_img(imgs, best_id, only_best)
-        return imgs
+        best_id = -100
+        if only_best:
+            fitness_par = self.optim.cal_fitness(self.pop)
+            best_id = np.argmax(fitness_par)
+            # self.optim.save_img(imgs, best_id, only_best)
+        return imgs, best_id

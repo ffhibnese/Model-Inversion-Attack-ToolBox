@@ -1,10 +1,13 @@
 import torch
+import dlib
+import numpy as np
 from tqdm import tqdm
 from torchvision.transforms import Resize
 from torchvision import utils as uts
 from torch.nn import functional as F
 from .utils.DE_mask import Optimizer as post_opt
 from .utils.DE_mask import DE_c2b_5_bin2
+from .utils.detect_crop_face import facenet_input_preprocessing, detect_crop_face
 
 
 # resize生成的图像为指定形状
@@ -116,3 +119,33 @@ def inversion_attack(generator, target_model, embed_model, p2f, target_label, la
 
     # stage II
     return post_de(latent_in, generator, target_model, target_label, idx, trunc, only_best, device=device, face_shape=face_shape)
+
+def eval_acc(E, target_labels, imgs, face_shape, device):
+    acc_number = 0
+    top5_acc_number = 0
+    conf_sum   = 0
+    detector   = dlib.get_frontal_face_detector()
+    for i, label in enumerate(target_labels):
+        label_ = label
+        _, cropped = detect_crop_face(imgs[i], detector)
+        face_input = facenet_input_preprocessing(cropped, face_shape).to(device)
+        
+        # 获得target model的预测结果
+        before_norm, outputs1 = E.forward_feature(face_input)
+        prediction = E.forward_classifier(before_norm)
+        conf = F.softmax(prediction, dim=1)
+        out  = torch.max(conf, dim=1)
+        _, rank_ = conf[0].sort(descending=True)
+        rank = rank_.to(device)
+        
+        if label_ == out[1].item():
+            acc_number += 1
+        if (label_ == np.array(rank[0:5])).sum() > 0:
+            top5_acc_number += 1
+        conf_sum += conf[0,label_].item()
+    
+    acc      = acc_number / len(target_labels)
+    top5_acc = top5_acc_number / len(target_labels)
+    conf_avg = conf_sum / len(target_labels)
+    
+    return acc, top5_acc, conf_avg

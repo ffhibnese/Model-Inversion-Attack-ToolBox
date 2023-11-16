@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 class C2FMIConfig:
     
     target_name: str
-    eval_path: str
+    eval_name: str
     gan_path: str
     emb_path: str   # path of the embedding model
     p2f_pth: str    # path of the inverse model
@@ -32,6 +32,7 @@ class C2FMIConfig:
     
     emb_backbone: str = 'inception_resnetv1'    #backbone of embedding model
     tar_backbone: str = 'mobile_net'            #backbone of target model
+    eva_backbone: str = 'mobile_facenet'
     only_best: bool = True
     
     

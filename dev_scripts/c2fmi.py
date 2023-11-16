@@ -14,6 +14,9 @@ if __name__ == '__main__':
     # target name support: MobileNet
     target_name = 'MobileNet'
     
+    # eval name support: BackboneMobileFaceNet
+    eval_name = 'BackboneMobileFaceNet'
+    
     # dataset name support:
     dataset_name = 'FaceScrub'
     
@@ -28,12 +31,12 @@ if __name__ == '__main__':
     tar_backbone  = 'mobile_net'
     
     batch_size = 16
-    target_labels = list(range(100))
+    target_labels = list(range(50))
     device = 'cuda:0'
     
     config = C2FMIConfig(
         target_name=target_name,
-        eval_path=None,
+        eval_name=eval_name,
         gan_path=gan_name,
         emb_path=emb_name,
         p2f_pth=p2f_name,

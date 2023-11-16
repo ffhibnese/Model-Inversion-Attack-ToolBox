@@ -7,7 +7,7 @@ from .config import C2FMIConfig
 from .code.gan_model import Generator
 from .code.models.facenet import Facenet
 from .code.models.predict2feature import predict2feature
-from .code.reconstruct import inversion_attack
+from .code.reconstruct import inversion_attack,eval_acc
 
 def attack(config: C2FMIConfig):
     save_dir = os.path.join(config.result_dir, f'{config.gan_dataset_name}_{config.target_name}')
@@ -22,9 +22,10 @@ def attack(config: C2FMIConfig):
     tar_classes = config.tar_classes
     emb_backbone = config.emb_backbone
     emb_classes = config.emb_classes
-    trunc = config.mask
     emb_backbone = config.emb_backbone
     tar_backbone = config.tar_backbone
+    eva_backbone = config.eva_backbone
+    trunc = config.mask
     n_mean_latent = config.n_mean_latent
     batch = config.batch_size
     init_lr = config.init_lr
@@ -37,11 +38,13 @@ def attack(config: C2FMIConfig):
     # load models
     G = Generator(img_size, 512, 8, channel_multiplier=1)
     T = Facenet(backbone=tar_backbone, num_classes=tar_classes)
+    E = Facenet(backbone=eva_backbone, num_classes=tar_classes)
     Embed = Facenet(backbone=emb_backbone, num_classes=emb_classes)
     P2f = predict2feature(tar_classes, trunc)
     
     folder_manager.load_state_dict(G, ['C2FMI', config.gan_path], device=device)
     folder_manager.load_target_model_state_dict(T, config.dataset_name, config.target_name, device=device)
+    folder_manager.load_target_model_state_dict(E, config.dataset_name, config.eval_name, device=device)
     folder_manager.load_state_dict(Embed, ['C2FMI', config.emb_path], device=device)
     folder_manager.load_state_dict(P2f, ['C2FMI', config.p2f_pth], device=device)
     
@@ -69,6 +72,7 @@ def attack(config: C2FMIConfig):
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.9)
 
     print(f'attack from {target_labels[0]} to {target_labels[-1]}')
+    best_images = []
     for target_label in target_labels:
         # 为当前batch的每一个隐向量进行初始化
         with torch.no_grad():
@@ -80,8 +84,18 @@ def attack(config: C2FMIConfig):
         optimizer    = optim.Adam([latent_in], lr=init_lr)
         lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=200, gamma=0.95)
 
-        imgs = inversion_attack(G, T, Embed, P2f, target_label, latent_in, step, optimizer,
+        # 执行攻击
+        imgs, best_id = inversion_attack(G, T, Embed, P2f, target_label, latent_in, step, optimizer,
                          lr_scheduler, face_shape, img_size, input_latent, tar_classes, trunc, device, only_best)
-        folder_manager.temp_cnt = 0
-        for k,img in enumerate(imgs):
-            folder_manager.save_result_image(img, target_label)
+        
+        # 记录图片
+        folder_manager.save_result_image(imgs[best_id], target_label)
+        best_images.append(imgs[best_id])
+        
+    # 记录acc
+    acc, top5_acc, conf_avg = eval_acc(E, target_labels=target_labels, imgs=best_images, face_shape=face_shape, device=device)
+    print(f'{config.dataset_name} attack accuracy: {acc:.6f}')
+    print(f'{config.dataset_name} top-5 attack accuracy: {top5_acc:.6f}')
+    print(f'{config.dataset_name} attack avg. confidence: {conf_avg:.6f}')
+    
+    # 记录KNN Dist
