@@ -24,7 +24,7 @@ if __name__ == '__main__':
     gan_dataset_name = 'celeba'
     
     batch_size = 60
-    target_labels = list(range(0, 600))
+    target_labels = list(range(0, 60))
     device = 'cuda:0'
     
     config = PlgmiAttackConfig(

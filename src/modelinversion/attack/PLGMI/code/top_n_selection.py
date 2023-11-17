@@ -8,7 +8,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 from argparse import ArgumentParser
 from torchvision.datasets import ImageFolder
-from ...models import *
+from ....models import *
 from tqdm import tqdm
 
 # class PublicFFHQ(torch.utils.data.Dataset):
