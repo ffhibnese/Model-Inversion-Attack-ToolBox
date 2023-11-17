@@ -1,6 +1,8 @@
 import sys
 
 class Tee(object):
+    """A workaround method to print in console and write to log file
+    """
     def __init__(self, name, mode):
         self.file = open(name, mode)
         self.stdout = sys.stdout
