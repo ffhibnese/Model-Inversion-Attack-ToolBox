@@ -1,7 +1,5 @@
-# Target models and evaluation models.
+# Steps for adding models.
 
-
-Steps for adding models:
 1. Inherit `BaseTargetModel` class in `base.py` and implement `get_feature_dim` method, which return the dim of the last feature.
 2. Resize inputs at the beginning of `forward`.
 3. The return of `forward` function should be an instance of `ModelResult` class in `modelresult.py`.
