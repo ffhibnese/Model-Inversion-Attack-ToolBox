@@ -27,6 +27,8 @@ def attack(config: C2FMIConfig):
     target_labels = config.target_labels
     input_latent = True
     args = config.get_args()
+    
+# -------------------------------------------------------------------------------------
 
     # load models
     G = Generator(args.img_size, 512, 8, channel_multiplier=1)
@@ -56,6 +58,8 @@ def attack(config: C2FMIConfig):
     E.eval()
     Embed.eval()
     P2f.eval()
+    
+# -------------------------------------------------------------------------------------
 
     # 获得待优化的初始隐向量
     with torch.no_grad():
@@ -103,6 +107,8 @@ def attack(config: C2FMIConfig):
         # 记录图片
         path = folder_manager.save_result_image(imgs[best_id], target_label)
         img_paths.append(path)
+
+# -------------------------------------------------------------------------------------
 
     # 记录acc
     acc, top5_acc, conf_avg = eval_acc(
