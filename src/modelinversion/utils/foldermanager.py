@@ -55,7 +55,7 @@ class FolderManager:
             if v is not None:
                 os.makedirs(v, exist_ok=True)
         
-        log_filename = os.path.join(result_dir, log_filename)
+        log_filename = os.path.join(result_dir, f'{defense_type}.log')
         print (f'log file is placed in {log_filename}')
         self.__tee = Tee(log_filename, 'w')
             
@@ -152,7 +152,7 @@ class FolderManager:
             self.load_state_dict(target_model, ['target_eval', dataset_name, target_filename], device, defense_type=defense_type, state_dict_key=state_dict_key)
         else:
             target_filename = f'{target_name}_{dataset_name}_{defense_type}.pt'
-            self.load_state_dict(target_model, [dataset_name, target_filename], device)
+            self.load_state_dict(target_model, [dataset_name, target_filename], device, defense_type=defense_type, state_dict_key=state_dict_key)
         
     def save_state_dict(self, model: nn.Module, relative_paths, defense_type='no_defense'):
         """
