@@ -13,7 +13,7 @@ from . import losses as L
 from . import utils
 from .dataset import FaceDataset, InfiniteSamplerWrapper, sample_from_data, sample_from_gen
 from .models import inception
-from ...models import VGG16, FaceNet, IR152, FaceNet64
+from ....models import VGG16, FaceNet, IR152, FaceNet64
 from .models.discriminators.snresnet64 import SNResNetProjectionDiscriminator
 from .models.generators.resnet64 import ResNetGenerator
 

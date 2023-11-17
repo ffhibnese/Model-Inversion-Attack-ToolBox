@@ -1,8 +1,8 @@
-from .reconstruct import inversion, PlgmiArgs
+from .code.reconstruct import inversion, PlgmiArgs
 import os
 from .config import PlgmiAttackConfig
 from ...utils import FolderManager, set_random_seed
-from .models.generators.resnet64 import ResNetGenerator
+from .code.models.generators.resnet64 import ResNetGenerator
 from ...models import *
 import torch
 from ...metrics.knn import generate_private_feats, calc_knn

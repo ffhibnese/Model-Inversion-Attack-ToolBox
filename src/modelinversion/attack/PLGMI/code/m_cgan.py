@@ -13,7 +13,7 @@ from . import losses as L
 from . import utils
 from .dataset import FaceDataset, InfiniteSamplerWrapper, sample_from_data, sample_from_gen
 from .models import inception
-from ...models import get_model
+from ....models import get_model
 from .models.discriminators.snresnet64 import SNResNetProjectionDiscriminator
 from .models.generators.resnet64 import ResNetGenerator
 from torchvision.datasets import ImageFolder
