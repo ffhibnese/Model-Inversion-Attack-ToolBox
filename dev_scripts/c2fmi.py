@@ -31,15 +31,15 @@ if __name__ == "__main__":
 
     emb_name = "casia-InceptionResnet-Train_Acc0.984-Val_Acc0.971.pth"
     gan_name = "150000.pt"
-    p2f_name = "10_pre2feat_FM2CI_keep100_loss_3.9467.pt"
+    p2f_name = "90_pre2feat_og_FM2CI.pt"
 
     emb_backbone = "inception_resnetv1"
     tar_backbone = "mobile_net"
 
     batch_size = 16
     target_labels = list(range(526))
-    device = "cuda:2"
-    mask = 100
+    device = "cuda:0"
+    mask = 526
 
     config = C2FMIConfig(
         target_name=target_name,
