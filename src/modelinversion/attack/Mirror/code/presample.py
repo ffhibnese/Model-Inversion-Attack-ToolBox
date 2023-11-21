@@ -1,10 +1,10 @@
 import torch
 from torch import nn
-from attack.Mirror.genforce.get_genforce import get_genforce
+from .genforce.get_genforce import get_genforce
 import os
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from attack.Mirror.utils.img_utils import *
+from .utils.img_utils import *
 
 def presample(result_dir, genforce_name, checkpoint_dir, sample_num = 5000, batch_size=20, device='cuda'):
     generator, _ = get_genforce(genforce_name, device=device, checkpoint_dir=checkpoint_dir, use_w_space=True, use_z_plus_space=False, repeat_w=True, use_discri=False)

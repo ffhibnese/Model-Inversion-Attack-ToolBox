@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 import numpy as np
 
-from ...utils.img_utils import normalize
+from ..utils.img_utils import normalize
 from .genertic import genetic_alogrithm
 
 from .blackbox_args import MirrorBlackBoxArgs
