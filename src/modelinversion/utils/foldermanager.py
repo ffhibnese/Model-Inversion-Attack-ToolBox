@@ -172,7 +172,7 @@ class FolderManager:
             >>> relative_path = ['maomao', 'moew', 'vgg16.pt']
             >>> device = 'cuda:0'
             >>> defense_type = 'no_defense'
-            >>> folder_manager.save(model, relative_paths, defense_type)
+            >>> folder_manager.save_state_dict(model, relative_paths, defense_type)
             
         Consider if the checkpoint of the model will be save in <defense_ckpt_dir>/<defense_type>/maomao/moew/vgg16_bido.pt, and the defense type is 'bido'
             
@@ -181,7 +181,7 @@ class FolderManager:
             >>> relative_path = ['maomao', 'moew', 'vgg16_bido.pt']
             >>> device = 'cuda:0'
             >>> defense_type = 'bido'
-            >>> folder_manager.save(model, relative_paths, defense_type)
+            >>> folder_manager.save_state_dict(model, relative_paths, defense_type)
         """
         
         root_dir = self._get_ckpt_root_dir(defense_type)
