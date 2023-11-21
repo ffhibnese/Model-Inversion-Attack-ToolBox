@@ -55,7 +55,6 @@ import torch.cuda.amp as amp
 import os
 import torchvision.models as models
 from .utils.utils import load_model_pytorch, distributed_is_initialized
-from ...utils import Tee
 
 random.seed(0)
 

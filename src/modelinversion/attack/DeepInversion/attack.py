@@ -1,5 +1,5 @@
 from .config import DeepInversionConfig
-from .imagenet_inversion import deepinversion_attack, DeepInversionArgs
+from .code.imagenet_inversion import deepinversion_attack, DeepInversionArgs
 import os
 from ...utils import FolderManager
 import torchvision.models as tv_models

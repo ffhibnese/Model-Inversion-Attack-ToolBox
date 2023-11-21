@@ -1,17 +1,17 @@
 import torch
 from torch import nn
 from dataclasses import dataclass
-from ...utils import create_folder
+from ..utils import create_folder
 import os
-from ...genforce.get_genforce import get_genforce
+from ..genforce.get_genforce import get_genforce
 from torchvision.utils import save_image
-from ...utils.img_utils import clip, crop_img, resize_img, normalize, denormalize, clip_quantile_bound, get_input_resolution
-from ...utils.acc import verify_acc
+from ..utils.img_utils import clip, crop_img, resize_img, normalize, denormalize, clip_quantile_bound, get_input_resolution
+from ..utils.acc import verify_acc
 from PIL import Image
 import numpy as np
 import random
-from ...mirror.classifiers.build_classifier import get_model
-from ...mirror.select_w import find_closest_latent
+from ...code.classifiers.build_classifier import get_model
+from ...code.select_w import find_closest_latent
 import glob
 # from .....metrics.knn import get_knn_dist
 from .....utils import FolderManager

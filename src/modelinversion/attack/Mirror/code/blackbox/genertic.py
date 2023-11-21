@@ -7,8 +7,8 @@ import random
 import glob
 import os
 from torch import nn
-from ...utils.img_utils import *
-from ...mirror.select_w import find_closest_latent
+from ..utils.img_utils import *
+from ...code.select_w import find_closest_latent
 from types import FunctionType
 from .....utils import FolderManager
 

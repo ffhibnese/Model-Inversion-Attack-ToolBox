@@ -1,13 +1,13 @@
-from .mirror.presample import presample
-from .mirror.blackbox.blackbox_attack import mirror_blackbox_attack, MirrorBlackBoxArgs
-from .mirror.whitebox.whitebox_attack import mirror_white_box_attack, MirrorWhiteBoxArgs
+from .code.presample import presample
+from .code.blackbox.blackbox_attack import mirror_blackbox_attack, MirrorBlackBoxArgs
+from .code.whitebox.whitebox_attack import mirror_white_box_attack, MirrorWhiteBoxArgs
 import os
 from .config import MirrorBlackBoxConfig
 from ...utils import Tee, FolderManager
 from ...models import get_model
-from .genforce.get_genforce import get_genforce
+from .code.genforce.get_genforce import get_genforce
 from ...metrics import calc_knn, generate_private_feats
-from .utils.img_utils import normalize
+from .code.utils.img_utils import normalize
 from torchvision import transforms
 from torchvision.transforms import functional as tv_f
 from ...metrics.fid.fid import calc_fid
