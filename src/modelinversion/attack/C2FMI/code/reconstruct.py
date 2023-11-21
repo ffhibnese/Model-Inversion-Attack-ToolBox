@@ -63,7 +63,7 @@ def post_de(
 
     # 执行差分进化
     # task = DE_c2b_5_bin(optim_DE, max_gen=300, x=x)
-    task = DE_c2b_5_bin2(optim_DE, max_gen=250, x=x)
+    task = DE_c2b_5_bin2(optim_DE, max_gen=500, x=x)
     task.run(disturb=0.00)
     return task.get_img(32, only_best=only_best)
 
@@ -97,7 +97,7 @@ def inversion_attack(
 
     # 第1阶段训练
     for i in pbar:
-        _disturb = 0.02 * (1 - i / args.step)  # 扰动因子
+        _disturb = 0.02 * (1 - float(i) / args.step)  # 扰动因子
         mut_stren = 0.5
 
         # 根据扰动后的隐向量，生成对应图片
@@ -133,6 +133,11 @@ def inversion_attack(
 
                 # 获取当前batch各个隐向量的索引
                 idx = list(range(batch))
+                # idx = []
+                # tmp = ppff[:,target_label:target_label+1]
+                # _, iii = torch.sort(tmp, dim=0, descending=True)
+                # for kk in range(batch // 2):
+                #     idx.append(iii[kk].item())
 
         # ------------------------------------------
         face_input = resize_img_gen_shape(imgs_gen, t_resize)
