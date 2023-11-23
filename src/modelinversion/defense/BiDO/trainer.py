@@ -28,8 +28,7 @@ class BiDOTrainer(BaseTrainer):
         super().__init__(args, folder_manager, model, optimizer, lr_scheduler, **kwargs)
         
         self.hiddens_hooks: list[BaseHook] = []
-        traverse_module(self.model, self._add_hook, call_middle=True)
-        assert len(self.hiddens_hooks) > 0
+        
         
         if self.args.bido_loss_type == 'hisc':
             self.objective_fn = hsic_objective
@@ -53,6 +52,17 @@ class BiDOTrainer(BaseTrainer):
                 self.hiddens_hooks.append(OutputHook(module))
         else:
             raise RuntimeError(f'model {self.args.model_name} is not support for BiDO')
+        
+    def before_train(self):
+        super().before_train()
+        self.hiddens_hooks.clear()
+        traverse_module(self.model, self._add_hook, call_middle=True)
+        assert len(self.hiddens_hooks) > 0
+        
+    def after_train(self):
+        super().after_train()
+        for hook in self.hiddens_hooks:
+            hook.close()
         
         
     def calc_loss(self, inputs: torch.Tensor, result: ModelResult, labels: LongTensor):
