@@ -94,10 +94,18 @@ class BaseTrainer(metaclass=ABCMeta):
             'acc': acc
         }
         
+    def before_train(self):
+        pass
+    
+    def after_train(self):
+        pass
+        
     
     def _train_loop(self, dataloader: DataLoader):
+        
+        self.before_train()
             
-        self.model.train()
+        # self.model.train()
         accumulator = Accumulator(2)
             
         iter_times = 0
@@ -108,6 +116,8 @@ class BaseTrainer(metaclass=ABCMeta):
             loss = step_res['loss']
             acc = step_res['acc']
             accumulator.add(loss, acc)
+            
+        self.after_train()
             
         return accumulator.avg()
     
