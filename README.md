@@ -76,7 +76,7 @@ pip install -r requirements.txt
 ```
 
 ## :page_facing_up: Datasets and Model Checkpoints
-- For datasets, you can download them according to the file placed in `./dataset/<DATASET_NAME>/README.md`.
+- For datasets, you can download them according to the file with detailed instructions placed in `./dataset/<DATASET_NAME>/README.md`. 
 - For pre-trained models, we prepare all the related model weights files in the following link.   
 Download pre-trained models [here](https://drive.google.com/drive/folders/1ko8zAK1j9lTSF8FMvacO8mCKHY9evG9L) and place them in `./checkpoints/`. The detailed file path structure is shown in `./checkpoints_structure.txt`.
 
