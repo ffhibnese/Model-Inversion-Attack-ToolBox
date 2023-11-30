@@ -1,7 +1,8 @@
 # Scripts for performing attacks
 Running examples for each attack method are placed here. 
 You can simply run the code of the selected algorithm to perform the attack. To achieve your own MIA, please read and modify the hyper-parameters in the script.
-Supporting models of different datasets for different attacks are listed as follows.
+
+Besides, the supporting models of different datasets for different attacks are listed as follows.
 
 ### target/eval models
 + celeba
