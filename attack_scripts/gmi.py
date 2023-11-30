@@ -16,8 +16,6 @@ if __name__ == '__main__':
     target_name = 'facenet64'
     # eval name support: vgg16, ir152, facenet64, facenet
     eval_name = 'facenet'
-    # gan target name support: vgg16
-    gan_target_name = 'vgg16'
     # dataset name support: celeba
     dataset_name = 'celeba'
     # gan dataset name support: celeba, ffhq, facescrub
@@ -30,7 +28,6 @@ if __name__ == '__main__':
     config = GmiAttackConfig(
         target_name=target_name,
         eval_name=eval_name,
-        gan_target_name=gan_target_name,
         ckpt_dir=ckpt_dir,
         result_dir=result_dir,
         cache_dir=work_dir,

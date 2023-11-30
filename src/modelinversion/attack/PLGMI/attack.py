@@ -10,7 +10,7 @@ from ...metrics.fid.fid import calc_fid
 
 def attack(config: PlgmiAttackConfig):
     
-    save_dir = os.path.join(config.result_dir, f'{config.dataset_name}_{config.target_name}_{config.cgan_target_name}')
+    save_dir = os.path.join(config.result_dir, f'{config.dataset_name}_{config.target_name}_{config.gan_target_name}')
     folder_manager = FolderManager(config.ckpt_dir, config.dataset_dir, config.cache_dir, save_dir, config.defense_ckpt_dir, config.defense_type)
     
     args = PlgmiArgs(config.target_name, config.eval_name, save_dir, config.ckpt_dir, device=config.device,
@@ -28,7 +28,7 @@ def attack(config: PlgmiAttackConfig):
     G = ResNetGenerator(
         num_classes=1000, distribution=args.gen_distribution
     ).to(config.device)
-    folder_manager.load_state_dict(G, ['PLGMI', f'{config.gan_dataset_name}_{config.cgan_target_name.upper()}_PLG_MI_G.tar'], device=args.device)
+    folder_manager.load_state_dict(G, ['PLGMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_PLG_MI_G.tar'], device=args.device)
 
     T = get_model(config.target_name, config.dataset_name, device=config.device, defense_type=config.defense_type)
     folder_manager.load_target_model_state_dict(T, config.dataset_name, config.target_name, device=config.device, defense_type=config.defense_type)
