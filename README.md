@@ -68,6 +68,7 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 git clone https://github.com/ffhibnese/Model_Inversion_Attack_ToolBox.git
 cd ./Model_Inversion_Attack_ToolBox
 conda create -n MIA python=3.10
+conda activate MIA
 ```
 2. Install the related dependencies:
 ```sh

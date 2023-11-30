@@ -21,7 +21,6 @@ numpy==1.24.1
 opencv_contrib_python_headless==4.8.0.76
 pandas==2.1.2
 Pillow==9.3.0
-Pillow==10.1.0
 psutil==5.9.0
 pyspng==0.1.1
 PyYAML==6.0.1
@@ -31,14 +30,12 @@ scikit_learn==1.3.2
 scipy==1.11.3
 seaborn==0.13.0
 six==1.16.0
-skimage==0.0
+scikit-image
 tensorboard==2.15.0
 tensorboardX==2.6.2.2
-tensorboardX==2.6.2.2
-tensorflow==2.14.0
 timm==0.9.8
-torch==2.0.1+cu118
-torchvision==0.15.2+cu118
+torch==2.0.1
+torchvision==0.15.2
 tqdm==4.66.1
 turbojpeg==0.0.2
 wandb==0.15.12
