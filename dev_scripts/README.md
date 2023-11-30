@@ -2,7 +2,7 @@
 Running examples for each attack method are placed here. 
 You can simply run the code of the selected algorithm to perform the attack. To achieve your own MIA, please read and modify the hyper-parameters in the script.
 
-Besides, the supporting models of different datasets for different attacks are listed as follows.
+Besides, we list the supporting models of different datasets for different attacks as below.
 
 ### target/eval models
 + celeba
@@ -13,79 +13,75 @@ Besides, the supporting models of different datasets for different attacks are l
 + vggface2
     + resnet50_scratch_dag
     + inception_resnetv1
-
 + FaceScrub
     + MobileNet
     + BackboneMobileFaceNet
 
 ## C2FMI
+For the target models and eval models:
 
-dataset_name - target_name/eval_name:
-
-+ FaceScrub
-    + target / eval models for FaceScrub
+training dataset - target/eval models
++ FaceScrub - target/eval models 
 
 ## DeepInversion
 
-target_name/eval_name:
+For the target models and eval models:
 + models are provided by [torchvision](https://pytorch.org/vision/0.15/models.html) 
 
 ## GMI
 
-dataset_name - target_name/eval_name:
+For the target models and eval models:
 
-+ celeba
-    + target / eval models for celeba
+training dataset - target/eval models
++ celeba - target/eval models
 
-gan_dataset_name - gan_target_name:
+For the GAN training:
 
-+ celeba
-    + vgg16
-+ ffhq
-    + vgg16
-+ facescrub
-    + vgg16
+gan_dataset_name - gan_target_model_name
++ celeba - vgg16
++ ffhq - vgg16
++ facescrub - vgg16
 
 ## KEDMI
 
-dataset_name - target_name/eval_name:
+For the target models and eval models:
 
-+ celeba
-    + target / eval models for celeba
+training dataset - target/eval models
++ celeba - target/eval models for celeba
 
-gan_dataset_name - gan_target_name:
+For the GAN training:
 
-+ celeba
-    + vgg16
-+ ffhq
-    + vgg16
-+ facescrub
-    + vgg16
+gan_dataset_name - gan_target_model_name
++ celeba - vgg16
++ ffhq - vgg16
++ facescrub - vgg16
 
 ## PLGMI
 
-dataset_name - target_name/eval_name:
+For the target models and eval models:
 
-+ celeba
-    + target / eval models for celeba
+dataset_name - target_name/eval_name
 
-gan_dataset_name - gan_target_name:
++ celeba - target/eval models
 
-+ celeba
-    + vgg16
-+ ffhq
-    + vgg16
-+ facescrub
-    + vgg16
+For the GAN training:
+
+gan_dataset_name - gan_target_name
+
++ celeba - vgg16
++ ffhq - vgg16
++ facescrub - vgg16
 
 ## Mirror
 
-dataset_name - target_name/eval_name:
+For the target models and eval models:
 
-+ celeba
-    + target / eval models for celeba
-+ vggface2:
-    + target / eval models for vggface2
+dataset_name - target_name/eval_name
+
++ celeba - target/eval models
++ vggface2 - target/eval models 
+
+For the pre-trained GAN:
 
 genforce_name:
 
