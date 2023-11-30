@@ -83,10 +83,10 @@ Download pre-trained models [here](https://drive.google.com/drive/folders/1ko8zA
 Genforces models will be automatically downloaded by running the provided scripts.
 
 ## :racehorse: Run Examples
-We provide detailed running scripts of attack algorithms in `./dev_scripts/`.
+We provide detailed running scripts of attack algorithms in `./attack_scripts/`.
 You can run any attack algorithm simply by the following instruction and experimental results will be produced in `./results/<ATTACK_METHOD>/` by default:
 ```sh
-python dev_scripts/<ATTACK_METHOD>.py
+python attack_scripts/<ATTACK_METHOD>.py
 ```
 
 
