@@ -1,4 +1,4 @@
-# :fire: Model Inversion Attack Box v1.0 :fire:
+# :fire: Model Inversion Attack ToolBox v1.0 :fire:
 
 ![Python 3.10](https://img.shields.io/badge/python-3.10-DodgerBlue.svg?style=plastic)
 ![Pytorch 2.0.1](https://img.shields.io/badge/pytorch-2.0.1-DodgerBlue.svg?style=plastic)
@@ -65,8 +65,8 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 **MIA** can be built up with the following steps:
 1. Clone this repository and create the virtual environment by Anaconda.
 ```sh
-git clone https://github.com/ffhibnese/Model_Inversion_Attack_Box.git
-cd ./Model_Inversion_Attack_Box
+git clone https://github.com/ffhibnese/Model_Inversion_Attack_ToolBox.git
+cd ./Model_Inversion_Attack_ToolBox
 conda create -n MIA python=3.10
 ```
 2. Install the related dependencies:
