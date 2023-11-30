@@ -1,2 +1,2 @@
 # ModelInversionAttackBox
-Attack algorithms.
+Implementations of different attack algorithms.
