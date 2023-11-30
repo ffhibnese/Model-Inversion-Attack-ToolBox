@@ -47,7 +47,7 @@ gan_dataset_name - gan_target_model_name
 For the target models and eval models:
 
 training dataset - target/eval models
-+ celeba - target/eval models for celeba
++ celeba - target/eval models
 
 For the GAN training:
 
