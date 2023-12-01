@@ -11,6 +11,7 @@ from torchvision.transforms.functional import resize
 from ..modelresult import ModelResult
 from ..evolve import evolve
 from ..base import BaseTargetModel
+from ...utils import OutputHook
 
 """
     FROM PLGMI
@@ -33,6 +34,20 @@ class FaceNet(BaseTargetModel):
         
     def get_feature_dim(self):
         return 512
+    
+    def create_hidden_hooks(self) -> list:
+        
+        hiddens_hooks = []
+        
+        length_hidden = len(self.feature.body)
+        
+        num_body_monitor = 4
+        offset = length_hidden // num_body_monitor
+        for i in range(num_body_monitor):
+            hiddens_hooks.append(OutputHook(self.feature.body[offset * (i+1) - 1]))
+        
+        hiddens_hooks.append(OutputHook(self.feature.output_layer))
+        return hiddens_hooks
 
     def predict(self, x):
         feat = self.feature(x)
@@ -71,6 +86,20 @@ class FaceNet64(BaseTargetModel):
         
     def get_feature_dim(self):
         return 512
+    
+    def create_hidden_hooks(self) -> list:
+        
+        hiddens_hooks = []
+        
+        length_hidden = len(self.feature.body)
+        
+        num_body_monitor = 4
+        offset = length_hidden // num_body_monitor
+        for i in range(num_body_monitor):
+            hiddens_hooks.append(OutputHook(self.feature.body[offset * (i+1) - 1]))
+        
+        hiddens_hooks.append(OutputHook(self.output_layer))
+        return hiddens_hooks
 
     def forward(self, x):
         

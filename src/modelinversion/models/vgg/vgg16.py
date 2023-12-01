@@ -5,8 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models
-from torch.nn.modules.loss import _Loss
-
+from torch.nn import MaxPool2d
+from ...utils import OutputHook, traverse_module
 from ..modelresult import ModelResult
 from ..evolve import evolve
 from torchvision.transforms.functional import resize
@@ -31,6 +31,15 @@ class VGG16(BaseTargetModel):
         
     def get_feature_dim(self):
         return self.feat_dim
+    
+    def create_hidden_hooks(self) -> list:
+        
+        hiddens_hooks = []
+        def _add_hook_fn(module):
+            if isinstance(module, MaxPool2d):
+                hiddens_hooks.append(OutputHook(module))
+        traverse_module(self, _add_hook_fn, call_middle=False)
+        return hiddens_hooks
 
     def forward(self, x):
         

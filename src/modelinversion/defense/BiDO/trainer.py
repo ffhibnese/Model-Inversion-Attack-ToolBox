@@ -3,6 +3,7 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.nn import functional as F
 from ...models import ModelResult
+from ...models.base import BaseTargetModel
 from ...utils import FolderManager, traverse_module, OutputHook, BaseHook
 from ..base import BaseTrainArgs, BaseTrainer
 from torch import LongTensor
@@ -24,7 +25,7 @@ class BiDOTrainArgs(BaseTrainArgs):
     
 class BiDOTrainer(BaseTrainer):
     
-    def __init__(self, args: BiDOTrainArgs, folder_manager: FolderManager, model: Module, optimizer: Optimizer, lr_scheduler: LRScheduler = None, **kwargs) -> None:
+    def __init__(self, args: BiDOTrainArgs, folder_manager: FolderManager, model: BaseTargetModel, optimizer: Optimizer, lr_scheduler: LRScheduler = None, **kwargs) -> None:
         super().__init__(args, folder_manager, model, optimizer, lr_scheduler, **kwargs)
         
         self.hiddens_hooks: list[BaseHook] = []
@@ -43,21 +44,24 @@ class BiDOTrainer(BaseTrainer):
         # return torch.squeeze(torch.eye(num_classes)[y.cpu()], dim=1)
         return torch.zeros((len(y), num_classes)).to(self.args.device).scatter_(1, y.reshape(-1, 1), 1.)
     
-    def _add_hook(self, module: Module):
-        if self.args.model_name == 'vgg16':
-            if isinstance(module, MaxPool2d):
-                self.hiddens_hooks.append(OutputHook(module))
-        elif self.args.model_name in ['ir152', 'facenet64', 'facenet']:
-            if isinstance(module, Sequential):
-                self.hiddens_hooks.append(OutputHook(module))
-        else:
-            raise RuntimeError(f'model {self.args.model_name} is not support for BiDO')
+    # def _add_hook(self, module: Module):
+    #     if self.args.model_name == 'vgg16':
+    #         if isinstance(module, MaxPool2d):
+    #             self.hiddens_hooks.append(OutputHook(module))
+    #     elif self.args.model_name in ['ir152', 'facenet64', 'facenet']:
+    #         if isinstance(module, Sequential):
+    #             self.hiddens_hooks.append(OutputHook(module))
+    #     else:
+    #         raise RuntimeError(f'model {self.args.model_name} is not support for BiDO')
         
     def before_train(self):
         super().before_train()
         self.hiddens_hooks.clear()
-        traverse_module(self.model, self._add_hook, call_middle=True)
+        # traverse_module(self.model, self._add_hook, call_middle=True)
+        self.hiddens_hooks.extend(self.model.create_hidden_hooks())
         assert len(self.hiddens_hooks) > 0
+        
+        print(f'hook num: {len(self.hiddens_hooks)}')
         
     def after_train(self):
         super().after_train()
@@ -73,9 +77,6 @@ class BiDOTrainer(BaseTrainer):
         cross_loss = F.cross_entropy(res, labels)
         
         total_loss += cross_loss
-        
-        # hidden_input_losses = []
-        # hidden_output_losses = []
         
         h_data = inputs.view(bs, -1)
         h_label = self._to_onehot(labels, NUM_CLASSES[self.args.dataset_name]).to(self.args.device).view(bs, -1)
