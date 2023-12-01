@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
+from ..models.base import BaseTargetModel
 
 # class OptimizerNames(Enum):
 #     SGD = "sgd"
@@ -45,7 +46,7 @@ class BaseTrainArgs:
 
 class BaseTrainer(metaclass=ABCMeta):
     
-    def __init__(self, args: BaseTrainArgs, folder_manager: FolderManager, model: Module, optimizer: Optimizer, lr_scheduler: LRScheduler = None, **kwargs) -> None:
+    def __init__(self, args: BaseTrainArgs, folder_manager: FolderManager, model: BaseTargetModel, optimizer: Optimizer, lr_scheduler: LRScheduler = None, **kwargs) -> None:
         self.args = args
         
         self.model = model
