@@ -19,11 +19,11 @@ if __name__ == '__main__':
     
     folder_manager = FolderManager(ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir, 'bido')
     
-    model_name = 'ir152'
+    model_name = 'vgg16'
     dataset_name = 'celeba'
     epoch_num = 50
     lr = 0.0001
-    device = 'cuda:2'
+    device = 'cuda'
     bido_loss_type = 'hisc'
     batch_size = 64
     
