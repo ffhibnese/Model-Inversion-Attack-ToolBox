@@ -13,3 +13,13 @@ class BaseTargetModel(nn.Module):
             int: feature dim
         """
         raise NotImplementedError()
+    
+    @abstractmethod
+    def create_hidden_hooks(self) -> list:
+        """
+        Create hooks for hidden features. BiDO defense method will use it.
+
+        Returns:
+            list: list of hidden features.
+        """
+        raise NotImplementedError()
