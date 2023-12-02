@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models
 from torch.nn.modules.loss import _Loss
-
+from ...utils import OutputHook
 from torchvision.transforms.functional import resize
 from ..modelresult import ModelResult
 from ..evolve import evolve
@@ -38,6 +38,20 @@ class IR152(BaseTargetModel):
         
     def get_feature_dim(self):
         return self.feat_dim
+    
+    def create_hidden_hooks(self) -> list:
+        
+        hiddens_hooks = []
+        
+        length_hidden = len(self.feature.body)
+        
+        num_body_monitor = 4
+        offset = length_hidden // num_body_monitor
+        for i in range(num_body_monitor):
+            hiddens_hooks.append(OutputHook(self.feature.body[offset * (i+1) - 1]))
+        
+        hiddens_hooks.append(OutputHook(self.output_layer))
+        return hiddens_hooks
 
     def forward(self, x):
         

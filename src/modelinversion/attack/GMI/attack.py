@@ -25,10 +25,10 @@ def attack(config: GmiAttackConfig):
     D = DGWGAN(3).to(config.device)
     
     folder_manager.load_state_dict(G, 
-                                   ['GMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_GMI_G.tar'],
+                                   ['GMI', f'{config.gan_dataset_name}_VGG16_GMI_G.tar'],
                                    device=config.device)
     folder_manager.load_state_dict(D, 
-                                   ['GMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_GMI_D.tar'],
+                                   ['GMI', f'{config.gan_dataset_name}_VGG16_GMI_D.tar'],
                                    device=config.device)
 
     T = get_model(config.target_name, config.dataset_name, device=config.device, defense_type=config.defense_type)

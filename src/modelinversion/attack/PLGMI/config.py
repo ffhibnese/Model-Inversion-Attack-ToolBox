@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 class PlgmiAttackConfig:
     
     target_name: str
-    cgan_target_name: str
+    gan_target_name: str
     eval_name: str
     ckpt_dir: str
     result_dir: str

@@ -30,7 +30,7 @@ if __name__ == '__main__':
     config = PlgmiAttackConfig(
         target_name=target_name,
         eval_name=eval_name,
-        cgan_target_name=gan_target_name,
+        gan_target_name=gan_target_name,
         ckpt_dir=ckpt_dir,
         result_dir=result_dir,
         dataset_dir = dataset_dir,
