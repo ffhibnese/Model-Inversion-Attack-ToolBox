@@ -92,7 +92,7 @@ python attack_scripts/<ATTACK_METHOD>.py
 ```
 
 ### Defense
-We provide detailed running scripts of defense algorithms in `./defense_scripts/`. 
+We provide simple running scripts of defense algorithms in `./defense_scripts/`. 
 
 To train the model with defense algorithms, you can run
 ```sh
