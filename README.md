@@ -91,6 +91,8 @@ You can run any attack algorithm simply by the following instruction and experim
 python attack_scripts/<ATTACK_METHOD>.py
 ```
 
+For more information, you can read [here](./attack_scripts/README.md).
+
 ### Defense
 We provide simple running scripts of defense algorithms in `./defense_scripts/`. 
 
@@ -105,6 +107,8 @@ To evaluate the effectiveness of the defense, you can attack the model by runnin
 python defense_scripts/<DEFENSE_METHOD>_<ATTACK_METHOD>.py
 ```
 and attack results will be produced in `./results/<DEFENSE_METHOD>_<ATTACK_METHOD>` by default.
+
+For more information, you can read [here](./defense_scripts/README.md).
 
 ## 📔 Citation
 > Coming soon...
