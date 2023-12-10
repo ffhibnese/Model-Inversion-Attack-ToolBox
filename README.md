@@ -1,4 +1,4 @@
-# :fire: Model Inversion Attack ToolBox v1.0 :fire:
+# 🔥Model Inversion Attack ToolBox v1.0🔥
 
 ![Python 3.10](https://img.shields.io/badge/python-3.10-DodgerBlue.svg?style=plastic)
 ![Pytorch 2.0.1](https://img.shields.io/badge/pytorch-2.0.1-DodgerBlue.svg?style=plastic)
