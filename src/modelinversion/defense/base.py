@@ -172,8 +172,9 @@ class BaseTrainer(metaclass=ABCMeta):
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
                 
+        self.save_state_dict()
+
+
+    def save_state_dict(self):
         self.folder_manager.save_target_model_state_dict(self.model, self.args.dataset_name, self.args.model_name)
-
-
-    
 
