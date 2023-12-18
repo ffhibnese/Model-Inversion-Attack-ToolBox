@@ -1,4 +1,4 @@
-# :fire: Model Inversion Attack ToolBox v1.0 :fire:
+# 🔥Model Inversion Attack ToolBox v1.0🔥
 
 ![Python 3.10](https://img.shields.io/badge/python-3.10-DodgerBlue.svg?style=plastic)
 ![Pytorch 2.0.1](https://img.shields.io/badge/pytorch-2.0.1-DodgerBlue.svg?style=plastic)
@@ -15,7 +15,7 @@
 Welcome to **MIA**! This repository is a comprehensive open-source Python benchmark for model inversion attacks, which is well-organized and easy to get started. It includes uniform implementations of advanced and representative model inversion methods, formulating a unified and reliable framework for a convenient and fair comparison between different model inversion methods.
 
 
-If you have any concerns about our toolbox, feel free to contact us at 200110409@stu.hit.edu.cn, 210110821@stu.hit.edu.cn, and fang-h23@mails.tsinghua.edu.cn.
+If you have any concerns about our toolbox, feel free to contact us at qiuyixiang@stu.hit.edu.cn, yuhongyao@stu.hit.edu.cn, and fang-h23@mails.tsinghua.edu.cn.
 
 Also, you are always welcome to contribute and make this repository better! 
 
