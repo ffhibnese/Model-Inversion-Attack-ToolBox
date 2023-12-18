@@ -1,31 +1,36 @@
-
-
-import torch
-import numpy as np
 import os
-from torch import LongTensor
-from ..models import ModelResult, get_model
-from torch import nn
-import torch.nn.functional as F
-from dataclasses import dataclass, field
-from ..utils import FolderManager, Accumulator
-from tqdm import tqdm
 from abc import abstractmethod, ABCMeta
+from dataclasses import dataclass, field
 from enum import Enum
+
+import numpy as np
+import torch
+from torch import nn, LongTensor
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
-from ..models.base import BaseTargetModel
+from tqdm import tqdm
 
-# class OptimizerNames(Enum):
-#     SGD = "sgd"
-#     ADAM = 'adam'
-    
+from ..models import ModelResult, get_model
+from ..models.base import BaseTargetModel
+from ..utils import FolderManager, Accumulator
+
 class TqdmStrategy(Enum):
     NONE = 'none'
     EPOCH = 'epoch'
     ITER = 'iter'
+    
+@dataclass
+class TrainStepResult:
+    loss: float
+    acc: float
+    
+    
+@dataclass
+class TestStepResult:
+    acc: float
     
 
 @dataclass
@@ -42,7 +47,6 @@ class BaseTrainArgs:
     
     device: str = field(default='cpu', metadata={'help': 'Device for train. cpu, cuda, cuda:0, ...'})
     
-
 
 class BaseTrainer(metaclass=ABCMeta):
     
@@ -81,7 +85,7 @@ class BaseTrainer(metaclass=ABCMeta):
         
         return imgs, labels
         
-    def _train_step(self, inputs, labels):
+    def _train_step(self, inputs, labels) -> TrainStepResult:
         self.model.train()
         
         result = self.model(inputs)
@@ -90,10 +94,7 @@ class BaseTrainer(metaclass=ABCMeta):
         acc = self.calc_acc(result, labels)
         self._update_step(loss)
         
-        return {
-            'loss': loss,
-            'acc': acc
-        }
+        return TrainStepResult(loss.item(), acc.item())
         
     def before_train(self):
         pass
@@ -114,8 +115,8 @@ class BaseTrainer(metaclass=ABCMeta):
             iter_times += 1
             inputs, labels = self.prepare_input_label(batch)
             step_res = self._train_step(inputs, labels)
-            loss = step_res['loss']
-            acc = step_res['acc']
+            loss = step_res.loss
+            acc = step_res.acc
             accumulator.add(loss, acc)
             
         self.after_train()
@@ -130,9 +131,7 @@ class BaseTrainer(metaclass=ABCMeta):
         
         acc = self.calc_acc(result, labels)
         
-        return {
-            'acc': acc
-        }
+        return TestStepResult(acc)
     
     @torch.no_grad()
     def _test_loop(self, dataloader: DataLoader):
@@ -145,7 +144,7 @@ class BaseTrainer(metaclass=ABCMeta):
             iter_times += 1
             inputs, labels = self.prepare_input_label(batch)
             step_res = self._test_step(inputs, labels)
-            acc = step_res['acc']
+            acc = step_res.acc
             accumulator.add(acc)
             
         return accumulator.avg()

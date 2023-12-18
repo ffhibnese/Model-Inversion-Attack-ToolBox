@@ -1,16 +1,18 @@
 
 
-from torch import LongTensor
-from ..base import BaseTrainer, BaseTrainArgs
-from ...models import ModelResult
+from dataclasses import dataclass
+
 import torch.nn.functional as F
-from ...utils import FolderManager
+from torch import LongTensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 
-from ..base import BaseTrainArgs
+from ..base import BaseTrainer, BaseTrainArgs
+from ...models import ModelResult
+from ...utils import FolderManager
 
+@dataclass
 class VibTrainArgs(BaseTrainArgs):
     beta: float = 1e-2
 
