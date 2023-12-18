@@ -1,14 +1,16 @@
+from dataclasses import dataclass, field
+
+import torch
+from torch import LongTensor
 from torch.nn import Module, MaxPool2d, Sequential
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.nn import functional as F
+
 from ...models import ModelResult
 from ...models.base import BaseTargetModel
 from ...utils import FolderManager, traverse_module, OutputHook, BaseHook
 from ..base import BaseTrainArgs, BaseTrainer
-from torch import LongTensor
-import torch
-from dataclasses import dataclass, field
 from ...models.get_models import NUM_CLASSES
 from .kernel import hsic_objective, coco_objective
 
