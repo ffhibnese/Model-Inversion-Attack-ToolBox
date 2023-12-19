@@ -54,7 +54,6 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 |[PLGMI](./src/modelinversion/attack/PLGMI/)|Pseudo Label-Guided Model Inversion Attack via Conditional Generative Adversarial Network|[AAAI'2023](https://ojs.aaai.org/index.php/AAAI/article/view/25442)|whitebox|pseudo-labels, data augmentation, special loss function|
 |[C2FMI](./src/modelinversion/attack/C2FMI/)|C2FMI: Corse-to-Fine Black-box Model Inversion Attack|[TDSC'2023](https://ieeexplore.ieee.org/abstract/document/10148574)|whitebox, blackbox|gradient-free, two-stage|
 
-
 ## :memo: Model Inversion Defenses
 
 |Method|Paper|Publication|Key Characteristics|
