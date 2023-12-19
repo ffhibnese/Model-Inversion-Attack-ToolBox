@@ -1,20 +1,13 @@
-import math
-import numpy as np
-import time
-import torch
+
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision.models
 from torch.nn import MaxPool2d
+import torchvision.models
+from torchvision.transforms.functional import resize
+
 from ...utils import OutputHook, traverse_module
 from ..modelresult import ModelResult
-from ..evolve import evolve
-from torchvision.transforms.functional import resize
 from ..base import BaseTargetModel
-
-"""
-    FROM PLGMI
-"""
 
 class VGG16(BaseTargetModel):
     def __init__(self, n_classes, pretrained=False):
@@ -40,6 +33,19 @@ class VGG16(BaseTargetModel):
                 hiddens_hooks.append(OutputHook(module))
         traverse_module(self, _add_hook_fn, call_middle=False)
         return hiddens_hooks
+    
+    def freeze_front_layers(self) -> None:
+        
+        freeze_num = 8
+        i = 0
+        for m in self.feature.children():
+            
+            if isinstance(m, nn.Conv2d):
+                i += 1
+                if i >= freeze_num:
+                    break
+            for p in m.parameters():
+                p.requires_grad_(False)
 
     def forward(self, x):
         

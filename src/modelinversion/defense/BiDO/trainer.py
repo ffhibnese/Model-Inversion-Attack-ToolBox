@@ -63,7 +63,7 @@ class BiDOTrainer(BaseTrainer):
         self.hiddens_hooks.extend(self.model.create_hidden_hooks())
         assert len(self.hiddens_hooks) > 0
         
-        print(f'hook num: {len(self.hiddens_hooks)}')
+        # print(f'hook num: {len(self.hiddens_hooks)}')
         
     def after_train(self):
         super().after_train()
