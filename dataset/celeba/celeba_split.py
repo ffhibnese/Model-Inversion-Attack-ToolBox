@@ -2,7 +2,7 @@ import os
 import argparse
 from torchvision import transforms
 from PIL import Image
-
+from tqdm import tqdm
 class CelebaTransform:
     
     def __init__(self) -> None:
@@ -23,11 +23,12 @@ class CelebaTransform:
         img = Image.open(src_path)
         img = self.transform(img)
         img.save(dst_path)
+        # os.system(f'cp {src_path} {dst_path}')
 
 def split(raw_img_dir, split_file_dir, dst_dir, trans):
     with open(split_file_dir) as f:
         data = f.readlines()
-    for s in data:
+    for s in tqdm(data):
         s = s.strip()
         if s != '':
             s, label = s.split(' ')
@@ -35,7 +36,7 @@ def split(raw_img_dir, split_file_dir, dst_dir, trans):
             src_path = os.path.join(raw_img_dir, f'{s}')
             dst_label_dir = os.path.join(dst_dir, f'{label}')
             os.makedirs(dst_label_dir, exist_ok=True)
-            dst_path = os.path.join(dst_label_dir, s)
+            dst_path = os.path.join(dst_label_dir, s[:-3] + 'png')
             
             trans.trans(src_path, dst_path)
             # os.system(f'cp {src_path} {dst_path}')

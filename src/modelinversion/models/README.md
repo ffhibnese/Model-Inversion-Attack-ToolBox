@@ -18,3 +18,20 @@ The method is used by the defense algorithm `ViB`. It return the dim of the inpu
 ### `create_hidden_hooks`
 
 The method is used by the defense algorithm `BiDO`. It return a list of `OutputHook` defined in `src/modelinversion/utils/torchutils`, which monitor intermediate results when calling forward function.
+
+### `freeze_front_layers`
+
+The method is used by the defense algorithm `TL`. It freeze the front some layers.
+
+For example, the forward process 
+$$
+x \stackrel{T}{\rightarrow} y
+$$
+
+can also be view as
+
+$$
+x \stackrel{E}{\rightarrow} h \stackrel{C}{\rightarrow} y.
+$$
+
+The method is to freeze the parameters in $E$.

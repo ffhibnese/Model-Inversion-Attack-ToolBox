@@ -86,7 +86,8 @@ class BaseTrainer(metaclass=ABCMeta):
         return imgs, labels
         
     def _train_step(self, inputs, labels) -> TrainStepResult:
-        self.model.train()
+        # self.model.train()
+        self.before_train_step()
         
         result = self.model(inputs)
         
@@ -101,6 +102,12 @@ class BaseTrainer(metaclass=ABCMeta):
     
     def after_train(self):
         pass
+    
+    def before_train_step(self):
+        self.model.train()
+        
+    def before_test_step(self):
+        self.model.eval()
         
     
     def _train_loop(self, dataloader: DataLoader):
@@ -125,7 +132,8 @@ class BaseTrainer(metaclass=ABCMeta):
     
     @torch.no_grad()
     def _test_step(self, inputs, labels):
-        self.model.eval()
+        # self.model.eval()
+        self.before_test_step()
         
         result = self.model(inputs)
         
@@ -172,8 +180,9 @@ class BaseTrainer(metaclass=ABCMeta):
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
                 
+        self.save_state_dict()
+
+
+    def save_state_dict(self):
         self.folder_manager.save_target_model_state_dict(self.model, self.args.dataset_name, self.args.model_name)
-
-
-    
 
