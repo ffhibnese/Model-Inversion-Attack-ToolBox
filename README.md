@@ -61,7 +61,7 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 |:-:|:-:|:-:|:-:|
 |[ViB / MID](./src/modelinversion/defense/Vib/)|Improving Robustness to Model Inversion Attacks via Mutual Information Regularization|[AAAI'2021](https://ojs.aaai.org/index.php/AAAI/article/view/17387)| variational method, mutual information, special loss function|
 |[BiDO](./src/modelinversion/defense/BiDO/)|Bilateral Dependency Optimization: Defending Against Model-inversion Attacks|[KDD'2022](https://dl.acm.org/doi/abs/10.1145/3534678.3539376)|special loss function|
-|[TL](./src/modelinversion/defense/TL/)|Model Inversion Robustness: Can Transfer Learning Help?|[ICLR'2024](https://openreview.net/forum?id=nW0sCc3LLN&nesting=2&sort=date-desc)|transfer learning|
+|[TL](./src/modelinversion/defense/TL/)|Model Inversion Robustness: Can Transfer Learning Help?|[-](https://openreview.net/forum?id=nW0sCc3LLN&nesting=2&sort=date-desc)|transfer learning|
 
 ## :wrench: Environments
 **MIA** can be built up with the following steps:
