@@ -35,7 +35,7 @@ target_eval_models_file = {
 }
 
 DEFENSE_TYPES = [
-    'no_defense'
+    'no_defense',
     'vib',
     'bido',
     'tl'

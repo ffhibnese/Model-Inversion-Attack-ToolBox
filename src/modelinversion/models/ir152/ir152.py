@@ -12,9 +12,6 @@ from ..modelresult import ModelResult
 from ..evolve import evolve
 from ..base import BaseTargetModel
 
-"""
-    FROM PLGMI
-"""
 class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
@@ -52,6 +49,11 @@ class IR152(BaseTargetModel):
         
         hiddens_hooks.append(OutputHook(self.output_layer))
         return hiddens_hooks
+    
+    def freeze_front_layers(self) -> None:
+        length_hidden = len(self.feature.body)
+        for i in range(int(length_hidden * 2 // 3)):
+            self.feature.body[i].requires_grad_(False)
 
     def forward(self, x):
         
