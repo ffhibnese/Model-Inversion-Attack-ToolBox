@@ -4,7 +4,8 @@ sys.path.append('./src')
 sys.path.append('./src/modelinversion')
 
 from modelinversion.defense import *
-from modelinversion.utils import FolderManager, RandomIdentitySampler
+from modelinversion.foldermanager import FolderManager
+from modelinversion.utils import RandomIdentitySampler
 from modelinversion.models import get_model
 from torchvision.transforms import ToTensor
 import torch
@@ -15,7 +16,7 @@ if __name__ == '__main__':
     
     model_name = 'vit'
     dataset_name = 'celeba'
-    epoch_num = 500
+    epoch_num = 300
     lr = 0.01
     
     device = 'cuda'

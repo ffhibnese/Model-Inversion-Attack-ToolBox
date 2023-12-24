@@ -6,7 +6,7 @@ from .code.generator import Generator
 from .code.discri import DGWGAN
 import torch
 from ...models import *
-from ...utils import FolderManager
+from ...foldermanager import FolderManager
 import numpy as np
 from ...metrics import generate_private_feats, calc_knn, calc_fid
 

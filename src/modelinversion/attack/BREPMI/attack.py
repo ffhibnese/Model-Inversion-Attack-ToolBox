@@ -2,7 +2,7 @@ from .config import BrepAttackConfig
 from .code.brep import BrepArgs, brep_attack
 import os
 import torch
-from ...utils import FolderManager
+from ...foldermanager import FolderManager
 from ...models import get_model
 from ..KEDMI.code.generator import Generator
 from ...metrics import calc_knn, generate_private_feats

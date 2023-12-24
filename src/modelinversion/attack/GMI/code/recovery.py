@@ -19,7 +19,7 @@ from .generator import *
 from .generator import Generator
 from .utils import save_tensor_images
 from ....utils import set_random_seed
-from ....utils import FolderManager
+from ....foldermanager import FolderManager
 
 
 def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum=0.9, lamda=100, iter_times=1500, clip_range=1, num_seeds=5, device='cpu'):

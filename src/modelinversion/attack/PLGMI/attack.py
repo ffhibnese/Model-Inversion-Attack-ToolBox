@@ -1,7 +1,8 @@
 from .code.reconstruct import inversion, PlgmiArgs
 import os
 from .config import PlgmiAttackConfig
-from ...utils import FolderManager, set_random_seed
+from ...utils import set_random_seed
+from ...foldermanager import FolderManager
 from .code.models.generators.resnet64 import ResNetGenerator
 from ...models import *
 import torch

@@ -10,9 +10,9 @@ from torchvision.transforms import ToTensor, RandomHorizontalFlip, Compose, ToPI
 
 from development_config import get_dirs
 from modelinversion.defense import *
-from modelinversion.utils import FolderManager
 from modelinversion.models import get_model
-from modelinversion.utils import FolderManager, RandomIdentitySampler
+from modelinversion.foldermanager import FolderManager
+from modelinversion.utils import RandomIdentitySampler
 
 if __name__ == '__main__':
     

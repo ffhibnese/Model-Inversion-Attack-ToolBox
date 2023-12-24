@@ -11,7 +11,7 @@ from torchvision.transforms.functional import resize
 from ..modelresult import ModelResult
 from ..evolve import evolve
 from ..base import BaseTargetModel
-from ...utils import OutputHook
+from ...utils.torchutil import OutputHook
 
 class Flatten(nn.Module):
     def forward(self, input):

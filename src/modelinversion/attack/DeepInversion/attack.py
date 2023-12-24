@@ -1,7 +1,7 @@
 from .config import DeepInversionConfig
 from .code.imagenet_inversion import deepinversion_attack, DeepInversionArgs
 import os
-from ...utils import FolderManager
+from ...foldermanager import FolderManager
 import torchvision.models as tv_models
 from ...models import get_model
 

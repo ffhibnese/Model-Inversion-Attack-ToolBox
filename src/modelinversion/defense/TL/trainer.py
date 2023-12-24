@@ -13,7 +13,7 @@ from torch.optim.lr_scheduler import LRScheduler
 from ..base import BaseTrainer, BaseTrainArgs
 from ..BiDO.trainer import BiDOTrainer, BiDOTrainArgs
 from ...models import ModelResult
-from ...utils import FolderManager
+from ...foldermanager import FolderManager
 
 @dataclass
 class TLTrainArgs(BiDOTrainArgs):

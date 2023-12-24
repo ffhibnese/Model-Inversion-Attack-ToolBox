@@ -3,7 +3,7 @@ from .code.blackbox.blackbox_attack import mirror_blackbox_attack, MirrorBlackBo
 from .code.whitebox.whitebox_attack import mirror_white_box_attack, MirrorWhiteBoxArgs
 import os
 from .config import MirrorBlackBoxConfig
-from ...utils import Tee, FolderManager
+from ...foldermanager import FolderManager
 from ...models import get_model
 from .code.genforce.get_genforce import get_genforce
 from ...metrics import calc_knn, generate_private_feats

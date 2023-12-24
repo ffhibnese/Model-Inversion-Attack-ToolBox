@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 
+from torchvision.transforms.functional import resize
+
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
@@ -86,6 +88,7 @@ class ViT(nn.Module):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
+        self.resolution = image_size
 
         assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
 
@@ -112,6 +115,10 @@ class ViT(nn.Module):
         self.mlp_head = nn.Linear(dim, num_classes)
 
     def forward(self, img):
+        
+        if img.shape[-1] != self.resolution or img.shape[-2] != self.resolution:
+            img = resize(img, [self.resolution, self.resolution])
+            
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 

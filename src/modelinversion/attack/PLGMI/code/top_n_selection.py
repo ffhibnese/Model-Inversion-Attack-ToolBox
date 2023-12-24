@@ -196,7 +196,7 @@ def top_n_selection_impl(T, target_name, dataset_name, data_loader, cache_dir, t
 
 # print(args)
 
-from ...utils import FolderManager
+from ...foldermanager import FolderManager
 
 def top_n_selection(target_name, dataset_name, folder_manager: FolderManager, top_n=30, num_classes=1000, batch_size=64, device='cuda'):
     print("=> load target model ...")
