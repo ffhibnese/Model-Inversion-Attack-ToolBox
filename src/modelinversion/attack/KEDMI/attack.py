@@ -7,7 +7,7 @@ from .code.generator import Generator
 from .code.discri import DGWGAN, MinibatchDiscriminator
 import torch
 from ...models import *
-from ...utils import FolderManager
+from ...foldermanager import FolderManager
 import numpy as np
 from ...metrics import calc_knn, generate_private_feats, calc_fid
 

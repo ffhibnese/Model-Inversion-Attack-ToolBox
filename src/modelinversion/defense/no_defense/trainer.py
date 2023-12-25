@@ -3,7 +3,7 @@ from torch import LongTensor
 from ..base import BaseTrainer, BaseTrainArgs
 from ...models import ModelResult
 import torch.nn.functional as F
-from ...utils import FolderManager
+from ...foldermanager import FolderManager
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler

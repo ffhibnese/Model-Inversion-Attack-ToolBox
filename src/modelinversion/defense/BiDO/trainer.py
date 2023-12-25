@@ -9,7 +9,8 @@ from torch.nn import functional as F
 
 from ...models import ModelResult
 from ...models.base import BaseTargetModel
-from ...utils import FolderManager, traverse_module, OutputHook, BaseHook
+from ...utils import traverse_module, OutputHook, BaseHook
+from ...foldermanager import FolderManager
 from ..base import BaseTrainArgs, BaseTrainer
 from ...models.get_models import NUM_CLASSES
 from .kernel import hsic_objective, coco_objective

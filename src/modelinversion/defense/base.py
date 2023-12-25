@@ -15,7 +15,8 @@ from tqdm import tqdm
 
 from ..models import ModelResult, get_model
 from ..models.base import BaseTargetModel
-from ..utils import FolderManager, Accumulator
+from ..utils import Accumulator
+from ..foldermanager import FolderManager
 
 class TqdmStrategy(Enum):
     NONE = 'none'

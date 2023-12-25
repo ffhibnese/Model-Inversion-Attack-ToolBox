@@ -3,32 +3,21 @@ sys.path.append('.')
 sys.path.append('./src')
 sys.path.append('./src/modelinversion')
 
-import torch
-from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
-from torchvision.transforms import ToTensor, RandomHorizontalFlip, Compose, ToPILImage, Lambda, Resize
-
-from development_config import get_dirs
 from modelinversion.defense import *
-from modelinversion.models import get_model
 from modelinversion.foldermanager import FolderManager
 from modelinversion.utils import RandomIdentitySampler
+from modelinversion.models import get_model
+from torchvision.transforms import ToTensor
+import torch
+from torch.utils.data import DataLoader
+from torchvision.transforms import ToTensor, RandomHorizontalFlip, Compose, ToPILImage, Lambda, Resize
 
 if __name__ == '__main__':
     
-    defense_type = 'no_defense'
-    
-    dirs = get_dirs(defense_type)
-    cache_dir, result_dir, ckpt_dir, dataset_dir, defense_ckpt_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir'], dirs['defense_ckpt_dir']
-    
-    folder_manager = FolderManager(ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir, defense_type)
-    
-    model_name = 'vgg16'
+    model_name = 'vit'
     dataset_name = 'celeba'
-    epoch_num = 50
+    epoch_num = 300
     lr = 0.01
-    device = 'cuda'
-    batch_size = 64
     
     device = 'cuda'
     args = BaseTrainArgs(
@@ -40,7 +29,25 @@ if __name__ == '__main__':
         device=device
     )
     
-    model = get_model(model_name, dataset_name, device, backbone_pretrain=True)
+    # model = get_model(model_name, dataset_name, device, backbone_pretrain=True)
+    from modelinversion.models.vit.vit import ViT
+    model = ViT(
+        image_size=64, 
+        patch_size=8,
+        num_classes=1000,
+        dim=64,
+        depth=5,
+        heads=4,
+        mlp_dim=128,
+        dropout=0.1,
+        emb_dropout=0.1
+    ).to(device)
+    # optimizer = torch.optim.SGD(
+    #     model.parameters(),
+    #     lr=lr
+    # )e
+    # state_dict = torch.load(f'checkpoints/target_eval/celeba/vit_celeba.pt', map_location=device)['state_dict']
+    # model.load_state_dict(state_dict)
     optimizer = torch.optim.SGD(
         model.parameters(),
         lr=lr,
@@ -48,12 +55,19 @@ if __name__ == '__main__':
         weight_decay=1e-4
     )
     
+    # optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    
+    folder_manager = FolderManager('./checkpoints', None, None, './results/no_defense', './checkpoints_defense')
+    
     trainer = RegTrainer(args, folder_manager, model, optimizer, None)
     
+    from torchvision.datasets import ImageFolder
     trainset = ImageFolder('./dataset/celeba/split/private/train', transform=Compose([
         RandomHorizontalFlip(p=0.5), ToTensor()
     ]))
     # print(trainset[0][0].shape)
+    
+    batch_size = 64
     train_sampler = RandomIdentitySampler(trainset, batch_size, 4)
     trainloader = DataLoader(trainset, batch_size, sampler=train_sampler, pin_memory=True, drop_last=True)
     
@@ -61,3 +75,5 @@ if __name__ == '__main__':
     testloader = DataLoader(testset, batch_size, shuffle=False, pin_memory=True, drop_last=True)
     
     trainer.train(trainloader, testloader)
+    # test_acc, = trainer._test_loop(testloader)
+    # print(test_acc)

@@ -21,7 +21,8 @@ from torch.utils.data import DataLoader
 import shutil
 from dataclasses import dataclass
 from tqdm import tqdm
-from ...utils import FolderManager, set_random_seed
+from ...utils import set_random_seed
+from ...foldermanager import FolderManager
 
 @dataclass
 class PlgmiCGanArgs:

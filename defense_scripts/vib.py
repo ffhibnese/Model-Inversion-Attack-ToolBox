@@ -4,7 +4,7 @@ sys.path.append('./src')
 sys.path.append('./src/modelinversion')
 
 from modelinversion.defense import *
-from modelinversion.utils import FolderManager
+from modelinversion.foldermanager import FolderManager
 from modelinversion.models import get_model
 from torchvision.transforms import ToTensor
 import torch

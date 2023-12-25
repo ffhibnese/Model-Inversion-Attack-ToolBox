@@ -2,7 +2,7 @@ import os
 import torch
 import random
 from torch import optim
-from ...utils import FolderManager
+from ...foldermanager import FolderManager
 from .config import C2FMIConfig
 from .code.gan_model import Generator
 from .code.models.facenet import Facenet

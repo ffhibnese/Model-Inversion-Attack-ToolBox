@@ -5,8 +5,8 @@ import os
 from torchvision.utils import save_image
 from torch import nn
 from torch.nn import Module
-from ..models import *
-from .log import Tee
+from .models import *
+from .utils.log import Tee
 
 @dataclass
 class DirnameConfig:
@@ -19,7 +19,7 @@ class DirnameConfig:
     
 target_eval_models_file = {
     'celeba': {
-        'vgg16': 'VGG16_88.26.tar',
+        # 'vgg16': 'VGG16_88.26.tar',
         'ir152': 'IR152_91.16.tar',
         'facenet64': 'FaceNet64_88.50.tar',
         'facenet': 'FaceNet_95.88.tar'

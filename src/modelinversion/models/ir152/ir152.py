@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models
 from torch.nn.modules.loss import _Loss
-from ...utils import OutputHook
+from ...utils.torchutil import OutputHook
 from torchvision.transforms.functional import resize
 from ..modelresult import ModelResult
 from ..evolve import evolve

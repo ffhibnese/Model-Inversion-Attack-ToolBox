@@ -10,7 +10,7 @@ from torch import nn
 from ..utils.img_utils import *
 from ...code.select_w import find_closest_latent
 from types import FunctionType
-from .....utils import FolderManager
+from .....foldermanager import FolderManager
 
 @dataclass
 class VectorizedPopulation:
@@ -147,7 +147,7 @@ def init_population(args: MirrorBlackBoxArgs, target_label, target_model, comput
 
 from tqdm import tqdm
 import math
-from .....utils import FolderManager
+from .....foldermanager import FolderManager
 
 def genetic_alogrithm(args: MirrorBlackBoxArgs, generate_images_func, target_label, target_model, compute_fitness_func, folder_manager: FolderManager):
     

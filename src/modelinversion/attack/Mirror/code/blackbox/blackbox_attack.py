@@ -16,7 +16,7 @@ from .blackbox_args import MirrorBlackBoxArgs
 
 # from .....metrics.knn import get_knn_dist
 
-from .....utils import FolderManager
+from .....foldermanager import FolderManager
     
     
 def mirror_blackbox_attack(

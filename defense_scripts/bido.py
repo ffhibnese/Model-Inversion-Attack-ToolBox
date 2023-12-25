@@ -9,7 +9,8 @@ from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor, RandomHorizontalFlip, Compose, ToPILImage, Lambda, Resize
 
 from modelinversion.defense.BiDO import BiDOTrainArgs, BiDOTrainer
-from modelinversion.utils import FolderManager, RandomIdentitySampler
+from modelinversion.foldermanager import FolderManager
+from modelinversion.utils import RandomIdentitySampler
 from modelinversion.models import get_model
 from development_config import get_dirs
 

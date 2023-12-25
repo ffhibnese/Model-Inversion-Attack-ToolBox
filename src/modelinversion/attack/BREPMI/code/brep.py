@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from dataclasses import dataclass
-from ....utils import FolderManager
+from ...foldermanager import FolderManager
 from .gen_z import init_z, decision
 from tqdm import tqdm
 

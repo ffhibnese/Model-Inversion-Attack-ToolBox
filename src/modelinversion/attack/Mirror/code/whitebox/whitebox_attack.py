@@ -14,7 +14,7 @@ from ...code.classifiers.build_classifier import get_model
 from ...code.select_w import find_closest_latent
 import glob
 # from .....metrics.knn import get_knn_dist
-from .....utils import FolderManager
+from .....foldermanager import FolderManager
 @dataclass
 class MirrorWhiteBoxArgs:
     arch_name: str
