@@ -27,13 +27,6 @@ class BaseAttackConfig:
     # misc
     defense_type: str = 'no_defense'
     device: str = 'cpu'
-    
-@dataclass
-class BaseAttackArgs:
-    taregt_name: str
-    eval_name: str
-    device: str
-    
 
 class BaseAttacker(metaclass=ABCMeta):
     

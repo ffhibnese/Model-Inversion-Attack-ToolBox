@@ -214,6 +214,16 @@ class FolderManager:
             
             self.save_state_dict(target_model, [dataset_name, target_filename], defense_type=self.defense_type)
     
+    def get_result_folder(self, folder_name='all_imgs', save_dst='result'):
+        if save_dst == 'result':
+            save_root_dir = self.config.result_dir
+        elif save_dst == 'cache':
+            save_root_dir = self.config.cache_dir
+        else:
+            raise RuntimeError(f'save_dst must be `result` or `cache`')
+        
+        return os.path.join(save_root_dir, folder_name)
+    
     def save_result_image(self, img: torch.Tensor, label: int, save_name = None, folder_name='all_imgs', save_dst='result'):
         """save images
 
