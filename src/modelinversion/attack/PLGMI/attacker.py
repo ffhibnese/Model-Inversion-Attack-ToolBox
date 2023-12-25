@@ -33,9 +33,16 @@ class PLGMIAttacker(BaseAttacker):
     def __init__(self, config: BaseAttackConfig) -> None:
         super().__init__(config)
         
-    def parse_config(self, config: BaseAttackConfig) -> BaseAttackArgs:
-        # return super().parse_config(config)
-        pass
+    def parse_config(self, config: PLGMIAttackConfig) -> PLGMIAttackArgs:
+        return PLGMIAttackArgs(
+            taregt_name=config.target_name,
+            eval_name=config.eval_name,
+            device=config.device,
+            inv_loss_type=config.inv_loss_type,
+            lr=config.lr,
+            iter_times=config.iter_times,
+            gen_distribution=config.gen_distribution
+        )
         
     # def prepare_attack_models(self):
         

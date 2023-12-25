@@ -25,8 +25,6 @@ class BaseAttackConfig:
     dataset_name: str = 'celeba'
     
     # misc
-    # batch_size: int = 20
-    # target_labels: list = field(default_factory = lambda : list(range(300)))
     defense_type: str = 'no_defense'
     device: str = 'cpu'
     
@@ -34,7 +32,6 @@ class BaseAttackConfig:
 class BaseAttackArgs:
     taregt_name: str
     eval_name: str
-    # target_labels: list
     device: str
     
 
@@ -42,13 +39,8 @@ class BaseAttacker(metaclass=ABCMeta):
     
     def __init__(self, config: BaseAttackConfig) -> None:
         self.config = config
-        self.args = self.parse_config(config)
+        # self.args = self.parse_config(config)
         self.folder_manager = FolderManager(config.ckpt_dir, config.dataset_dir, config.cache_dir, config.result_dir, config.defense_ckpt_dir, config.defense_type)
-        
-    @abstractmethod
-    def parse_config(self, config: BaseAttackConfig) -> BaseAttackArgs:
-        # return BaseAttackArgs(config.target_name, config.eval_name,device=config.device)
-        raise NotImplementedError()
     
     def prepare_classifiers(self):
         
