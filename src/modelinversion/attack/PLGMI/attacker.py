@@ -38,6 +38,6 @@ class PLGMIAttacker(BaseAttacker):
             'acc': acc,
             'acc5': acc_5,
             'acc_var': acc_var,
-            'acc5_var': acc_var
+            'acc5_var': acc_var5
         }
         

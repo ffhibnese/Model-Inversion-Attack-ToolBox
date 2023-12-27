@@ -95,7 +95,7 @@ class BaseAttacker(metaclass=ABCMeta):
                 
                 accumulator.add(update_dict)
                 
-            for key, val in accumulator.avg():
+            for key, val in accumulator.avg().items():
                 print(f'average {key}: {val:.6f}')
             
     def evaluation(self, batch_size, transform=None, knn=True, feature_distance=True, fid=False):
