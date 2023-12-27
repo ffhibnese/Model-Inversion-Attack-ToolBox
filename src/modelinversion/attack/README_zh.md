@@ -28,15 +28,15 @@ def get_tag(self) -> str:
     pass
 ```
 
-2. 准备攻击所用的模型。
+2. 准备攻击所用的模型，挂载到self上。
 ```python
 def prepare_attack_models(self):
     pass
 ```
 
-3. 攻击过程。iden为攻击的目标类id，按batch_size划分好。
+3. 攻击过程。iden为攻击的目标类id，按batch_size划分好。返回值为各指标的键值对，如```{'acc':0.5, 'acc5': 0.7}```
 ```python
-def attack_step(self, iden):
+def attack_step(self, iden) -> dict:
     pass
 ```
 
