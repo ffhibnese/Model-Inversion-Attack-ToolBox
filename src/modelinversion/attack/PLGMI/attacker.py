@@ -1,43 +1,26 @@
-import os
-from dataclasses import dataclass, field
 
-import torch
-
-from ..base import BaseAttacker, BaseAttackConfig
-from .code.reconstruct import inversion, PlgmiArgs
-from .config import PlgmiAttackConfig
-from ...utils import set_random_seed
+from ..base import BaseAttacker
+from .code.reconstruct import inversion
+from .config import PLGMIAttackConfig
 from ...foldermanager import FolderManager
 from .code.models.generators.resnet64 import ResNetGenerator
 from ...models import *
 
-@dataclass
-class PLGMIAttackConfig(BaseAttackConfig):
-    
-    # gan config
-    gan_target_name: str = 'vgg16'
-    gan_dataset_name: str = 'celeba'
-    
-    # attack config
-    inv_loss_type: str = 'margin'
-    lr: float = 0.1
-    iter_times: int = 600
-    gen_distribution: str = 'normal'
-    
-    # fixed params
-    gen_num_features = 64
-    gen_dim_z = 128
-    gen_bottom_width = 4
+
 
 class PLGMIAttacker(BaseAttacker):
     
     def __init__(self, config: PLGMIAttackConfig) -> None:
+        self._tag = f'{config.dataset_name}_{config.target_name}_{config.gan_dataset_name}_{config.gan_target_name}'
         super().__init__(config)
         self.config: PLGMIAttackConfig
         
+    def get_tag(self) -> str:
+        return self._tag
+        
     def prepare_attack_models(self):
         config: PLGMIAttackConfig = self.config
-        self.G = ResNetGenerator(num_classes=NUM_CLASSES[config.dataset_name], distribution=config.gen_distribution)
+        self.G = ResNetGenerator(num_classes=NUM_CLASSES[config.dataset_name], distribution=config.gen_distribution).to(self.config.device)
         
         self.folder_manager.load_state_dict(
             self.G, 
@@ -46,8 +29,15 @@ class PLGMIAttacker(BaseAttacker):
         )
         
     def attack_step(self, iden):
-        return inversion(
+        acc, acc_5, acc_var, acc_var5 = inversion(
             self.config, self.G, self.T, self.E, iden, self.folder_manager, 
             self.config.lr, self.config.iter_times, 5
         )
+        
+        return {
+            'acc': acc,
+            'acc5': acc_5,
+            'acc_var': acc_var,
+            'acc5_var': acc_var
+        }
         

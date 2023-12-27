@@ -12,19 +12,38 @@ from torch import Tensor, nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
+from torchvision.transforms import ToTensor
 
 from ..foldermanager import FolderManager
 from ..models.base import BaseTargetModel
 
 class BaseMetric(ABC):
     
-    def __init__(self, folder_manager: FolderManager, device:str) -> None:
+    def __init__(self, folder_manager: FolderManager, device:str, model: BaseTargetModel=None) -> None:
         self.folder_manager = folder_manager
         self.device = device
         self.metric_name = self.get_metric_name()
+        
+        self.model = model
+        
+    def evaluation(self, dataset_name, batch_size=100, transform=None):
+        # raise NotImplementedError()
+        private_path = os.path.join(self.folder_manager.config.dataset_dir, dataset_name, 'split', 'private')
+        private_img_path = os.path.join(private_path, 'train')
+        private_save_path = os.path.join(private_path, 'features', self.metric_name)
+        if self.model is not None:
+            private_save_path = os.path.join(private_save_path, self.model.__class__.__name__.lower())
+        os.makedirs(private_save_path, exist_ok=True)
+        invert_path = os.path.join(self.folder_manager.get_result_folder())
+        
+        if transform is None:
+            transform = ToTensor()
+        
+        return self.calculate(invert_path, private_img_path, private_save_path, batch_size=batch_size, transform=transform)
+        
     
     @abstractmethod
-    def calculate(self, tag: str, invert_path, private_path, batch_size, transform=None, **kwargs) -> float:
+    def calculate(self, invert_path, private_img_path, private_save_path, batch_size, transform, **kwargs) -> float:
         raise NotImplementedError()
     
     @abstractmethod
@@ -33,28 +52,26 @@ class BaseMetric(ABC):
     
 class LabelSpecMetric(BaseMetric):
     
-    def __init__(self, folder_manager: FolderManager, device:str) -> None:
-        super().__init__(folder_manager, device)
+    def __init__(self, folder_manager: FolderManager, device:str, model: BaseTargetModel=None) -> None:
+        super().__init__(folder_manager, device, model)
         
-    def calculate(self, tag: str, invert_path, private_path, batch_size, transform=None, **kwargs) -> float:
+    def calculate(self, invert_path, private_img_path, private_save_path, batch_size, transform, **kwargs) -> float:
         # step 1: generate features
         
-        tag = f'{tag}.pt'
-        
-        metric_folder = os.path.join(self.folder_manager.config.cache_dir, self.metric_name, self.metric_name)
+        metric_folder = os.path.join(self.folder_manager.config.cache_dir, self.metric_name)
         
         
-        private_save_dir = os.path.join(metric_folder, 'private')
+        # private_save_dir = os.path.join(metric_folder, 'private')
         os.makedirs(metric_folder, exist_ok=True)
         
-        class_len = len(os.listdir(private_path))
-        if len(os.listdir(private_save_dir)) < class_len:
+        class_len = len(os.listdir(private_img_path))
+        if len(os.listdir(private_save_path)) < class_len:
             print(f'generate features of private images')
-            self.save_features(private_path, private_save_dir, batch_size, transform=transform)
+            self.save_features(private_img_path, private_save_path, batch_size, transform=transform)
         
         print(f'generate features of private images')
-        invert_save_dir = os.path.join(metric_folder, tag)
-        os.makedirs(metric_folder, exist_ok=True)
+        invert_save_dir = os.path.join(metric_folder, 'invert_features')
+        os.makedirs(invert_save_dir, exist_ok=True)
         self.save_features(invert_path, invert_save_dir, batch_size, transform=transform)
         
         # step 2: calculate result for each label
@@ -64,7 +81,7 @@ class LabelSpecMetric(BaseMetric):
         
         for filename in os.listdir(invert_save_dir):
             invert_file = os.path.join(invert_save_dir, filename)
-            private_file = os.path.join(private_save_dir, filename)
+            private_file = os.path.join(private_save_path, filename)
             if not os.path.exists(private_file):
                 class_id = filename[:filename.rfind('.')]
                 warnings.warn(f'class {class_id} is not existed in private data')
@@ -83,7 +100,7 @@ class LabelSpecMetric(BaseMetric):
         print(f'{self.metric_name}: {result}')
         return result
     
-    def save_features(self, img_path, save_dir, batch_size, transform=None):
+    def save_features(self, img_path, save_dir, batch_size, transform):
         
         ds = ImageFolder(img_path, transform=transform)
         dataloader = DataLoader(ds, batch_size=batch_size, shuffle=False)
@@ -115,8 +132,8 @@ class LabelSpecMetric(BaseMetric):
 class KnnDistanceMetric(LabelSpecMetric):
     
     def __init__(self, folder_manager: FolderManager, device: str, model: BaseTargetModel) -> None:
-        super().__init__(folder_manager, device)
-        self.model = model
+        super().__init__(folder_manager, device, model)
+        # self.model = model
         
     def get_metric_name(self) -> str:
         return 'knn'
@@ -140,8 +157,8 @@ class KnnDistanceMetric(LabelSpecMetric):
 class FeatureDistanceMetric(LabelSpecMetric):
     
     def __init__(self, folder_manager: FolderManager, device: str, model: BaseTargetModel) -> None:
-        super().__init__(folder_manager, device)
-        self.model = model
+        super().__init__(folder_manager, device, model)
+        # self.model = model
         
     def get_metric_name(self) -> str:
         return 'feature_dist'
@@ -160,26 +177,25 @@ class FeatureDistanceMetric(LabelSpecMetric):
  
 class GeneralMetric(BaseMetric):
     
-    def __init__(self, folder_manager: FolderManager, device:str) -> None:
-        super().__init__(folder_manager, device)
+    def __init__(self, folder_manager: FolderManager, device:str, model: BaseTargetModel=None) -> None:
+        super().__init__(folder_manager, device, model=model)
         
-    def calculate(self, tag: str, invert_path, private_path, batch_size, transform=None, **kwargs) -> float:
+    def calculate(self, invert_path, private_img_path, private_save_path, batch_size, transform, **kwargs) -> float:
         
         # step 1: generate features
         
-        tag = f'{tag}.pt'
         
-        metric_folder = os.path.join(self.folder_manager.config.cache_dir, self.metric_name, self.metric_name)
+        metric_folder = os.path.join(self.folder_manager.config.cache_dir, self.metric_name)
         os.makedirs(metric_folder, exist_ok=True)
         
-        private_save_path = os.path.join(metric_folder, 'private.pt')
+        private_save_path = os.path.join(private_save_path, 'private.pt')
         
         if not os.path.exists(private_save_path):
             print(f'generate features of private images')
-            self.save_features(private_path, private_save_path, batch_size, transform=transform)
+            self.save_features(private_img_path, private_save_path, batch_size, transform=transform)
         
     
-        invert_save_path = os.path.join(metric_folder, tag)
+        invert_save_path = os.path.join(metric_folder, 'invert_features.pt')
         print(f'generate features of inverted images')
         self.save_features(invert_path, invert_save_path, batch_size, transform)
         
@@ -194,7 +210,7 @@ class GeneralMetric(BaseMetric):
         return result
         
         
-    def save_features(self, img_path, save_path, batch_size, transform=None):
+    def save_features(self, img_path, save_path, batch_size, transform):
         ds = ImageFolder(img_path, transform=transform)
         dataloader = DataLoader(ds, batch_size=batch_size, shuffle=False)
         
@@ -226,38 +242,50 @@ class GeneralMetric(BaseMetric):
 class FIDMetric(GeneralMetric):
     
     def __init__(self, folder_manager: FolderManager, device: str, model: BaseTargetModel) -> None:
-        super().__init__(folder_manager, device)
-        self.model = model
+        
+        if model is None:
+            from .fid.inceptionv3 import InceptionV3
+            model = InceptionV3().to(device)
+            
+        super().__init__(folder_manager, device, model)
         
     def get_metric_name(self) -> str:
         return 'fid'
     
     def input_transform(self, img_tensor: Tensor) -> ndarray:
-        features = self.model(img_tensor).feat[-1]
+        features = self.model(img_tensor)[-1]
         
         if features.shape[2] != 1 or features.shape[3] != 1:
             features = F.adaptive_avg_pool2d(features, output_size=(1, 1))
             
-        return features.cpu().numpy()
+        batch_size = len(features)
+        return features.reshape(batch_size, -1).cpu().numpy()
     
-    def generate_features(self, inputs: list) -> ndarray:
+    def generate_features(self, inputs: ndarray) -> ndarray:
+        # print(inputs.shape)
         mu = np.mean(inputs, axis=0)
         var = np.cov(inputs, rowvar=False)
+        
+        # print(f'fid gen feature inputs {inputs.shape}, mu {mu.shape}, var: {var.shape}')
         
         return {'mu': mu, 'var': var}
     
     def get_final_result(self, invert_features, private_features) -> float:
         
+        
+        
         mu1, mu2 = invert_features['mu'], private_features['mu']
         sigma1, sigma2 = invert_features['var'], private_features['var']
         
-        if len(mu1) <= 2048:
-            warnings.warn(f'calculate fid failed: the number of inverted images is less than 2048')
-            return 0
+        # print(sigma1.shape)
         
-        if len(mu2) <= 2048:
-            warnings.warn(f'calculate fid failed: the number of private images is less than 2048')
-            return 0
+        # if len(mu1) <= 2048:
+        #     warnings.warn(f'calculate fid failed: the number of inverted images is {len(mu1)} less than 2048')
+        #     return 0
+        
+        # if len(mu2) <= 2048:
+        #     warnings.warn(f'calculate fid failed: the number of private images is {len(mu2)} less than 2048')
+        #     return 0
         
         eps = 1e-6
         
@@ -287,7 +315,10 @@ class FIDMetric(GeneralMetric):
         if np.iscomplexobj(covmean):
             if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
                 m = np.max(np.abs(covmean.imag))
-                raise ValueError('Imaginary component {}'.format(m))
+                # raise ValueError('Imaginary component {}'.format(m))
+                
+                warnings.warn(f'the number of inverted or private image is less than 2048')
+                return 0
             covmean = covmean.real
 
         tr_covmean = np.trace(covmean)

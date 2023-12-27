@@ -3,9 +3,10 @@ sys.path.append('.')
 sys.path.append('./src')
 sys.path.append('./src/modelinversion')
 
-from modelinversion.attack.PLGMI.attack import attack as plgmi_attack
+# from modelinversion.attack.PLGMI.attack import attack as plgmi_attack
+from modelinversion.attack.PLGMI.attacker import PLGMIAttacker
 # from modelinversion.attack.PLGMI.reconstruct import plgmi_attack
-from modelinversion.attack.PLGMI.config import PlgmiAttackConfig
+from modelinversion.attack.PLGMI.config import PLGMIAttackConfig
 from development_config import get_dirs
 
 if __name__ == '__main__':
@@ -23,23 +24,26 @@ if __name__ == '__main__':
     # gan dataset name support: celeba, ffhq, facescrub
     gan_dataset_name = 'celeba'
     
-    batch_size = 60
-    target_labels = list(range(0, 600))
-    device = 'cuda:0'
+    batch_size = 10
+    target_labels = list(range(0, 10))
+    device = 'cuda:2'
     
-    config = PlgmiAttackConfig(
+    config = PLGMIAttackConfig(
         target_name=target_name,
         eval_name=eval_name,
-        gan_target_name=gan_target_name,
         ckpt_dir=ckpt_dir,
         result_dir=result_dir,
-        dataset_dir = dataset_dir,
+        dataset_dir=dataset_dir,
         cache_dir=cache_dir,
         dataset_name=dataset_name,
-        gan_dataset_name=gan_dataset_name,
-        target_labels=target_labels,
         device=device,
-        batch_size=batch_size
+        gan_target_name=gan_target_name,
+        gan_dataset_name=gan_dataset_name
+        
     )
     
-    plgmi_attack(config)
+    attacker = PLGMIAttacker(config)
+    
+    attacker.attack(batch_size, target_labels)
+    
+    attacker.evaluation(200, knn=True, feature_distance=True, fid=True)

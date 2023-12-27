@@ -1,2 +1,3 @@
-# ModelInversionAttackBox
-Implementations of different attack algorithms.
+# Attack Pipeline
+
+> The description is coming soon ...

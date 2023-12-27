@@ -1,46 +1,17 @@
-from collections import OrderedDict
-import logging
-import numpy as np
-import os
-import random
+
 import statistics
 import time
+
 import torch
-from argparse import ArgumentParser
 from kornia import augmentation
 
 from . import losses as L
 from . import utils
-# from ....models import *
-# from ...metrics import get_knn_dist, calc_fid
-# from ...metrics import knn
-# from ...metrics.fid.fid import calc_fid
-
-from .utils import save_tensor_images
-from ..config import PlgmiAttackConfig
 from ....utils import set_random_seed
-
-from dataclasses import dataclass
-
-@dataclass
-class PlgmiArgs:
-    taregt_name: str
-    eval_name: str
-    save_dir: str
-    path_G: str
-    device: str
-    
-    inv_loss_type: str = 'margin'
-    lr: float = 0.1
-    iter_times: int = 600
-    gen_num_features: int = 64
-    gen_dim_z: int = 128
-    gen_bottom_width: int = 4
-    gen_distribution: str = 'normal'
-    
+from ..config import PLGMIAttackConfig
 
 
-def inversion(args: PlgmiArgs, G, T, E, iden, folder_manager, lr=2e-2, iter_times=1500, num_seeds=5):
+def inversion(args: PLGMIAttackConfig, G, T, E, iden, folder_manager, lr=2e-2, iter_times=1500, num_seeds=5):
     # save_img_dir = os.path.join(args.save_dir, 'all_imgs')
     # success_dir = os.path.join(args.save_dir, 'success_imgs')
     # os.makedirs(save_img_dir, exist_ok=True)
