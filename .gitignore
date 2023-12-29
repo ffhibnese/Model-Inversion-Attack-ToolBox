@@ -120,4 +120,5 @@ nohup.txt
 !/**/*.py
 !checkpoints/**/.gitkeep
 # !dataset/celeba/README.md
-
+/test.py
+/test.ipynb

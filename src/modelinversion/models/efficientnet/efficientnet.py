@@ -6,6 +6,7 @@ from torch.nn import functional as F
 
 from ..base import BaseTargetModel
 from ..modelresult import ModelResult
+from ...utils.torchutil import OutputHook
 
 class EfficientNet_b0(BaseTargetModel):
     def __init__(self, n_classes, pretrained=False):
@@ -25,6 +26,21 @@ class EfficientNet_b0(BaseTargetModel):
     def get_feature_dim(self) -> int:
         return self.feat_dim
     
+    def create_hidden_hooks(self) -> list:
+        hiddens_hooks = []
+        for i, m in enumerate(self.feature[0].children()):
+            if i % 2 == 0 and i != 0:
+                hiddens_hooks.append(OutputHook(m))
+        return hiddens_hooks
+                
+    def freeze_front_layers(self) -> None:
+        freeze_layers = 6
+        for i, m in enumerate(self.feature[0].children()):
+            if i < freeze_layers:
+                for p in m.parameters():
+                    p.requires_grad_(False)
+            else:
+                break
 
     def predict(self, x):
         feature = self.feature(x)
@@ -51,6 +67,22 @@ class EfficientNet_b1(nn.Module):
     
     def get_feature_dim(self) -> int:
         return self.feat_dim
+    
+    def create_hidden_hooks(self) -> list:
+        hiddens_hooks = []
+        for i, m in enumerate(self.feature[0].children()):
+            if i % 2 == 0 and i != 0:
+                hiddens_hooks.append(OutputHook(m))
+        return hiddens_hooks
+                
+    def freeze_front_layers(self) -> None:
+        freeze_layers = 6
+        for i, m in enumerate(self.feature[0].children()):
+            if i < freeze_layers:
+                for p in m.parameters():
+                    p.requires_grad_(False)
+            else:
+                break
 
     def predict(self, x):
         feature = self.feature(x)
@@ -77,6 +109,22 @@ class EfficientNet_b2(nn.Module):
     
     def get_feature_dim(self) -> int:
         return self.feat_dim
+    
+    def create_hidden_hooks(self) -> list:
+        hiddens_hooks = []
+        for i, m in enumerate(self.feature[0].children()):
+            if i % 2 == 0 and i != 0:
+                hiddens_hooks.append(OutputHook(m))
+        return hiddens_hooks
+                
+    def freeze_front_layers(self) -> None:
+        freeze_layers = 6
+        for i, m in enumerate(self.feature[0].children()):
+            if i < freeze_layers:
+                for p in m.parameters():
+                    p.requires_grad_(False)
+            else:
+                break
 
     def predict(self, x):
         feature = self.feature(x)
