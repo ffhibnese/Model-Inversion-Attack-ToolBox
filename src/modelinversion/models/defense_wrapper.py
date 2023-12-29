@@ -1,8 +1,27 @@
 
 import torch
+import torchvision
 from torch import nn
-from .modelresult import ModelResult
 from torch.nn import functional as F
+
+from .modelresult import ModelResult
+
+
+# class TorchVisionModelWrapper(nn.Module):
+    
+#     def __init__(self, model: nn.Module, num_classes, pretrained=False):
+#         super().__init__()
+#         model = torchvision.models.efficientnet.efficientnet_b0(pretrained=pretrained)
+#         self.feature = nn.Sequential(*list(model.children())[:-1])
+#         self.n_classes = model.num_classes
+#         self.feat_dim = 1280
+#         self.fc_layer = nn.Linear(self.feat_dim, self.n_classes)
+            
+#     def forward(self, x):
+#         feature = self.feature(x)
+#         feature = feature.view(feature.size(0), -1)
+#         res = self.fc_layer(feature)
+#         return  ModelResult(res, [feature])
 
 class VibWrapper(nn.Module):
     
