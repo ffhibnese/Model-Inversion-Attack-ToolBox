@@ -6,6 +6,7 @@ from .inception.incv1 import InceptionResnetV1
 from .vit.vit import ViT
 import torchvision.models as tv_models
 from .defense_wrapper import VibWrapper
+from .efficientnet.efficientnet import *
 
 NUM_CLASSES = {
     'celeba': 1000,
@@ -52,6 +53,16 @@ def get_model(model_name: str, dataset_name: str, device='cpu', backbone_pretrai
             dropout=0.1,
             emb_dropout=0.1
         )
+    elif model_name.startswith('efficientnet'):
+        suffix = model_name[-2:]
+        if suffix == 'b0':
+            EfficientNet_b0(num_classes, pretrained=backbone_pretrain)
+        elif suffix == 'b1':
+            EfficientNet_b1(num_classes, pretrained=backbone_pretrain)
+        elif suffix == 'b2':
+            EfficientNet_b2(num_classes, pretrained=backbone_pretrain)
+        else:
+            raise RuntimeError(f'model {model_name} is NOT supported')
     else:
         raise RuntimeError(f'model {model_name} is NOT supported')
     
