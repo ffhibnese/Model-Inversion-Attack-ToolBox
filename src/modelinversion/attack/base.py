@@ -38,13 +38,11 @@ class BaseAttacker(metaclass=ABCMeta):
         cache_dir = os.path.join(config.cache_dir, tag)
         result_dir = os.path.join(config.result_dir, tag)
         
-        # os.makedirs(cache_dir)
         self.folder_manager = FolderManager(config.ckpt_dir, config.dataset_dir, cache_dir, result_dir, config.defense_ckpt_dir, config.defense_type)
         
         self.prepare_classifiers()
         
     def register_dirs(self, dirs: dict):
-        # self.folder_manager.config.
         for k, v in dirs.items():
             os.makedirs(v, exist_ok=True)
             setattr(self.folder_manager.config, k, v)

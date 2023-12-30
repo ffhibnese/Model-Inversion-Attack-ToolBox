@@ -15,7 +15,7 @@
 
 初始化接收参数为`AttackConfig`，完成folder_manager的创建以及准备target / eval模型.
 `attack`函数接收`batch_size`和`target_labels`两个参数，是攻击的主函数，攻击过程如下：
-+ 调用`prepare_attack_models`方法，准备攻击所需要的模型
++ 调用`prepare_attack`方法，准备攻击所需要的模型等
 + 按照攻击的目标类以及批次大小，划分每次攻击所需要的目标类，调用`attack_step`函数完成攻击
 + 攻击结果信息
 `evaluation`函数为评估的主函数
@@ -28,13 +28,13 @@ def get_tag(self) -> str:
     pass
 ```
 
-2. 准备攻击所用的模型，挂载到self上。
+2. 准备攻击所用的模型等内容，挂载到self上。
 ```python
-def prepare_attack_models(self):
+def prepare_attack(self):
     pass
 ```
 
-3. 攻击过程。iden为攻击的目标类id，按batch_size划分好。返回值为各指标的键值对，如```{'acc':0.5, 'acc5': 0.7}```
+3. 攻击过程。iden为攻击的目标类id，已按batch_size划分好。该函数内部保存攻击生成的图片，返回值为各指标的键值对，如```{'acc':0.5, 'acc5': 0.7}```
 ```python
 def attack_step(self, iden) -> dict:
     pass
