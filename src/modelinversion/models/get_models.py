@@ -5,7 +5,7 @@ from .resnet.resnet50_scratch_dag import Resnet50_scratch_dag
 from .inception.incv1 import InceptionResnetV1
 from .vit.vit import ViT
 import torchvision.models as tv_models
-from .defense_wrapper import VibWrapper
+from .defense_wrapper import VibWrapper, TorchVisionModelWrapper
 from .efficientnet.efficientnet import *
 
 NUM_CLASSES = {
@@ -41,18 +41,18 @@ def get_model(model_name: str, dataset_name: str, device='cpu', backbone_pretrai
         model = Resnet50_scratch_dag(num_classes)
     elif model_name == 'inception_resnetv1':
         model = InceptionResnetV1(num_classes)
-    elif model_name == 'vit':
-        model = model = ViT(
-            image_size=64, 
-            patch_size=8,
-            num_classes=num_classes,
-            dim=64,
-            depth=5,
-            heads=4,
-            mlp_dim=128,
-            dropout=0.1,
-            emb_dropout=0.1
-        )
+    # elif model_name == 'vit':
+    #     model = model = ViT(
+    #         image_size=64, 
+    #         patch_size=8,
+    #         num_classes=num_classes,
+    #         dim=64,
+    #         depth=5,
+    #         heads=4,
+    #         mlp_dim=128,
+    #         dropout=0.1,
+    #         emb_dropout=0.1
+    #     )
     elif model_name.startswith('efficientnet'):
         suffix = model_name[-2:]
         if suffix == 'b0':
@@ -64,15 +64,13 @@ def get_model(model_name: str, dataset_name: str, device='cpu', backbone_pretrai
         else:
             raise RuntimeError(f'model {model_name} is NOT supported')
     else:
-        if num_classes == 1000:
-            try:
-                model = tv_models.__dict__[model_name](pretrained=True)
-            except:
-                raise RuntimeError(f'model {model_name} is NOT supported')
-        else:
+        try:
+            print('try to get model from torchvision')
+            model = tv_models.__dict__[model_name](pretrained=backbone_pretrain)
+            model = TorchVisionModelWrapper(model, num_classes)
+        except:
             raise RuntimeError(f'model {model_name} is NOT supported')
-        
-        print('get model from torchvision')
+            
         
     
     if defense_type.lower() in ['mid', 'vib']:
