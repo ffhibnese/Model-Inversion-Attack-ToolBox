@@ -20,9 +20,17 @@ from .generator import Generator
 from .utils import save_tensor_images
 from ....utils import set_random_seed
 from ....foldermanager import FolderManager
+from ..config import GMIAttackConfig
 
 
-def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum=0.9, lamda=100, iter_times=1500, clip_range=1, num_seeds=5, device='cpu'):
+
+
+def inversion(config: GMIAttackConfig, G, D, T, E, iden, folder_manager: FolderManager):
+    
+    device = config.device
+    momentum = config.momentum
+    clip_range = config.clip_range
+    lr = config.lr
 
     iden = iden.view(-1).long().to(device)
     criterion = nn.CrossEntropyLoss().to(device)
@@ -32,11 +40,13 @@ def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum
     D.eval()
     T.eval()
     E.eval()
+    
+    
 
     res = []
     res5 = []
     seed_acc = torch.zeros((bs, 5))
-    for random_seed in range(num_seeds):
+    for random_seed in range(config.gen_num_per_target):
         tf = time.time()
         r_idx = random_seed
         set_random_seed(random_seed)
@@ -45,7 +55,7 @@ def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum
         z.requires_grad = True
         v = torch.zeros(bs, 100).to(device).float()
 
-        for i in range(iter_times):
+        for i in range(config.iter_times):
             fake = G(z)
             label = D(fake)
 
@@ -58,7 +68,7 @@ def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum
 
             Iden_Loss = criterion(out, iden)
 
-            Total_Loss = Prior_Loss + lamda * Iden_Loss
+            Total_Loss = Prior_Loss + config.lamda * Iden_Loss
 
             Total_Loss.backward()
 
@@ -118,4 +128,10 @@ def inversion(G, D, T, E, iden, folder_manager: FolderManager, lr=2e-2, momentum
     acc_var5 = statistics.variance(res5)
     print("Acc:{:.2f}\tAcc_5:{:.2f}\tAcc_var:{:.4f}\tAcc_var5:{:.4f}".format(acc, acc_5, acc_var, acc_var5))
 
-    return acc, acc_5, acc_var, acc_var5
+    # return acc, acc_5, acc_var, acc_var5
+    return {
+        'acc': acc,
+        'acc5': acc_5,
+        'acc_var': acc_var,
+        'acc5_var': acc_var5
+    }
