@@ -64,6 +64,19 @@ class OutputHook(BaseHook):
     def get_feature(self):
         return self.feature
     
+class InputHook(BaseHook):
+    """Monitor the output of the model
+    """
+    
+    def __init__(self, module: Module) -> None:
+        super().__init__(module)
+        
+    def hook_fn(self, module, input, output):
+        self.feature = input
+        
+    def get_feature(self):
+        return self.feature
+    
     
 class RandomIdentitySampler(sampler.Sampler):
     """

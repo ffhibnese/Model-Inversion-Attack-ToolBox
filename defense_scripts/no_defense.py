@@ -27,10 +27,9 @@ if __name__ == '__main__':
     dataset_name = 'celeba'
     epoch_num = 50
     lr = 0.01
-    device = 'cuda'
+    device = 'cuda:0'
     batch_size = 64
     
-    device = 'cuda'
     args = BaseTrainArgs(
         model_name=model_name,
         dataset_name=dataset_name,
