@@ -1,44 +1,46 @@
+
+from dataclasses import dataclass
+import os
+import glob
+import random
+
 import torch
 from torch import nn
-from dataclasses import dataclass
-from ..utils import create_folder
-import os
-from ..genforce.get_genforce import get_genforce
-from torchvision.utils import save_image
-from ..utils.img_utils import clip, crop_img, resize_img, normalize, denormalize, clip_quantile_bound, get_input_resolution
-from ..utils.acc import verify_acc
 from PIL import Image
 import numpy as np
-import random
+
+from ..utils import create_folder
+from ..genforce.get_genforce import get_genforce
+from ..utils.img_utils import clip, crop_img, resize_img, normalize, denormalize, clip_quantile_bound, get_input_resolution
+from ..utils.acc import verify_acc
 from ...code.classifiers.build_classifier import get_model
 from ...code.select_w import find_closest_latent
-import glob
-# from .....metrics.knn import get_knn_dist
+from ...config import MirrorWhiteboxAttackConfig
 from .....foldermanager import FolderManager
-@dataclass
-class MirrorWhiteBoxArgs:
-    arch_name: str
-    test_arch_name: str
-    genforce_model_name: str
-    # target_labels: list
-    gen_num_per_target: int
-    device: str
-    # calc_knn: bool
-    # batch_size: int
-    do_flip : bool = False
-    # use_cache : bool
-    loss_class_ce : float = 1
-    epoch_num : int = 5000
-    lr: float = 0.2
-    save_every : int = 100
-    use_dropout : bool = False
-    latent_space : str = 'w'
-    p_std_ce : int = 1
-    z_std_ce : int = 1
+# @dataclass
+# class MirrorWhiteBoxArgs:
+#     arch_name: str
+#     test_arch_name: str
+#     genforce_model_name: str
+#     # target_labels: list
+#     gen_num_per_target: int
+#     device: str
+#     # calc_knn: bool
+#     # batch_size: int
+#     do_flip : bool = False
+#     # use_cache : bool
+#     loss_class_ce : float = 1
+#     epoch_num : int = 5000
+#     lr: float = 0.2
+#     save_every : int = 100
+#     use_dropout : bool = False
+#     latent_space : str = 'w'
+#     p_std_ce : int = 1
+#     z_std_ce : int = 1
     
 import math
     
-def adjust_lr(optimizer, initial_lr, epoch, epochs, rampdown=0.25, rampup=0.05):
+def adjust_lr(optimizer: torch.optim.Optimizer, initial_lr, epoch, epochs, rampdown=0.25, rampup=0.05):
     # from https://github.com/rosinality/style-based-gan-pytorch/blob/master/projector.py#L45
     t = epoch / epochs
     lr_ramp = min(1, (1 - t) / rampdown)
@@ -53,7 +55,8 @@ def adjust_lr(optimizer, initial_lr, epoch, epochs, rampdown=0.25, rampup=0.05):
     return lr
     
 def mirror_white_box_attack(
-    args: MirrorWhiteBoxArgs, 
+    args: MirrorWhiteboxAttackConfig, 
+    generator,
     target_net,
     eval_net,
     folder_manager: FolderManager,
@@ -68,16 +71,16 @@ def mirror_white_box_attack(
     # else:
     criterion = nn.CrossEntropyLoss()
     
-    if args.genforce_model_name.startswith('stylegan'):
+    if args.genforce_name.startswith('stylegan'):
         use_z_plus_space = False
         use_w_space = 'w' in args.latent_space
         repeat_w = '+' not in args.latent_space
         if args.latent_space == 'z+':
             use_z_plus_space = True  # to use z+ space, set this and use_w_space to be true and repeat_w to be false
             use_w_space = True
-        if args.genforce_model_name.endswith('1024'):
+        if args.genforce_name.endswith('1024'):
             w_num_layers = 18
-        elif args.genforce_model_name.endswith('512'):
+        elif args.genforce_name.endswith('512'):
             w_num_layers = 16
         else:
             w_num_layers = 14
@@ -119,11 +122,13 @@ def mirror_white_box_attack(
         
         
     else:
-        raise NotImplementedError(f'model {args.genforce_model_name} is not implented')
+        raise NotImplementedError(f'model {args.genforce_name} is not implented')
     
-    generator, _ = get_genforce(args.genforce_model_name, device=args.device, checkpoint_dir=folder_manager.config.ckpt_dir, use_w_space=use_w_space, use_z_plus_space=use_z_plus_space, repeat_w=repeat_w, use_discri=False)
+    # generator, _ = get_genforce(args.genforce_name, device=args.device, checkpoint_dir=folder_manager.config.ckpt_dir, use_w_space=use_w_space, use_z_plus_space=use_z_plus_space, repeat_w=repeat_w, use_discri=False)
     
     target_list = target_labels
+    if isinstance(target_labels, torch.Tensor):
+        target_list = target_labels.cpu().numpy().reshape(-1).tolist()
     
     # assert args.batch_size % len(target_list) == 0, f'batchsize: {args.batch_size} len target list: {len(target_list)}'
     nrow = args.gen_num_per_target
@@ -142,7 +147,7 @@ def mirror_white_box_attack(
         assert args.latent_space == 'w'
         # raise NotImplementedError('cache is not implemented')
         
-        w_dict = find_closest_latent(target_net, args.device, target_list, nrow, args.arch_name, folder_manager.config.presample_dir, to_target_transforms=to_target_transforms)[0]
+        w_dict = find_closest_latent(target_net, args.device, target_list, nrow, args.target_name, folder_manager.config.presample_dir, to_target_transforms=to_target_transforms)[0]
         inputs = torch.cat([w_dict[t] for t in target_list], dim=0).to(args.device)
     
     else:
@@ -205,9 +210,9 @@ def mirror_white_box_attack(
         _lr = adjust_lr(optimizer, args.lr, epoch, args.epoch_num)
         
         fake = generator(inputs)
-        fake = crop_img(fake, args.arch_name)
+        fake = crop_img(fake, args.target_name)
         
-        input_images = normalize(fake*255., args.arch_name)
+        input_images = normalize(fake*255., args.target_name)
         
         # horizontal flipping
         flip = random.random() > 0.5
@@ -215,7 +220,7 @@ def mirror_white_box_attack(
             input_images = torch.flip(input_images, dims=(3,))
         
         optimizer.zero_grad()
-        generator.zero_grad()
+        # generator.zero_grad()
         
         # TODO: output
         if to_target_transforms is not None:
@@ -245,19 +250,19 @@ def mirror_white_box_attack(
             
             with torch.no_grad():
                 fake = generator(inputs.detach().to(args.device))
-                fake = crop_img(fake, args.arch_name)
-                target_fake = normalize(fake*255., args.arch_name)
+                fake = crop_img(fake, args.target_name)
+                target_fake = normalize(fake*255., args.target_name)
                 if to_target_transforms is not None:
                     target_fake = to_target_transforms(target_fake)
-                target_acc =  verify_acc(target_fake, targets, target_net, args.arch_name)
+                target_acc =  verify_acc(target_fake, targets, target_net, args.target_name)
                 print(f'target_acc: {target_acc:.6f}')
                 
-                eval_fake = normalize(fake*255., args.arch_name)
+                eval_fake = normalize(fake*255., args.target_name)
                 
                 if to_target_transforms is not None:
                     eval_fake = to_target_transforms(eval_fake)
                     
-                eval_acc =  verify_acc(eval_fake, targets, eval_net, args.test_arch_name)
+                eval_acc =  verify_acc(eval_fake, targets, eval_net, args.eval_name)
                 print(f'eval_acc: {eval_acc:.6f}')
                 
                 # torch.save(inputs,
@@ -270,10 +275,10 @@ def mirror_white_box_attack(
         latent_inputs = best_inputs.detach().clone()
         fake = generator(latent_inputs.detach().to(args.device))
         # don't resize and downsample the images, but save the high-resolution images
-        fake = normalize(fake*255., args.arch_name)
+        fake = normalize(fake*255., args.target_name)
         
-        final_acc = verify_acc(eval_fake, targets, eval_net, args.test_arch_name)
-        print(f'final acc: {eval_acc:.6f}')
+        final_acc = verify_acc(eval_fake, targets, eval_net, args.target_name)
+        # print(f'final acc: {eval_acc:.6f}')
         
         if to_target_transforms is not None:
             fake = to_target_transforms(fake)
@@ -281,7 +286,7 @@ def mirror_white_box_attack(
     for i in range(fake.shape[0]):
         target = targets[i].item()
 
-        image = denormalize(fake[i], args.arch_name) #.data.cpu().numpy().transpose((1, 2, 0))
+        image = denormalize(fake[i], args.target_name) #.data.cpu().numpy().transpose((1, 2, 0))
         # pil_image = Image.fromarray((image_np * 255).astype(np.uint8))
         # pil_image.save(save_filename)
         # if to_target_transforms is not None:
@@ -290,4 +295,4 @@ def mirror_white_box_attack(
         folder_manager.save_result_image(image, target)
 
     # torch.save(latent_inputs, f'{args.final_image_dir}/latent_inputs.pt')
-    return final_acc
+    return {'acc': final_acc}

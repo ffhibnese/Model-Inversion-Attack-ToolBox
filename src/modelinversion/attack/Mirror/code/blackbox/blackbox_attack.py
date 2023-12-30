@@ -12,15 +12,17 @@ import numpy as np
 from ..utils.img_utils import normalize
 from .genertic import genetic_alogrithm
 
-from .blackbox_args import MirrorBlackBoxArgs
+# from .blackbox_args import MirrorBlackBoxArgs
 
 # from .....metrics.knn import get_knn_dist
 
 from .....foldermanager import FolderManager
+from ...config import MirrorBlackboxAttackConfig
     
     
 def mirror_blackbox_attack(
-    args: MirrorBlackBoxArgs,
+    args: MirrorBlackboxAttackConfig,
+    iden,
     generator,
     target_net,
     eval_net,
@@ -34,10 +36,14 @@ def mirror_blackbox_attack(
         # return img
         return generator(w.to(args.device))
     
+    def get_elite_save_path(target):
+        save_dir = os.path.join(folder_manager.config.cache_dir, 'elites', f'{target}')
+        os.makedirs(save_dir, exist_ok=True)
+        return os.path.join(save_dir, 'final.pt')
         
     print('--- train')
 
-    for target in args.target_labels:
+    for target in iden:
         
         # os.makedirs(os.path.join(args.work_dir, f'{target}'), exist_ok=True)
         
@@ -46,7 +52,7 @@ def mirror_blackbox_attack(
             # print(f">> img size: {img.shape}")
             assert img.ndim == 4
             # TODO: output
-            pred = F.log_softmax(target_net(normalize(img*255., args.arch_name)).result, dim=1)
+            pred = F.log_softmax(target_net(normalize(img*255., args.target_name)).result, dim=1)
             score = pred[:, target]
             return score
         
@@ -54,9 +60,8 @@ def mirror_blackbox_attack(
         
         score = math.exp(elite_score)
         print(f'target: {target} score: {score}')
-        save_dir = os.path.join(folder_manager.config.cache_dir, f'{target}')
-        os.makedirs(save_dir, exist_ok=True)
-        torch.save([elite, elite_score], os.path.join(save_dir, 'final.pt'))
+        save_path = get_elite_save_path(target)
+        torch.save([elite, elite_score], save_path)
         
     
     print('--- test')
@@ -65,8 +70,8 @@ def mirror_blackbox_attack(
     ws = []
     confs = []
     
-    for target in tqdm(args.target_labels):
-        path = os.path.join(folder_manager.config.cache_dir, f'{target}', 'final.pt')
+    for target in tqdm(iden):
+        path = get_elite_save_path(target)
         if not os.path.exists(path):
             raise RuntimeError('the target label is not trained')
         
@@ -76,8 +81,11 @@ def mirror_blackbox_attack(
         
     ws = torch.stack(ws)
     imgs = generate_images_func(ws, raw_img=True)
-    acc = compute_conf(eval_net, args.eval_name, targets=args.target_labels, imgs=imgs)
-    return acc
+    acc, acc5 = compute_conf(eval_net, args.eval_name, targets=iden, imgs=imgs)
+    return {
+        'acc': acc,
+        'acc5': acc5
+    }
     # vutils.save_image(imgs, f'a.png', nrow=1)
     
     # if args.calc_knn:
@@ -103,7 +111,9 @@ def compute_conf(net, arch_name, targets, imgs):
     
     topk_conf, topk_class = torch.topk(logits, k, dim=1)
     
-    targets = torch.tensor(targets, dtype=torch.long)
+    topk_class = topk_class.cpu()
+    
+    targets = torch.tensor(targets, dtype=torch.long).cpu()
     
     
     total_cnt = len(targets)
@@ -115,7 +125,7 @@ def compute_conf(net, arch_name, targets, imgs):
     print(f'top1 acc: {acc}')
     print(f'topk acc: {topk_acc}')
     
-    return acc
+    return acc, topk_acc
     
     
             

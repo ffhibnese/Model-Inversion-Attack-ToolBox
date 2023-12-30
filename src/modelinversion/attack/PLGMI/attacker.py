@@ -18,7 +18,7 @@ class PLGMIAttacker(BaseAttacker):
     def get_tag(self) -> str:
         return self._tag
         
-    def prepare_attack_models(self):
+    def prepare_attack(self):
         config: PLGMIAttackConfig = self.config
         self.G = ResNetGenerator(num_classes=NUM_CLASSES[config.dataset_name], distribution=config.gen_distribution).to(self.config.device)
         
