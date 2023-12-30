@@ -30,7 +30,7 @@ if __name__ == '__main__':
         device=device,
         genforce_name=genforce_name,
         presample_batch_size=64,
-        population=500
+        population=1000
     )
     
     attacker = MirrorBlackboxAttacker(config)

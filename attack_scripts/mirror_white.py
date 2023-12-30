@@ -14,7 +14,7 @@ if __name__ == '__main__':
     target_name = 'vgg16'
     eval_name = 'facenet'
     genforce_name = 'stylegan_celeba_partial256'
-    target_labels = list(range(100))
+    target_labels = list(range(30))
     dataset_name = 'celeba'
     
     batch_size = 10
