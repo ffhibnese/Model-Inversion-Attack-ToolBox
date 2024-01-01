@@ -16,6 +16,8 @@ class GMIAttackConfig(BaseAttackConfig):
     iter_times=1500
     clip_range=1
     num_seeds=5
+    
+    
 
 # @dataclass
 # class GmiAttackConfig:

@@ -23,7 +23,7 @@ if __name__ == '__main__':
     
     folder_manager = FolderManager(ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir, defense_type)
     
-    model_name = 'vgg16'
+    model_name = 'efficientnet_b0'
     dataset_name = 'celeba'
     epoch_num = 50
     lr = 0.01

@@ -7,4 +7,4 @@ from .resnet.resnet50_scratch_dag import Resnet50_scratch_dag
 from .efficientnet.efficientnet import EfficientNet_b0, EfficientNet_b1, EfficientNet_b2
 from .inception.incv1 import InceptionResnetV1
 from .get_models import get_model, NUM_CLASSES
-# __all__ = ['ModelResult', 'FaceNet', 'FaceNet64']
+from .base import BaseTargetModel
