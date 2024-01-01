@@ -19,8 +19,8 @@ if __name__ == '__main__':
     # gan dataset name support: celeba, ffhq, facescrub
     gan_dataset_name = 'celeba'
     
-    batch_size = 1
-    target_labels = list(range(1))
+    batch_size = 10
+    target_labels = list(range(100))
     device = 'cuda:0'
     
     config = RLBMIAttackConfig(
