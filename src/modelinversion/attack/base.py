@@ -70,6 +70,8 @@ class BaseAttacker(metaclass=ABCMeta):
         self.E = get_model(config.eval_name, config.dataset_name, device=config.device)
         folder_manager.load_target_model_state_dict(self.E, config.dataset_name, config.eval_name, device=config.device)
         
+        self.T.eval()
+        self.E.eval()
    
     
     def attack(self, batch_size: int, target_labels: list):
