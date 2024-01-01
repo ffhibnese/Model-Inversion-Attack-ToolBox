@@ -53,6 +53,11 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 |[Mirror](./src/modelinversion/attack/Mirror/)|MIRROR: Model Inversion for Deep Learning Network with High Fidelity|[NDSS'2022](https://www.ndss-symposium.org/ndss-paper/auto-draft-203/)|whitebox, blackbox|both gradient-free and gradient-based, genetic algorithm|
 |[PLGMI](./src/modelinversion/attack/PLGMI/)|Pseudo Label-Guided Model Inversion Attack via Conditional Generative Adversarial Network|[AAAI'2023](https://ojs.aaai.org/index.php/AAAI/article/view/25442)|whitebox|pseudo-labels, data augmentation, special loss function|
 |[C2FMI](./src/modelinversion/attack/C2FMI/)|C2FMI: Corse-to-Fine Black-box Model Inversion Attack|[TDSC'2023](https://ieeexplore.ieee.org/abstract/document/10148574)|whitebox, blackbox|gradient-free, two-stage|
+|[Lomma](./src/modelinversion/attack/Lomma/)|Re-Thinking Model Inversion Attacks Against Deep Neural Networks|[CVPR'2023](https://openaccess.thecvf.com/content/CVPR2023/html/Nguyen_Re-Thinking_Model_Inversion_Attacks_Against_Deep_Neural_Networks_CVPR_2023_paper.html)|blackbox|special loss, model augmentation|
+|[RLBMI](./src/modelinversion/attack/RLBMI/)|Reinforcement Learning-Based Black-Box Model Inversion Attacks|[CVPR'2023](https://openaccess.thecvf.com/content/CVPR2023/html/Han_Reinforcement_Learning-Based_Black-Box_Model_Inversion_Attacks_CVPR_2023_paper.html)|blackbox|reinforcement learning|
+
+
+
 
 ## :memo: Model Inversion Defenses
 
