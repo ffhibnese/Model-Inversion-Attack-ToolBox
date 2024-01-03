@@ -34,12 +34,12 @@ target_eval_models_file = {
     }  
 }
 
-DEFENSE_TYPES = [
-    'no_defense',
-    'vib',
-    'bido',
-    'tl'
-]
+# DEFENSE_TYPES = [
+#     'no_defense',
+#     'vib',
+#     'bido',
+#     'tl'
+# ]
 
 class FolderManager:
     """
@@ -54,10 +54,10 @@ class FolderManager:
     
     def __init__(self, attack_ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir=None, defense_type = 'no_defense', **kwargs) -> None:
         
-        if defense_type not in DEFENSE_TYPES:
-            raise RuntimeError(
-                f'your defense type `{defense_type}` is not valid. Valid choices are {str(DEFENSE_TYPES)}'
-            )
+        # if defense_type not in DEFENSE_TYPES:
+        #     raise RuntimeError(
+        #         f'your defense type `{defense_type}` is not valid. Valid choices are {str(DEFENSE_TYPES)}'
+        #     )
 
         self.config = DirnameConfig(attack_ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir)
         
