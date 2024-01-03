@@ -58,13 +58,13 @@ class BrepAttacker(BaseAttacker):
                 T_pred = torch.argmax(T_out, dim=1)
                 
                 for i in range(batch_size):
-                    current_label = T_pred[i]
+                    current_label = T_pred[i].item()
                     if current_label in initial_points or current_label not in target_labels:
                         continue
                     
                     initial_points[current_label] = z[i]
                     
-                current_iter += 1
+                # current_iter += 1
                 if len(initial_points) == num_idens: # or current_iter > config.init_z_max_iter:
                     break
                 
@@ -170,7 +170,7 @@ class BrepAttacker(BaseAttacker):
                 
                 current_z = z_new
                 # eval_res = decision(current_img, E)[0].item()
-                eval_res= torch.argmax(self.E(current_img).reuslt, dim=1)[0].item()
+                eval_res= torch.argmax(self.E(current_img).result, dim=1)[0].item()
                 # print(eval_res)
                 # exit()
                 correct_on_eval = eval_res==label
