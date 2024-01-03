@@ -19,6 +19,8 @@ if __name__ == '__main__':
     # gan dataset name support: celeba, ffhq, facescrub
     gan_dataset_name = 'celeba'
     
+    gan_target_name = 'vgg16'
+    
     batch_size = 60
     target_labels = list(range(120))
     device = 'cuda:0'
@@ -32,7 +34,8 @@ if __name__ == '__main__':
         cache_dir=cache_dir,
         dataset_name=dataset_name,
         device=device,
-        gan_dataset_name=gan_dataset_name
+        gan_dataset_name=gan_dataset_name,
+        gan_target_name=gan_target_name
     )
     
     attacker = KEDMIAttacker(config)

@@ -76,6 +76,8 @@ class BaseAttacker(metaclass=ABCMeta):
     
     def attack(self, batch_size: int, target_labels: list):
         
+        self.batch_size = batch_size
+        self.target_labels = target_labels
         
         self.prepare_attack()
         
