@@ -8,12 +8,13 @@ class GMIAttackConfig(BaseAttackConfig):
     gan_dataset_name: str = 'celeba'
     gen_num_per_target: int = 5
     
+    lr: float = 2e-2
+    iter_times: int = 1500
+    
     # fixed params
     
-    lr=2e-2
     momentum=0.9
     lamda=100
-    iter_times=1500
     clip_range=1
     num_seeds=5
     

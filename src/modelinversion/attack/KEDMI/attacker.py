@@ -13,32 +13,17 @@ from ..base import BaseAttacker
 from .code.generator import Generator
 from .code.discri import MinibatchDiscriminator
 
-def reparameterize(mu, logvar):
-    """
-    Reparameterization trick to sample from N(mu, var) from
-    N(0,1).
-    :param mu: (Tensor) Mean of the latent Gaussian [B x D]
-    :param logvar: (Tensor) Standard deviation of the latent Gaussian [B x D]
-    :return: (Tensor) [B x D]
-    """
-    std = torch.exp(0.5 * logvar)
-    eps = torch.randn_like(std)
 
-    return eps * std + mu
-    
-def log_sum_exp(x, axis=1):
-    m = torch.max(x, dim=1)[0]
-    return m + torch.log(torch.sum(torch.exp(x - m.unsqueeze(1)), dim=axis))
 
 class KEDMIAttacker(BaseAttacker):
     
     def __init__(self, config: KEDMIAttackConfig) -> None:
-        self._tag = f'{config.dataset_name}_{config.target_name}_{config.gan_dataset_name}_{config.gan_target_name}'
         super().__init__(config)
         self.config: KEDMIAttackConfig
         
     def get_tag(self) -> str:
-        return self._tag
+        config = self.config
+        return f'{config.dataset_name}_{config.target_name}_{config.gan_dataset_name}_{config.gan_target_name}'
     
     def prepare_attack(self):
         config = self.config
@@ -58,6 +43,40 @@ class KEDMIAttacker(BaseAttacker):
         
     
         
+    def reparameterize(self, mu, logvar):
+        """
+        Reparameterization trick to sample from N(mu, var) from
+        N(0,1).
+        :param mu: (Tensor) Mean of the latent Gaussian [B x D]
+        :param logvar: (Tensor) Standard deviation of the latent Gaussian [B x D]
+        :return: (Tensor) [B x D]
+        """
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+
+        return eps * std + mu
+        
+    def log_sum_exp(self, x, axis=1):
+        m = torch.max(x, dim=1)[0]
+        return m + torch.log(torch.sum(torch.exp(x - m.unsqueeze(1)), dim=axis))
+    
+    def get_loss(self, fake, iden):
+        # return F.cross_entropy(pred, label)
+        _, D_label = self.D(fake)
+        pred = self.T(fake).result
+        
+        Prior_Loss = torch.mean(F.softplus(self.log_sum_exp(D_label))) - torch.mean(self.log_sum_exp(D_label))
+        # Iden_Loss = criterion(out, iden)
+        Iden_Loss = F.cross_entropy(pred, iden)
+
+        Total_Loss = Prior_Loss + self.config.coef_iden_loss * Iden_Loss
+        
+        return {
+            'total': Total_Loss,
+            'prior': Prior_Loss,
+            'iden': Iden_Loss
+        }
+        
     def attack_step(self, iden) -> dict:
         
         config = self.config
@@ -66,7 +85,7 @@ class KEDMIAttacker(BaseAttacker):
         
         
         iden = iden.view(-1).long().to(device)
-        criterion = nn.CrossEntropyLoss().to(device)
+        # criterion = nn.CrossEntropyLoss().to(device)
         bs = iden.shape[0]
 
         # NOTE
@@ -79,30 +98,21 @@ class KEDMIAttacker(BaseAttacker):
         tf = time.time()
         
         for i in range(config.iter_times):
-            z = reparameterize(mu, log_var).to(device)
+            z = self.reparameterize(mu, log_var).to(device)
             fake = self.G(z)
             
-            _, label = self.D(fake)
-
-            out = self.T(fake).result
-            
-            # for p in params:
-            #     if p.grad is not None:
-            #         p.grad.data.zero_()
             solver.zero_grad()
-            
-            Prior_Loss = torch.mean(F.softplus(log_sum_exp(label))) - torch.mean(log_sum_exp(label))
-            Iden_Loss = criterion(out, iden)
 
-            Total_Loss = Prior_Loss + config.lamda * Iden_Loss
+            losses = self.get_loss(fake, iden) 
+            total_loss = losses['total']
 
-            Total_Loss.backward()
+            total_loss.backward()
             solver.step()
             
             z = torch.clamp(z.detach(), -config.clip_range, config.clip_range).float()
 
-            Prior_Loss_val = Prior_Loss.item()
-            Iden_Loss_val = Iden_Loss.item()
+            Prior_Loss_val = losses['prior'].item()
+            Iden_Loss_val = losses['iden'].item()
 
             if (i + 1) % 300 == 0:
                 with torch.no_grad():
@@ -122,7 +132,7 @@ class KEDMIAttacker(BaseAttacker):
             seed_acc = torch.zeros((bs, 5))
             for random_seed in range(config.gen_num_per_target):
                 tf = time.time()
-                z = reparameterize(mu, log_var).to(device)
+                z = self.reparameterize(mu, log_var).to(device)
                 fake = self.G(z)
                 # score = T(fake).result
                 eval_prob = self.E(fake).result

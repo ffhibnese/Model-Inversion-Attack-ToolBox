@@ -7,7 +7,7 @@ from modelinversion.attack.Lomma.attacker import LommaGMIAttackConfig, LommaGMIA
 from development_config import get_dirs
 
 if __name__ == '__main__':
-    dirs = get_dirs('lommagmi')
+    dirs = get_dirs('lomma_gmi')
     cache_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     
     # target name support: vgg16, ir152, facenet64
@@ -37,11 +37,8 @@ if __name__ == '__main__':
         gan_dataset_name=gan_dataset_name,
         aug_model_dataset_name=aug_model_dataset_name,
         preg_generate_batch_size=batch_size,
-        
+        iter_times = 2400
     )
-    
-    config.iter_times = 2400
-    config.lr = 0.02
     
     attacker = LommaGMIAttacker(config)
     
