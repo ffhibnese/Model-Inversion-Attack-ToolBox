@@ -19,7 +19,7 @@ if __name__ == '__main__':
     
     batch_size = 10
     
-    device = 'cuda:0'
+    device = 'cuda:1'
     
     config = MirrorWhiteboxAttackConfig(
         target_name=target_name,

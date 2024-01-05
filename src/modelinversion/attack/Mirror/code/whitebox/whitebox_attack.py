@@ -117,9 +117,15 @@ def mirror_white_box_attack(
                 all_w_maxs = lrelu(all_p_maxs)
                 all_w_mins_ls.append(all_w_mins)
                 all_w_maxs_ls.append(all_w_maxs)
-            all_w_mins = torch.mean(torch.cat(all_w_mins_ls, dim=0))
-            all_w_maxs = torch.mean(torch.cat(all_w_maxs_ls, dim=0))
-        
+            all_w_mins = torch.mean(torch.cat(all_w_mins_ls, dim=0), dim=0)
+            all_w_maxs = torch.mean(torch.cat(all_w_maxs_ls, dim=0), dim=0)
+            
+        #     print(all_w_mins.shape)
+        #     print((all_w_maxs - all_w_mins).sum(dim=-1).mean())
+        #     exit()
+            
+        # print('maomao')
+        # exit()
         
     else:
         raise NotImplementedError(f'model {args.genforce_name} is not implented')
