@@ -70,7 +70,7 @@ class BaseTrainer(metaclass=ABCMeta):
     def calc_loss(self, inputs, result: ModelResult, labels: torch.LongTensor):
         raise NotImplementedError()
     
-    def calc_acc(self, result: ModelResult, labels: torch.LongTensor):
+    def calc_acc(self, inputs, result: ModelResult, labels: torch.LongTensor):
         res = result.result
         assert res.ndim <= 2
         
@@ -99,7 +99,7 @@ class BaseTrainer(metaclass=ABCMeta):
         result = self.model(inputs)
         
         loss = self.calc_loss(inputs, result, labels)
-        acc = self.calc_acc(result, labels)
+        acc = self.calc_acc(inputs, result, labels)
         self._update_step(loss)
         
         return TrainStepResult(loss.mean().item(), acc.item())
@@ -144,7 +144,7 @@ class BaseTrainer(metaclass=ABCMeta):
         
         result = self.model(inputs)
         
-        acc = self.calc_acc(result, labels)
+        acc = self.calc_acc(inputs, result, labels)
         
         return TestStepResult(acc)
     
