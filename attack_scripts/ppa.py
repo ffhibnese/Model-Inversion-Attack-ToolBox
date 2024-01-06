@@ -10,7 +10,7 @@ from torchvision.transforms import *
 from torchvision.transforms import functional as tvf
 
 if __name__ == '__main__':
-    dirs = get_dirs('plgmi')
+    dirs = get_dirs('ppa')
     cache_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     
     # target name support: vgg16, ir152, facenet64, facenet
