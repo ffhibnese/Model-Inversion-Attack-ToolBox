@@ -2,7 +2,7 @@ import torch
 from dataclasses import dataclass
 import torch.nn.functional as F
 import torchvision.utils as vutils
-from .blackbox_args import MirrorBlackBoxArgs
+# from .blackbox_args import MirrorBlackBoxArgs
 import random
 import glob
 import os
@@ -11,6 +11,7 @@ from ..utils.img_utils import *
 from ...code.select_w import find_closest_latent
 from types import FunctionType
 from .....foldermanager import FolderManager
+from ...config import MirrorBlackboxAttackConfig
 
 @dataclass
 class VectorizedPopulation:
@@ -95,7 +96,7 @@ class VectorizedPopulation:
     #         vutils.save_image(out, os.path.join(file_dir, f'{i}.png'))
         
         
-def init_population(args: MirrorBlackBoxArgs, target_label, target_model, compute_fitness_func, folder_manager: FolderManager):
+def init_population(args: MirrorBlackboxAttackConfig, target_label, target_model, compute_fitness_func, folder_manager: FolderManager):
     
     w_dir = os.path.join(folder_manager.config.presample_dir, 'w')
     
@@ -137,19 +138,19 @@ def init_population(args: MirrorBlackBoxArgs, target_label, target_model, comput
         w = lrelu(p)
         return w
     
-    select_w, conf = find_closest_latent(target_model, args.device, [target_label], k=args.population, arch_name=args.arch_name, presample_dir=folder_manager.config.presample_dir, bs=args.batch_size)
+    select_w, conf = find_closest_latent(target_model, args.device, [target_label], k=args.population, arch_name=args.target_name, presample_dir=folder_manager.config.presample_dir, bs=args.presample_batch_size)
     
     select_w = select_w[target_label].cpu()
     conf = conf[target_label].cpu()
     
-    return VectorizedPopulation(population=select_w, fitness_scores=conf, mutation_prob=args.mutation_prob, mutation_ce=args.mutation_ce, apply_noise_func=apply_noise_func, clip_func=clip_func, compute_fitness_func=compute_fitness_func, bs=args.batch_size, device=args.device)
+    return VectorizedPopulation(population=select_w, fitness_scores=conf, mutation_prob=args.mutation_prob, mutation_ce=args.mutation_ce, apply_noise_func=apply_noise_func, clip_func=clip_func, compute_fitness_func=compute_fitness_func, bs=args.presample_batch_size, device=args.device)
 
 
 from tqdm import tqdm
 import math
 from .....foldermanager import FolderManager
 
-def genetic_alogrithm(args: MirrorBlackBoxArgs, generate_images_func, target_label, target_model, compute_fitness_func, folder_manager: FolderManager):
+def genetic_alogrithm(args: MirrorBlackboxAttackConfig, generate_images_func, target_label, target_model, compute_fitness_func, folder_manager: FolderManager):
     
     population = init_population(args, target_label=target_label, target_model=target_model, compute_fitness_func=compute_fitness_func, folder_manager=folder_manager)
     

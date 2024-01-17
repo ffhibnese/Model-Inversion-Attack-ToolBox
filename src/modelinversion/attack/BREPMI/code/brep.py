@@ -11,16 +11,12 @@ class BrepArgs:
     sphere_points_count : int = 32
     init_sphere_radius : float = 2
     sphere_expansion_coeff : float = 1.3
-    # step_size : float = 0
-    # current_iter : 0
     point_clamp_min : float = -1.5
     point_clamp_max : float = 1.5
     max_iters_at_radius_before_terminate : int = 1000
     z_dim : int = 100
-    # num_targets : int = 300
     batch_dim_for_initial_points : int = 256
     repulsion_only : bool = True
-    # targeted_attack: bool = False
     
 # Sample "#points_count" points around a sphere centered on "current_point" with radius =  "sphere_radius"
 def gen_points_on_sphere(current_point, points_count, sphere_radius, device):

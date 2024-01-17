@@ -53,11 +53,17 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 |[Mirror](./src/modelinversion/attack/Mirror/)|MIRROR: Model Inversion for Deep Learning Network with High Fidelity|[NDSS'2022](https://www.ndss-symposium.org/ndss-paper/auto-draft-203/)|whitebox, blackbox|both gradient-free and gradient-based, genetic algorithm|
 |[PLGMI](./src/modelinversion/attack/PLGMI/)|Pseudo Label-Guided Model Inversion Attack via Conditional Generative Adversarial Network|[AAAI'2023](https://ojs.aaai.org/index.php/AAAI/article/view/25442)|whitebox|pseudo-labels, data augmentation, special loss function|
 |[C2FMI](./src/modelinversion/attack/C2FMI/)|C2FMI: Corse-to-Fine Black-box Model Inversion Attack|[TDSC'2023](https://ieeexplore.ieee.org/abstract/document/10148574)|whitebox, blackbox|gradient-free, two-stage|
+|[Lomma](./src/modelinversion/attack/Lomma/)|Re-Thinking Model Inversion Attacks Against Deep Neural Networks|[CVPR'2023](https://openaccess.thecvf.com/content/CVPR2023/html/Nguyen_Re-Thinking_Model_Inversion_Attacks_Against_Deep_Neural_Networks_CVPR_2023_paper.html)|blackbox|special loss, model augmentation|
+|[RLBMI](./src/modelinversion/attack/RLBMI/)|Reinforcement Learning-Based Black-Box Model Inversion Attacks|[CVPR'2023](https://openaccess.thecvf.com/content/CVPR2023/html/Han_Reinforcement_Learning-Based_Black-Box_Model_Inversion_Attacks_CVPR_2023_paper.html)|blackbox|reinforcement learning|
+
+
+
 
 ## :memo: Model Inversion Defenses
 
 |Method|Paper|Publication|Key Characteristics|
 |:-:|:-:|:-:|:-:|
+|[DPSGD](./src/modelinversion/defense/DP/)|Deep Learning with Differential Privacy|[CCS'2016](https://dl.acm.org/doi/abs/10.1145/2976749.2978318)|add noise on gradient|
 |[ViB / MID](./src/modelinversion/defense/Vib/)|Improving Robustness to Model Inversion Attacks via Mutual Information Regularization|[AAAI'2021](https://ojs.aaai.org/index.php/AAAI/article/view/17387)| variational method, mutual information, special loss function|
 |[BiDO](./src/modelinversion/defense/BiDO/)|Bilateral Dependency Optimization: Defending Against Model-inversion Attacks|[KDD'2022](https://dl.acm.org/doi/abs/10.1145/3534678.3539376)|special loss function|
 |[TL](./src/modelinversion/defense/TL/)|Model Inversion Robustness: Can Transfer Learning Help?|[-](https://openreview.net/forum?id=nW0sCc3LLN&nesting=2&sort=date-desc)|transfer learning|

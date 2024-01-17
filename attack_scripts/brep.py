@@ -3,14 +3,12 @@ sys.path.append('.')
 sys.path.append('./src')
 sys.path.append('./src/modelinversion')
 
-from modelinversion.attack.BREPMI.attack import attack as brep_Attack
-# from modelinversion.attack.PLGMI.reconstruct import plgmi_attack
-from modelinversion.attack.BREPMI.config import BrepAttackConfig
+from modelinversion.attack.BREPMI.attacker import BrepAttackConfig, BrepAttacker
 from development_config import get_dirs
 
 if __name__ == '__main__':
     dirs = get_dirs('brep')
-    work_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
+    cache_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     
     # target name support: vgg16, ir152, facenet64, facenet
     target_name = 'facenet64'
@@ -30,16 +28,18 @@ if __name__ == '__main__':
     config = BrepAttackConfig(
         target_name=target_name,
         eval_name=eval_name,
-        gan_target_name=gan_target_name,
         ckpt_dir=ckpt_dir,
         result_dir=result_dir,
-        dataset_name=dataset_name,
         dataset_dir=dataset_dir,
-        cache_dir=work_dir,
-        gan_dataset_name=gan_dataset_name,
-        target_labels=target_labels,
+        cache_dir=cache_dir,
+        dataset_name=dataset_name,
         device=device,
-        batch_size=batch_size
+        gan_dataset_name=gan_dataset_name,
+        gan_target_name=gan_target_name
     )
     
-    brep_Attack(config)
+    attacker = BrepAttacker(config)
+    
+    attacker.attack(batch_size, target_labels)
+    
+    attacker.evaluation(batch_size, knn=True, feature_distance=True, fid=False)

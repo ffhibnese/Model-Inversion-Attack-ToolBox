@@ -1,49 +1,43 @@
-from dataclasses import dataclass, field
 
-import torch
+from ..base import BaseAttacker
+from .code.reconstruct import inversion
+from .config import PLGMIAttackConfig
+from ...foldermanager import FolderManager
+from .code.models.generators.resnet64 import ResNetGenerator
+from ...models import *
 
-from ..base import BaseAttacker, BaseAttackConfig, BaseAttackArgs
-
-@dataclass
-class PLGMIAttackConfig(BaseAttackConfig):
-    
-    # gan config
-    gan_target_name: str = 'vgg16'
-    gan_dataset_name: str = 'celeba'
-    
-    # attack config
-    inv_loss_type: str = 'margin'
-    lr: float = 0.1
-    iter_times: int = 600
-    gen_distribution: str = 'normal'
-    
-@dataclass
-class PLGMIAttackArgs(BaseAttackArgs):
-    inv_loss_type: str = 'margin'
-    lr: float = 0.1
-    iter_times: int = 600
-    gen_num_features: int = 64
-    gen_dim_z: int = 128
-    gen_bottom_width: int = 4
-    gen_distribution: str = 'normal'
 
 
 class PLGMIAttacker(BaseAttacker):
     
-    def __init__(self, config: BaseAttackConfig) -> None:
+    def __init__(self, config: PLGMIAttackConfig) -> None:
+        self._tag = f'{config.dataset_name}_{config.target_name}_{config.gan_dataset_name}_{config.gan_target_name}'
         super().__init__(config)
+        self.config: PLGMIAttackConfig
         
-    def parse_config(self, config: PLGMIAttackConfig) -> PLGMIAttackArgs:
-        return PLGMIAttackArgs(
-            taregt_name=config.target_name,
-            eval_name=config.eval_name,
-            device=config.device,
-            inv_loss_type=config.inv_loss_type,
-            lr=config.lr,
-            iter_times=config.iter_times,
-            gen_distribution=config.gen_distribution
+    def get_tag(self) -> str:
+        return self._tag
+        
+    def prepare_attack(self):
+        config: PLGMIAttackConfig = self.config
+        self.G = ResNetGenerator(num_classes=NUM_CLASSES[config.dataset_name], distribution=config.gen_distribution).to(self.config.device)
+        
+        self.folder_manager.load_state_dict(
+            self.G, 
+            ['PLGMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_PLG_MI_G.tar'], 
+            device=config.device
         )
         
-    # def prepare_attack_models(self):
+    def attack_step(self, iden):
+        acc, acc_5, acc_var, acc_var5 = inversion(
+            self.config, self.G, self.T, self.E, iden, self.folder_manager, 
+            self.config.lr, self.config.iter_times, 5
+        )
         
+        return {
+            'acc': acc,
+            'acc5': acc_5,
+            'acc_var': acc_var,
+            'acc5_var': acc_var5
+        }
         

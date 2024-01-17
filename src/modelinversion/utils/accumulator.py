@@ -1,3 +1,4 @@
+from collections import defaultdict
 
 import torch
 
@@ -41,3 +42,33 @@ class Accumulator:
             return [d / num for d in self.data]
         else:
             return self.data[idx] / num
+        
+        
+class DictAccumulator:
+    def __init__(self) -> None:
+        self.data = defaultdict(lambda : 0)
+        self.num = 0
+        
+    def reset(self):
+        """reset all data to 0
+        """
+        self.data = defaultdict(lambda : 0)
+        self.num = 0
+        
+    def add(self, add_dic: dict):
+        self.num += 1
+        for key, val in add_dic.items():
+            if isinstance(val, torch.Tensor):
+                val = val.item()
+            self.data[key] += val
+        
+    def __getitem__(self, key):
+        return self.data[key]
+    
+    def avg(self, key = None):
+        num = 1 if self.num == 0 else self.num
+        if key is None:
+            # return [d / num for d in self.data]
+            return {k: (v / num) for k, v in self.data.items()}
+        else:
+            return self.data[key] / num
