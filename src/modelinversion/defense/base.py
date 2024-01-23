@@ -187,6 +187,9 @@ class BaseTrainer(metaclass=ABCMeta):
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
                 
+            if epoch % 10 == 9:
+                self.save_state_dict()
+                
         self.save_state_dict()
 
 

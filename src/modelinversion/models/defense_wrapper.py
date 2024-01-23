@@ -27,6 +27,7 @@ class TorchVisionModelWrapper(BaseTargetModel):
                 if num_classes != m.weight.shape[0]:
                     self.fc_layer = nn.Linear(self.feat_dim, num_classes)
                 break
+            
     def get_feature_dim(self) -> int:
         return self.feat_dim
     
@@ -36,10 +37,10 @@ class TorchVisionModelWrapper(BaseTargetModel):
             x = resize(x, [self.resolution, self.resolution])
             
         res = self.model(x)
-        feature = self.hook.get_feature()[0]
+        feature = self.hook.get_feature()[-1]
         if self.fc_layer is not None:
-            
             res = self.fc_layer(feature)
+            
         return  ModelResult(res, [feature])
 
 # class TorchVisionModelWrapper(BaseTargetModel):

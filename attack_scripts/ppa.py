@@ -9,22 +9,23 @@ from development_config import get_dirs
 from torchvision.transforms import *
 from torchvision.transforms import functional as tvf
 
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+
 if __name__ == '__main__':
     dirs = get_dirs('ppa')
     cache_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     
     # target name support: vgg16, ir152, facenet64, facenet
-    target_name = 'densenet169'
+    target_name = 'resnet152'
     # eval name support: vgg16, ir152, facenet64, facenet
     eval_name = 'inception_v3'
-    # gan target name support: vgg16
-    gan_target_name = 'vgg16'
     # dataset name support: celeba
-    dataset_name = 'celeba'
+    dataset_name = 'hdceleba'
     
     batch_size = 5
-    target_labels = [1] # list(range(1))
-    device = 'cuda:0'
+    target_labels = [4,5,6,7,8,9] # list(range(1))
+    device = 'cuda'
     
     def init_transform(img):
         img = tvf.center_crop(img, (800, 800))
@@ -66,7 +67,8 @@ if __name__ == '__main__':
         init_select_transform=init_transform,
         attack_transform=attack_transform,
         to_result_transform=to_result_transform,
-        final_select_transform=fianl_selection_transform
+        final_select_transform=fianl_selection_transform,
+        num_epochs=200
     )
     
     
