@@ -25,6 +25,7 @@ class PPAAttackConfig(BaseAttackConfig):
     
     stylegan_resp_dir: str = '.'
     stylegan_file_path: str = 'ffhq.pkl'
+    stylegan_dataset: str = 'ffhq'
     num_candidate: int = 200
     
     init_select_batch_size: int = 25
@@ -47,6 +48,7 @@ class PPAAttackConfig(BaseAttackConfig):
     init_select_transform: Callable = None
     attack_transform: Compose = None
     to_result_transform: Compose = None
+    to_eval_transform: Compose = None
     final_select_transform: Compose = None
 
 # TODO; clip images, discri, add clip in transform
@@ -58,7 +60,7 @@ class PPAAttacker(BaseSingleLabelAttacker):
         self.config: PPAAttackConfig
         
     def get_tag(self) -> str:
-        return f'{self.config.dataset_name}_{self.config.target_name}'
+        return f'{self.config.stylegan_dataset}_{self.config.dataset_name}_{self.config.target_name}'
         
     def prepare_attack(self):
         config: PPAAttackConfig = self.config
@@ -255,18 +257,23 @@ class PPAAttacker(BaseSingleLabelAttacker):
         
         with torch.no_grad():
             scores = []
-            imgs = []
+            T_imgs = []
+            E_imgs = []
             
             unfilter_accumulator = DictAccumulator()
             
             for w_batch_optimized in w_optimized:
                 w_batch_optimized = w_batch_optimized.to(config.device)
                 imgs_batch = self.synthesize(w_batch_optimized, self.num_ws)
+                T_imgs_batch = imgs_batch
+                E_imgs_batch = imgs_batch
                 if self.config.to_result_transform is not None:
-                    imgs_batch = self.config.to_result_transform(imgs_batch)
+                    T_imgs_batch = self.config.to_result_transform(imgs_batch)
+                if self.config.to_eval_transform is not None:
+                    E_imgs_batch = self.config.to_eval_transform(imgs_batch)
                     
-                T_acc_batch, T_acc5_batch = self._calc_acc(imgs_batch, target, self.T)
-                E_acc_batch, E_acc5_batch = self._calc_acc(imgs_batch, target, self.E)
+                T_acc_batch, T_acc5_batch = self._calc_acc(T_imgs_batch, target, self.T)
+                E_acc_batch, E_acc5_batch = self._calc_acc(E_imgs_batch, target, self.E)
                 unfilter_accumulator.add({
                     'target acc': T_acc_batch,
                     'target acc5': T_acc5_batch,
@@ -275,7 +282,8 @@ class PPAAttacker(BaseSingleLabelAttacker):
                 }, add_num=len(imgs_batch))
                 
                 
-                imgs.append(imgs_batch.cpu())
+                T_imgs.append(T_imgs_batch.cpu())
+                E_imgs.append(E_imgs_batch.cpu())
                 scores_batch = 0
                 for i in tqdm(range(config.final_select_iters)):
                     # scores += self._generate_label_scores(imgs_batch, target, self.T, config.final_select_transform)
@@ -285,26 +293,28 @@ class PPAAttacker(BaseSingleLabelAttacker):
                 scores.append(scores_batch)
                 
             w_optimized = torch.cat(w_optimized, dim=0)
-            imgs = torch.cat(imgs, dim=0)
+            T_imgs = torch.cat(T_imgs, dim=0)
+            E_imgs = torch.cat(E_imgs, dim=0)
             scores = torch.cat(scores, dim=0)
             
             top_scores, top_indice = torch.topk(scores, k=config.samples_per_targets, dim=-1)
             top_ws = w_optimized[top_indice]
-            top_imgs = imgs[top_indice]
+            top_T_imgs = T_imgs[top_indice]
+            top_E_imgs = E_imgs[top_indice]
             
             safe_save(top_ws, os.path.join(self.folder_manager.config.result_dir, 'final_w'), f'{target}.pt')
-            self.folder_manager.save_result_images(top_imgs, target)
+            self.folder_manager.save_result_images(top_E_imgs, target)
             
-            T_acc, T_acc5 = self._calc_acc(top_imgs, target, self.T)
-            E_acc, E_acc5 = self._calc_acc(top_imgs, target, self.E)
+            T_acc, T_acc5 = self._calc_acc(top_T_imgs, target, self.T)
+            E_acc, E_acc5 = self._calc_acc(top_E_imgs, target, self.E)
                 
             print(f'>> label {target}')
             print('unfiltered')
             for k, v in unfilter_accumulator.avg().items():
                 print(f'{k}: {v}')
             print('Filtered:')
-            print(f'target acc: {T_acc} \n target acc5: {T_acc5}')
-            print(f'eval acc: {E_acc} \n eval acc5: {E_acc5}')
+            print(f'target acc: {T_acc} \ntarget acc5: {T_acc5}')
+            print(f'eval acc: {E_acc} \neval acc5: {E_acc5}')
                 
         return {
             'acc': E_acc,

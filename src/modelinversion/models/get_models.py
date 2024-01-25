@@ -24,6 +24,8 @@ def get_model(model_name: str, dataset_name: str, device='cpu', backbone_pretrai
         num_classes = 1000
     elif dataset_name == 'vggface2':
         num_classes = 8631
+    elif dataset_name == 'facescrub':
+        num_classes = 530
     elif dataset_name == 'imagenet':
         return tv_models.__dict__[model_name](pretrained=True)
     else:

@@ -2,6 +2,7 @@
 import torch
 from dataclasses import dataclass
 import os
+import time
 from torchvision.utils import save_image
 from torch import nn
 from torch.nn import Module
@@ -67,7 +68,8 @@ class FolderManager:
             if v is not None:
                 os.makedirs(v, exist_ok=True)
         
-        log_filename = os.path.join(result_dir, f'{defense_type}.log')
+        now_time = time.strftime('%Y%m%d_%H%M', time.localtime(time.time()))
+        log_filename = os.path.join(result_dir, f'{defense_type}_{now_time}.log')
         print (f'log file is placed in {log_filename}')
         self.__tee = Tee(log_filename, 'w')
             

@@ -42,6 +42,10 @@ class BaseAttacker(metaclass=ABCMeta):
         
         self.prepare_classifiers()
         
+        print('--------------- config --------------')
+        print(config)
+        print('-------------------------------------')
+        
     def register_dirs(self, dirs: dict):
         for k, v in dirs.items():
             os.makedirs(v, exist_ok=True)
