@@ -10,6 +10,7 @@ from .efficientnet.efficientnet import *
 
 NUM_CLASSES = {
     'celeba': 1000,
+    'hdceleba': 1000,
     'vggface2': 8631
 }
 
@@ -19,10 +20,12 @@ def get_model(model_name: str, dataset_name: str, device='cpu', backbone_pretrai
     model_name = model_name.lower()
     dataset_name = dataset_name.lower()
 
-    if dataset_name == 'celeba':
+    if dataset_name in ['celeba', 'hdceleba']:
         num_classes = 1000
     elif dataset_name == 'vggface2':
         num_classes = 8631
+    elif dataset_name == 'facescrub':
+        num_classes = 530
     elif dataset_name == 'imagenet':
         return tv_models.__dict__[model_name](pretrained=True)
     else:
@@ -41,18 +44,6 @@ def get_model(model_name: str, dataset_name: str, device='cpu', backbone_pretrai
         model = Resnet50_scratch_dag(num_classes)
     elif model_name == 'inception_resnetv1':
         model = InceptionResnetV1(num_classes)
-    # elif model_name == 'vit':
-    #     model = model = ViT(
-    #         image_size=64, 
-    #         patch_size=8,
-    #         num_classes=num_classes,
-    #         dim=64,
-    #         depth=5,
-    #         heads=4,
-    #         mlp_dim=128,
-    #         dropout=0.1,
-    #         emb_dropout=0.1
-    #     )
     elif model_name.startswith('efficientnet'):
         suffix = model_name[-2:]
         if suffix == 'b0':
@@ -71,7 +62,6 @@ def get_model(model_name: str, dataset_name: str, device='cpu', backbone_pretrai
         except:
             raise RuntimeError(f'model {model_name} is NOT supported')
             
-        
     
     if defense_type.lower() in ['mid', 'vib']:
         model = VibWrapper(model, model.get_feature_dim(), num_classes)

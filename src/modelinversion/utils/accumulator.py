@@ -8,15 +8,16 @@ class Accumulator:
         self.data = [0] * n
         self.num = 0
 
-    def add(self, *args):
+    def add(self, *args, add_num=1, add_type='mean'):
         """adding data to the data list
         """
         assert len(args) == len(self.data)
-        self.num += 1
+        mul_coef = add_num if add_type == 'mean' else 1
+        self.num += add_num
         for i, add_item in enumerate(args):
             if isinstance(add_item, torch.Tensor):
                 add_item = add_item.item()
-            self.data[i] += add_item
+            self.data[i] += add_item * mul_coef
         
 
     def reset(self):
@@ -55,12 +56,13 @@ class DictAccumulator:
         self.data = defaultdict(lambda : 0)
         self.num = 0
         
-    def add(self, add_dic: dict):
-        self.num += 1
+    def add(self, add_dic: dict, add_num=1, add_type='mean'):
+        mul_coef = add_num if add_type == 'mean' else 1
+        self.num += add_num
         for key, val in add_dic.items():
             if isinstance(val, torch.Tensor):
                 val = val.item()
-            self.data[key] += val
+            self.data[key] += val * mul_coef
         
     def __getitem__(self, key):
         return self.data[key]

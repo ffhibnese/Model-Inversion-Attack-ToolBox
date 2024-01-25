@@ -42,6 +42,10 @@ class BaseAttacker(metaclass=ABCMeta):
         
         self.prepare_classifiers()
         
+        print('--------------- config --------------')
+        print(config)
+        print('-------------------------------------')
+        
     def register_dirs(self, dirs: dict):
         for k, v in dirs.items():
             os.makedirs(v, exist_ok=True)
@@ -122,3 +126,38 @@ class BaseAttacker(metaclass=ABCMeta):
             metric: BaseMetric
             print(f'calculate {metric.get_metric_name()}')
             metric.evaluation(self.config.dataset_name, batch_size, transform)
+            
+class BaseSingleLabelAttacker(BaseAttacker):
+
+    def __init__(self, config: BaseAttackConfig) -> None:
+        super().__init__(config)
+        
+    def attack_step(self, target) -> dict:
+        return super().attack_step(target)
+        
+    def attack(self, batch_size: int, target_labels: list):
+    
+        self.batch_size = batch_size
+        self.target_labels = target_labels
+        
+        self.prepare_attack()
+        
+        config = self.config
+        
+        print("=> Begin attacking ...")
+        
+        total_num = len(target_labels)
+        
+        accumulator = DictAccumulator()
+        
+        if total_num > 0:
+            for target in target_labels:
+                print(f"--------------------- Attack label [{target}]------------------------------")
+                
+                update_dict = self.attack_step(target)
+                
+                
+                accumulator.add(update_dict)
+                
+            for key, val in accumulator.avg().items():
+                print(f'average {key}: {val:.6f}')
