@@ -1,0 +1,3 @@
+*.py eol=lf
+*.txt eol=lf
+*.yaml eol=lf
