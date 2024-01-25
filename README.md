@@ -22,8 +22,10 @@ Also, you are always welcome to contribute and make this repository better!
 
 ### :construction: MIA v2.0 is coming soon
 We are already in the second development stage where the following updates will be implemented soon.
+- More recently emerging attacks
 - Representative defense algorithms
-- Able to train your own generative model
+- MI attacks on graph and language modalities
+- Able to train your generative model
 - Better refactor code with `trainer`
 - A package that can be installed with pip
 

@@ -39,8 +39,8 @@ class TorchVisionModelWrapper(BaseTargetModel):
     
     def forward(self, x):
         
-        if x.shape[-1] != self.resolution or x.shape[-2] != self.resolution:
-            x = resize(x, [self.resolution, self.resolution])
+#         if x.shape[-1] != self.resolution or x.shape[-2] != self.resolution:
+#             x = resize(x, [self.resolution, self.resolution])
             
         res = self.model(x)
         feature = self.hook.get_feature()[-1]
