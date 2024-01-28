@@ -1,13 +1,17 @@
 import os
 from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
 from dataclasses import dataclass, field
 
 import torch
+from tqdm import tqdm
+import yaml
 
 from ..models import *
 from ..foldermanager import FolderManager
 from ..metrics.base import *
-from ..utils import DictAccumulator
+from ..utils import DictAccumulator, Accumulator
+from ..enums import TqdmStrategy
 
 @dataclass
 class BaseAttackConfig:
@@ -161,3 +165,124 @@ class BaseSingleLabelAttacker(BaseAttacker):
                 
             for key, val in accumulator.avg().items():
                 print(f'average {key}: {val:.6f}')
+
+@dataclass
+class BaseGANTrainArgs:
+
+    dataset_name: str
+    batch_size: int
+    epoch_num: int
+    
+    dis_gen_update_rate: int = 5
+    tqdm_strategy: TqdmStrategy = TqdmStrategy.ITER
+    defense_type: str = 'no_defense'
+    device: str = 'cpu'
+    
+
+class BaseGANTrainer(metaclass=ABCMeta):
+    
+    def __init__(self, args: BaseGANTrainArgs, folder_manager: FolderManager, **kwargs) -> None:
+        self.args = args
+        self.folder_manager = folder_manager
+        
+        self.method_name = self.get_method_name()
+        self.tag = self.get_tag()
+        
+    @abstractmethod
+    def get_method_name(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def get_tag(self) -> str:
+        raise NotImplementedError()
+        
+    @abstractmethod
+    def prepare_training(self):
+        # raise NotImplementedError()
+        self.G = None
+        self.D = None
+
+    def before_train(self):
+        pass
+    
+    def after_train(self):
+        pass
+    
+    def before_gen_train_step(self):
+        # self.model.train()
+        self.G.train()
+        self.D.eval()
+        
+    def before_dis_train_step(self):
+        self.G.eval()
+        self.D.train()
+        
+    @abstractmethod
+    def get_trainloader(self) -> DataLoader:
+        raise NotImplementedError()
+        
+    @abstractmethod
+    def train_gen_step(self, batch) -> dict:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def train_dis_step(self, batch) -> dict:
+        raise NotImplementedError()
+    
+    def save_state_dict(self):
+        self.folder_manager.save_state_dict(self.G, [self.method_name, f'{self.tag}_G.pt'], self.args.defense_type)
+        self.folder_manager.save_state_dict(self.D, [self.method_name, f'{self.tag}_D.pt'], self.args.defense_type)
+    
+    def loss_update(self, loss, optimizer):
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        
+    def _train_loop(self, dataloader: DataLoader, epoch):
+        self.before_train()
+        
+        gen_accumulator = DictAccumulator()
+        dis_accumulator = DictAccumulator()
+        
+        for iter_time, batch in enumerate(dataloader, start=1):
+            # print(f'len batch: {len(batch)}')
+            self.before_dis_train_step()
+            dis_ret = self.train_dis_step(batch)
+            dis_accumulator.add(dis_ret)
+            
+            if iter_time % self.args.dis_gen_update_rate == 0:
+                self.before_gen_train_step()
+                gen_ret = self.train_gen_step(batch)
+                gen_accumulator.add(gen_ret)
+                
+        gen_avg = gen_accumulator.avg()
+        dis_avg = dis_accumulator.avg()
+        # print_context = {
+        #     'epoch': epoch,
+        #     'generator': gen_avg,
+        #     'discriminator': dis_avg
+        # }
+        print_context = OrderedDict(
+            epoch = epoch,
+            generator = gen_avg,
+            discriminator = dis_avg
+        )
+        print(yaml.dump(print_context))
+        
+    def train(self):
+        
+        self.prepare_training()
+        
+        trainloader = self.get_trainloader()
+        
+        epochs = range(self.args.epoch_num)
+        if self.args.tqdm_strategy == TqdmStrategy.EPOCH:
+            epochs = tqdm(epochs)
+            
+        for epoch in epochs:
+            if self.args.tqdm_strategy == TqdmStrategy.ITER:
+                trainloader = tqdm(trainloader)
+            
+            self._train_loop(trainloader, epoch)
+            
+        self.save_state_dict()

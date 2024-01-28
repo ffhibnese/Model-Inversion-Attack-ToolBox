@@ -19,11 +19,8 @@ from ..models import ModelResult, get_model
 from ..models.base import BaseTargetModel
 from ..utils import Accumulator
 from ..foldermanager import FolderManager
+from ..enums import TqdmStrategy
 
-class TqdmStrategy(Enum):
-    NONE = 'none'
-    EPOCH = 'epoch'
-    ITER = 'iter'
     
 @dataclass
 class TrainStepResult:
