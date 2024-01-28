@@ -1,5 +1,6 @@
 import os
 from abc import abstractmethod, ABCMeta
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
@@ -17,20 +18,20 @@ from tqdm import tqdm
 
 from ..models import ModelResult, get_model
 from ..models.base import BaseTargetModel
-from ..utils import Accumulator
+from ..utils import DictAccumulator, print_as_yaml
 from ..foldermanager import FolderManager
 from ..enums import TqdmStrategy
 
     
-@dataclass
-class TrainStepResult:
-    loss: float
-    acc: float
+# @dataclass
+# class TrainStepResult:
+#     loss: float
+#     acc: float
     
     
-@dataclass
-class TestStepResult:
-    acc: float
+# @dataclass
+# class TestStepResult:
+#     acc: float
     
 
 @dataclass
@@ -61,6 +62,16 @@ class BaseTrainer(metaclass=ABCMeta):
         self.lr_scheduler = lr_scheduler
         self.folder_manager = folder_manager
         
+        self._epoch = 0
+        self._iteration = 0
+        
+    @property
+    def epoch(self):
+        return self._epoch
+    
+    @property
+    def iteration(self):
+        return self._iteration    
             
         
     @abstractmethod
@@ -89,8 +100,8 @@ class BaseTrainer(metaclass=ABCMeta):
         
         return imgs, labels
         
-    def _train_step(self, inputs, labels) -> TrainStepResult:
-        # self.model.train()
+    def _train_step(self, inputs, labels) -> OrderedDict:
+
         self.before_train_step()
         
         result = self.model(inputs)
@@ -99,7 +110,10 @@ class BaseTrainer(metaclass=ABCMeta):
         acc = self.calc_acc(inputs, result, labels)
         self._update_step(loss)
         
-        return TrainStepResult(loss.mean().item(), acc.item())
+        return OrderedDict(
+            loss = loss,
+            acc = acc
+        )
         
     def before_train(self):
         pass
@@ -118,17 +132,15 @@ class BaseTrainer(metaclass=ABCMeta):
         
         self.before_train()
             
-        # self.model.train()
-        accumulator = Accumulator(2)
+        accumulator = DictAccumulator()
             
-        iter_times = 0
+        # iter_times = 0
         for i, batch in enumerate(dataloader):
-            iter_times += 1
+            self._iteration = i
+            # iter_times += 1
             inputs, labels = self.prepare_input_label(batch)
             step_res = self._train_step(inputs, labels)
-            loss = step_res.loss
-            acc = step_res.acc
-            accumulator.add(loss, acc)
+            accumulator.add(step_res)
             
         self.after_train()
             
@@ -143,21 +155,19 @@ class BaseTrainer(metaclass=ABCMeta):
         
         acc = self.calc_acc(inputs, result, labels)
         
-        return TestStepResult(acc)
+        return OrderedDict(acc = acc)
     
     @torch.no_grad()
     def _test_loop(self, dataloader: DataLoader):
         
         
-        accumulator = Accumulator(1)
+        accumulator = DictAccumulator()
             
-        iter_times = 0
         for i, batch in enumerate(dataloader):
-            iter_times += 1
+            self._iteration = i
             inputs, labels = self.prepare_input_label(batch)
             step_res = self._test_step(inputs, labels)
-            acc = step_res.acc
-            accumulator.add(acc)
+            accumulator.add(step_res)
             
         return accumulator.avg()
             
@@ -170,15 +180,18 @@ class BaseTrainer(metaclass=ABCMeta):
         for epoch in epochs:
             if self.args.tqdm_strategy == TqdmStrategy.ITER:
                 trainloader = tqdm(trainloader)
-                    
             
-            loss, acc = self._train_loop(trainloader)
-            print(f'epoch {epoch}\t train loss: {loss:.6f}\t train acc: {acc:.6f}')
+            self._epoch = epoch
+            
+            train_res = self._train_loop(trainloader)
+            print_as_yaml({'epoch': epoch})
+            print_as_yaml({'train': train_res})
+            
             if testloader is not None:
                 if self.args.tqdm_strategy == TqdmStrategy.ITER:
                     testloader = tqdm(testloader)
-                test_acc, = self._test_loop(testloader)
-                print(f'epoch {epoch}\t test acc: {test_acc:.6f}')
+                test_res = self._test_loop(testloader)
+                print_as_yaml({'test': test_res})
             
             
             if self.lr_scheduler is not None:
