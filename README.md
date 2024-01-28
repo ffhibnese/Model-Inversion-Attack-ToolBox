@@ -10,6 +10,7 @@
 [Hao Fang*](https://github.com/ffhibnese),
 [Wenbo Yu](https://github.com/cswbyu),
 [Bin Chen#](https://github.com/BinChen2021),
+[Xuan Wang](https://faculty.hitsz.edu.cn/wangxuan),
 [Shu-Tao Xia](https://www.sigs.tsinghua.edu.cn/xst/main.htm)
 
 Welcome to **MIA**! This repository is a comprehensive open-source Python benchmark for model inversion attacks, which is well-organized and easy to get started. It includes uniform implementations of advanced and representative model inversion methods, formulating a unified and reliable framework for a convenient and fair comparison between different model inversion methods.
