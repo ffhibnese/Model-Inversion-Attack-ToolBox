@@ -74,7 +74,7 @@ class DictAccumulator:
         num = 1 if self.num == 0 else self.num
         if key is None:
             res = copy.deepcopy(self.data)
-            for k in num:
+            for k in self.data:
                 res[k] /= num
             return res
         else:
