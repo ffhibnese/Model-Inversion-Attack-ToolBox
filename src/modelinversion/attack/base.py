@@ -201,6 +201,18 @@ class BaseGANTrainer(metaclass=ABCMeta):
         # raise NotImplementedError()
         self.G = None
         self.D = None
+        
+    @abstractmethod
+    def get_trainloader(self) -> DataLoader:
+        raise NotImplementedError()
+        
+    @abstractmethod
+    def train_gen_step(self, batch) -> OrderedDict:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def train_dis_step(self, batch) -> OrderedDict:
+        raise NotImplementedError()
 
     def before_train(self):
         pass
@@ -211,23 +223,13 @@ class BaseGANTrainer(metaclass=ABCMeta):
     def before_gen_train_step(self):
         # self.model.train()
         self.G.train()
-        self.D.eval()
+        # self.D.eval()
         
     def before_dis_train_step(self):
-        self.G.eval()
+        # self.G.eval()
         self.D.train()
         
-    @abstractmethod
-    def get_trainloader(self) -> DataLoader:
-        raise NotImplementedError()
-        
-    @abstractmethod
-    def train_gen_step(self, batch) -> dict:
-        raise NotImplementedError()
     
-    @abstractmethod
-    def train_dis_step(self, batch) -> dict:
-        raise NotImplementedError()
     
     def save_state_dict(self):
         self.folder_manager.save_state_dict(self.G, [self.method_name, f'{self.tag}_G.pt'], self.args.defense_type)

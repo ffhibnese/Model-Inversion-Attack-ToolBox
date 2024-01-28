@@ -88,8 +88,8 @@ class PlgmiGANTrainer(BaseGANTrainer):
         self.folder_manager.load_target_model_state_dict(self.T, args.dataset_name, args.target_name, device=args.device, defense_type=args.defense_type)
         self.T.eval()
         
-        self.folder_manager.load_state_dict(self.G, [self.method_name, f'{self.tag}_G.pt'], self.args.device, self.args.defense_type)
-        self.folder_manager.load_state_dict(self.D, [self.method_name, f'{self.tag}_D.pt'], self.args.device, self.args.defense_type)
+        # self.folder_manager.load_state_dict(self.G, [self.method_name, f'{self.tag}_G.pt'], self.args.device, self.args.defense_type)
+        # self.folder_manager.load_state_dict(self.D, [self.method_name, f'{self.tag}_D.pt'], self.args.device, self.args.defense_type)
         
         self.optim_G = torch.optim.Adam(self.G.parameters(), args.lr, (args.beta1, args.beta2))
         self.optim_D = torch.optim.Adam(self.D.parameters(), args.lr, (args.beta1, args.beta2))
