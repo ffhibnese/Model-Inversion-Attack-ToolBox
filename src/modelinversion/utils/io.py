@@ -28,5 +28,4 @@ def print_as_yaml(obj, stdout=True, file=None, mode='w'):
     if file:
         with open(file, mode) as f:
             f.write(s)
-            f.write('\n')
     
