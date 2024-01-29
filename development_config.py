@@ -1,10 +1,12 @@
 import os
 
-work_root_dir = './cache'
-result_root_dir = './results'
-ckpt_dir = './checkpoints'
-dataset_dir = './dataset'
-defense_ckpt_dir = './checkpoints_defense'
+root_dir = '.'
+
+work_root_dir = f'{root_dir}/cache'
+result_root_dir = f'{root_dir}/results'
+ckpt_dir = f'{root_dir}/checkpoints'
+dataset_dir = f'{root_dir}/dataset'
+defense_ckpt_dir = f'{root_dir}/checkpoints_defense'
 
 def get_dirs(method_name):
     work_dir = os.path.join(work_root_dir, method_name)

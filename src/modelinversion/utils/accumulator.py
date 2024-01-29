@@ -1,4 +1,5 @@
-from collections import defaultdict
+import copy
+from collections import defaultdict, OrderedDict
 
 import torch
 
@@ -47,21 +48,23 @@ class Accumulator:
         
 class DictAccumulator:
     def __init__(self) -> None:
-        self.data = defaultdict(lambda : 0)
+        self.data = OrderedDict() # defaultdict(lambda : 0)
         self.num = 0
         
     def reset(self):
         """reset all data to 0
         """
-        self.data = defaultdict(lambda : 0)
+        self.data = OrderedDict() # defaultdict(lambda : 0)
         self.num = 0
         
-    def add(self, add_dic: dict, add_num=1, add_type='mean'):
+    def add(self, add_dic: OrderedDict, add_num=1, add_type='mean'):
         mul_coef = add_num if add_type == 'mean' else 1
         self.num += add_num
         for key, val in add_dic.items():
             if isinstance(val, torch.Tensor):
                 val = val.item()
+            if key not in self.data.keys():
+                self.data[key] = 0
             self.data[key] += val * mul_coef
         
     def __getitem__(self, key):
@@ -70,7 +73,9 @@ class DictAccumulator:
     def avg(self, key = None):
         num = 1 if self.num == 0 else self.num
         if key is None:
-            # return [d / num for d in self.data]
-            return {k: (v / num) for k, v in self.data.items()}
+            res = copy.deepcopy(self.data)
+            for k in self.data:
+                res[k] /= num
+            return res
         else:
             return self.data[key] / num

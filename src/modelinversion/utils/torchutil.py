@@ -7,6 +7,7 @@ from abc import abstractmethod, ABCMeta
 from collections import defaultdict
 
 import numpy as np
+import torch
 from torch import nn, Tensor
 from torch.nn import Module
 from torch.utils.data import sampler
@@ -159,3 +160,13 @@ class RandomIdentitySampler(sampler.Sampler):
 
     def __len__(self):
         return self.length
+    
+def freeze(net):
+    for p in net.parameters():
+        p.requires_grad_(False)
+
+
+def unfreeze(net):
+    for p in net.parameters():
+        p.requires_grad_(True)
+
