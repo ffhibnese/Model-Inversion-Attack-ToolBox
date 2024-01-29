@@ -19,9 +19,9 @@ import math
 if __name__ == '__main__':
     import os
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    defense_type = 'no_defense'
+    defense_type = 'ls'
     
-    model_name = 'densenet169'
+    model_name = 'resnet152'
     
     dirs = get_dirs(f'{defense_type}_{model_name}')
     cache_dir, result_dir, ckpt_dir, dataset_dir, defense_ckpt_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir'], dirs['defense_ckpt_dir']
