@@ -5,7 +5,7 @@ from dataclasses import field, dataclass
 import kornia
 import torch
 from torch import nn
-from torch._C import LongTensor
+from torch import LongTensor
 from torch.nn import functional as F
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
@@ -76,7 +76,7 @@ class LoktSurrogateTrainer(BaseTrainer):
         data = torch.load(self.dataset_path, map_location='cpu')
         self.dataset = TensorDataset(data['z'], data['pseudo_y'], data['target_y'])
             
-    def _sample_label(self, batch_size, labels):
+    def _sample_label(self, labels):
         args = self.args
         z = torch.randn((len(labels), self.gen_z_dim), device=args.device)
         fake = self.G(z, labels)
@@ -107,3 +107,10 @@ class LoktSurrogateTrainer(BaseTrainer):
         
     def calc_loss(self, inputs, result: ModelResult, labels: LongTensor):
         return F.cross_entropy(result.result, labels)
+    
+    def save_state_dict(self):
+        model = self.model
+        if isinstance(self.model, nn.DataParallel):
+            model = self.model.module
+        # self.folder_manager.save_target_model_state_dict(model, self.args.dataset_name, self.args.model_name)
+        self.folder_manager.save_state_dict(model, ['lokt', f'{self.args.target_dataset_name}_{self.args.target_name}_{self.args.target_defense_type}.pt'], self.args.defense_type)
