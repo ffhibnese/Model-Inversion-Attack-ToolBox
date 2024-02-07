@@ -122,6 +122,8 @@ and attack results will be produced in `./results/<DEFENSE_METHOD>_<ATTACK_METHO
 For more information, you can read [here](./defense_scripts/README.md).
 
 ## 📔 Citation
+**If you find our work helpful for your research, please kindly cite our paper:**
+```
 @misc{fang2024privacy,
       title={Privacy Leakage on DNNs: A Survey of Model Inversion Attacks and Defenses}, 
       author={Hao Fang and Yixiang Qiu and Hongyao Yu and Wenbo Yu and Jiawei Kong and Baoli Chong and Bin Chen and Xuan Wang and Shu-Tao Xia},
@@ -130,6 +132,7 @@ For more information, you can read [here](./defense_scripts/README.md).
       archivePrefix={arXiv},
       primaryClass={cs.CV}
 }
+```
 
 ## :sparkles: Acknowledgement
 We express great gratitude for all the researchers' contributions to the **Model Inversion** community. 
