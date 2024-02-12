@@ -45,7 +45,7 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 
 ## :memo: Model Inversion Attacks
 
-|Method|Paper|Publication|Whitebox or Blackbox|Key Characteristics|
+|Method|Paper|Publication|Scenario|Key Characteristics|
 |:-:|:-:|:-:|:-:|:-:|
 |[DeepInversion](./src/modelinversion/attack/DeepInversion/)|Dreaming to Distill: Data-Free Knowledge Transfer via DeepInversion|[CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Yin_Dreaming_to_Distill_Data-Free_Knowledge_Transfer_via_DeepInversion_CVPR_2020_paper.html)|whitebox|student-teacher, data-free|
 |[GMI](./src/modelinversion/attack/GMI/)|The Secret Revealer: Generative Model-Inversion Attacks Against Deep Neural Networks|[CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Zhang_The_Secret_Revealer_Generative_Model-Inversion_Attacks_Against_Deep_Neural_Networks_CVPR_2020_paper.html)|whitebox|the first GAN-based MIA, instance-level|
@@ -58,6 +58,7 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 |[C2FMI](./src/modelinversion/attack/C2FMI/)|C2FMI: Corse-to-Fine Black-box Model Inversion Attack|[TDSC'2023](https://ieeexplore.ieee.org/abstract/document/10148574)|whitebox, blackbox|gradient-free, two-stage|
 |[Lomma](./src/modelinversion/attack/Lomma/)|Re-Thinking Model Inversion Attacks Against Deep Neural Networks|[CVPR'2023](https://openaccess.thecvf.com/content/CVPR2023/html/Nguyen_Re-Thinking_Model_Inversion_Attacks_Against_Deep_Neural_Networks_CVPR_2023_paper.html)|blackbox|special loss, model augmentation|
 |[RLBMI](./src/modelinversion/attack/RLBMI/)|Reinforcement Learning-Based Black-Box Model Inversion Attacks|[CVPR'2023](https://openaccess.thecvf.com/content/CVPR2023/html/Han_Reinforcement_Learning-Based_Black-Box_Model_Inversion_Attacks_CVPR_2023_paper.html)|blackbox|reinforcement learning|
+|[LOKT](./src/modelinversion/attack/Lokt/)|Label-Only Model Inversion Attacks via Knowledge Transfer|[NeurIPS'2023](https://openreview.net/forum?id=NuoIThPPag)|blackbox|surrogate models, label-only|
 
 
 
