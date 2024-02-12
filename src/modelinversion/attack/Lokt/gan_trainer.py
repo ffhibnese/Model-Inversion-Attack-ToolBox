@@ -30,18 +30,11 @@ from .models.discri import SNResNetConditionalDiscriminator
          
 @dataclass
 class LoktGANTrainArgs(BaseGANTrainArgs):
-    # top_n: int = 30
+    
     target_name: str = 'vgg16'
-    # num_classes: int = 1000
-    # augment: Callable = field(default_factory=lambda: kornia.augmentation.container.ImageSequential(
-    #     kornia.augmentation.RandomResizedCrop((64, 64), scale=(0.8, 1.0), ratio=(1.0, 1.0)),
-    #     kornia.augmentation.ColorJitter(brightness=0.2, contrast=0.2, p=0.5),
-    #     kornia.augmentation.RandomHorizontalFlip(),
-    #     kornia.augmentation.RandomRotation(5),
-    # ))
     class_loss_start_iter: int = 1000
     
-    coef_class_loss: float = 0.2
+    coef_class_loss: float = 1.5
     lr: float= 0.0002
     beta1: float = 0.0
     beta2: float = 0.9

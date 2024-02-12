@@ -445,15 +445,22 @@ class BaseGANTrainer(metaclass=ABCMeta):
         dis_accumulator = DictAccumulator()
         
         for iter_time, batch in enumerate(dataloader):
-            self._iteration += 1
+            
+            
+            if (self._iteration) % self.args.dis_gen_update_rate == 0:
+                self.before_gen_train_step()
+                gen_ret = self.train_gen_step(batch)
+                gen_accumulator.add(gen_ret)
+                
             self.before_dis_train_step()
             dis_ret = self.train_dis_step(batch)
             dis_accumulator.add(dis_ret)
             
-            if (iter_time + 1) % self.args.dis_gen_update_rate == 0:
-                self.before_gen_train_step()
-                gen_ret = self.train_gen_step(batch)
-                gen_accumulator.add(gen_ret)
+            self._iteration += 1
+            # if (iter_time + 1) % self.args.dis_gen_update_rate == 0:
+            #     self.before_gen_train_step()
+            #     gen_ret = self.train_gen_step(batch)
+            #     gen_accumulator.add(gen_ret)
                 
         gen_avg = gen_accumulator.avg()
         dis_avg = dis_accumulator.avg()
