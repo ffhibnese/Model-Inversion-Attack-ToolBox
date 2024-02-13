@@ -14,21 +14,21 @@ from development_config import get_dirs
 from modelinversion.models import *
 
 from modelinversion.foldermanager import FolderManager
-os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 
 if __name__ == '__main__':
     
-    model_name = 'densenet169'
+    model_name = 'densenet121'
     
     dirs = get_dirs(f'lokt_surrogate_{model_name}')
     cache_dir, result_dir, ckpt_dir, dataset_dir, defense_ckpt_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir'], dirs['defense_ckpt_dir']
     
-    folder_manager = FolderManager(ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir, 'bido')
+    folder_manager = FolderManager(ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir, 'no_defense')
     
     
     dataset_name = 'celeba'
     epoch_num = 200
-    lr = 0.1
+    lr = 0.01
     device = 'cuda'
     batch_size = 256
     

@@ -126,4 +126,4 @@ class LoktSurrogateTrainer(BaseTrainer):
         if isinstance(self.model, nn.DataParallel):
             model = self.model.module
         # self.folder_manager.save_target_model_state_dict(model, self.args.dataset_name, self.args.model_name)
-        self.folder_manager.save_state_dict(model, ['lokt', f'{self.args.target_dataset_name}_{self.args.target_name}_{self.args.target_defense_type}.pt'], self.args.defense_type)
+        self.folder_manager.save_state_dict(model, ['lokt', f'{self.args.model_name}_{self.args.target_dataset_name}_{self.args.target_name}_{self.args.target_defense_type}.pt'], self.args.defense_type)
