@@ -375,6 +375,16 @@ class BaseGANTrainer(metaclass=ABCMeta):
         
         self.method_name = self.get_method_name()
         self.tag = self.get_tag()
+        self._epoch = 0
+        self._iteration = 0
+        
+    @property
+    def epoch(self):
+        return self._epoch
+    
+    @property
+    def iteration(self):
+        return self._iteration
         
     @abstractmethod
     def get_method_name(self) -> str:
@@ -434,16 +444,23 @@ class BaseGANTrainer(metaclass=ABCMeta):
         gen_accumulator = DictAccumulator()
         dis_accumulator = DictAccumulator()
         
-        for iter_time, batch in enumerate(dataloader, start=1):
-            # print(f'len batch: {len(batch)}')
+        for iter_time, batch in enumerate(dataloader):
+            
+            
+            if (self._iteration) % self.args.dis_gen_update_rate == 0:
+                self.before_gen_train_step()
+                gen_ret = self.train_gen_step(batch)
+                gen_accumulator.add(gen_ret)
+                
             self.before_dis_train_step()
             dis_ret = self.train_dis_step(batch)
             dis_accumulator.add(dis_ret)
             
-            if iter_time % self.args.dis_gen_update_rate == 0:
-                self.before_gen_train_step()
-                gen_ret = self.train_gen_step(batch)
-                gen_accumulator.add(gen_ret)
+            self._iteration += 1
+            # if (iter_time + 1) % self.args.dis_gen_update_rate == 0:
+            #     self.before_gen_train_step()
+            #     gen_ret = self.train_gen_step(batch)
+            #     gen_accumulator.add(gen_ret)
                 
         gen_avg = gen_accumulator.avg()
         dis_avg = dis_accumulator.avg()
@@ -462,11 +479,15 @@ class BaseGANTrainer(metaclass=ABCMeta):
         
         trainloader = self.get_trainloader()
         
+        self._epoch = 0
+        self._iteration = 0
+        
         epochs = range(self.args.epoch_num)
         if self.args.tqdm_strategy == TqdmStrategy.EPOCH:
             epochs = tqdm(epochs)
             
         for epoch in epochs:
+            self._epoch = epoch
             if self.args.tqdm_strategy == TqdmStrategy.ITER:
                 trainloader = tqdm(trainloader)
             

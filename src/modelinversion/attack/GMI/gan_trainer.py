@@ -70,6 +70,8 @@ class GmiGANTrainer(BaseGANTrainer):
         
     def train_dis_step(self, batch) -> OrderedDict:
         args = self.args
+        
+        batch = batch[0].to(args.device)
         bs = len(batch)
         z = torch.randn(bs, args.z_dim).to(args.device)
         
@@ -90,7 +92,7 @@ class GmiGANTrainer(BaseGANTrainer):
     
     def train_gen_step(self, batch) -> OrderedDict:
         args = self.args
-        bs = len(batch)
+        bs = len(batch[0])
         z = torch.randn(bs, args.z_dim).to(args.device)
         
         fake = self.G(z)
