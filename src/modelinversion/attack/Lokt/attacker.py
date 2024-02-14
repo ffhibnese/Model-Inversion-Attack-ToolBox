@@ -31,7 +31,7 @@ class LoktAttacker(PLGMIAttacker):
         for S_name in config.surrogate_names:
             surrogate_model = get_model(S_name, config.dataset_name, device=config.device)
             # folder_manager.load_target_model_state_dict(surrogate_model, config.dataset_name, S_name, device=config.device)
-            folder_manager.load_state_dict(surrogate_model, ['lokt', f'{config.target_name}_{config.dataset_name}_{self.config.target_name}_{self.config.defense_type}.pt'], device=config.device)
+            folder_manager.load_state_dict(surrogate_model, ['lokt', f'{S_name}_{config.dataset_name}_{self.config.target_name}_{self.config.defense_type}.pt'], device=config.device)
             surrogate_model.eval()
             self.surrogate_models.append(surrogate_model)
             
