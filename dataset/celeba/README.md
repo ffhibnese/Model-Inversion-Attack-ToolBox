@@ -1,4 +1,4 @@
-# Celeba
+# celeba
 
 ## Download dataset
 
