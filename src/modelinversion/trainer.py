@@ -421,17 +421,23 @@ class BaseGANTrainer(metaclass=ABCMeta):
     def before_gen_train_step(self):
         # self.model.train()
         self.G.train()
-        # self.D.eval()
+        self.D.eval()
         
     def before_dis_train_step(self):
-        # self.G.eval()
+        self.G.eval()
         self.D.train()
         
     
     
     def save_state_dict(self):
-        self.folder_manager.save_state_dict(self.G, [self.method_name, f'{self.tag}_G.pt'], self.args.defense_type)
-        self.folder_manager.save_state_dict(self.D, [self.method_name, f'{self.tag}_D.pt'], self.args.defense_type)
+        G = self.G
+        D = self.D
+        if isinstance(G, nn.DataParallel):
+            G = G.module
+        if isinstance(D, nn.DataParallel):
+            D = D.module
+        self.folder_manager.save_state_dict(G, [self.method_name, f'{self.tag}_G.pt'], self.args.defense_type)
+        self.folder_manager.save_state_dict(D, [self.method_name, f'{self.tag}_D.pt'], self.args.defense_type)
     
     def loss_update(self, loss, optimizer):
         optimizer.zero_grad()
@@ -446,7 +452,7 @@ class BaseGANTrainer(metaclass=ABCMeta):
         
         for iter_time, batch in enumerate(dataloader):
             
-            
+            # try:
             if (self._iteration) % self.args.dis_gen_update_rate == 0:
                 self.before_gen_train_step()
                 gen_ret = self.train_gen_step(batch)
@@ -455,6 +461,10 @@ class BaseGANTrainer(metaclass=ABCMeta):
             self.before_dis_train_step()
             dis_ret = self.train_dis_step(batch)
             dis_accumulator.add(dis_ret)
+            # except Exception as e:
+            #     # print(e.with_traceback())
+            #     print(f'>> {self.iteration}')
+            #     exit()
             
             self._iteration += 1
             # if (iter_time + 1) % self.args.dis_gen_update_rate == 0:
@@ -492,5 +502,6 @@ class BaseGANTrainer(metaclass=ABCMeta):
                 trainloader = tqdm(trainloader)
             
             self._train_loop(trainloader, epoch)
+            self.save_state_dict()
             
         self.save_state_dict()

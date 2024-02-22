@@ -11,7 +11,8 @@ from .efficientnet.efficientnet import *
 NUM_CLASSES = {
     'celeba': 1000,
     'hdceleba': 1000,
-    'vggface2': 8631
+    'vggface2': 8631,
+    'facescrub': 530
 }
 
 

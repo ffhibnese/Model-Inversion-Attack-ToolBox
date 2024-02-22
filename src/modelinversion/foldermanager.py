@@ -226,7 +226,7 @@ class FolderManager:
         
         return os.path.join(save_root_dir, folder_name)
     
-    def save_result_image(self, img: torch.Tensor, label: int, save_name = None, folder_name='all_imgs', save_dst='result'):
+    def save_result_image(self, img: torch.Tensor, label: int, save_name = None, folder_name='all_imgs', save_dst='result', save_tensor=False):
         """save images
 
         Args:
@@ -250,12 +250,16 @@ class FolderManager:
         os.makedirs(save_dir, exist_ok=True)
         if save_name is None:
             save_name = f'{self.temp_cnt}.jpg'
+            save_tensor_name = f'{self.temp_cnt}.pt'
             self.temp_cnt += 1
         save_path = os.path.join(save_dir, save_name)
+        save_tensor_path = os.path.join(save_dir, save_tensor_name)
+        if save_tensor:
+            torch.save(img, save_tensor_path)
         save_image(img.detach(), save_path, normalize=True)
         return save_path
     
-    def save_result_images(self, imgs: torch.Tensor, labels: list, save_names: list = None, folder_name='all_imgs', save_dst = 'result'):
+    def save_result_images(self, imgs: torch.Tensor, labels: list, save_names: list = None, folder_name='all_imgs', save_dst = 'result', save_tensor=False):
         """save images
 
         Args:
@@ -271,5 +275,5 @@ class FolderManager:
         
         for i in range(len(labels)):
             save_name = None if save_names is None else save_names[i]
-            self.save_result_image(imgs[i], labels[i], save_name=save_name, folder_name=folder_name, save_dst=save_dst)
+            self.save_result_image(imgs[i], labels[i], save_name=save_name, folder_name=folder_name, save_dst=save_dst, save_tensor=save_tensor)
             
