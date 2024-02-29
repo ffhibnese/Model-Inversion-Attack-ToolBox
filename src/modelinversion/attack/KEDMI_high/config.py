@@ -16,4 +16,4 @@ class KEDMIAttackConfig(BaseAttackConfig):
     coef_iden_loss=100
     
     clip_range=1
-    z_dim = 100
+    z_dim = 150

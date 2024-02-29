@@ -180,7 +180,7 @@ class DGWGAN32(nn.Module):
 
 
 class DGWGAN(nn.Module):
-    def __init__(self, in_dim=3, dim=256):
+    def __init__(self, in_dim=3, dim=64):
         super(DGWGAN, self).__init__()
 
         def conv_ln_lrelu(in_dim, out_dim):
@@ -196,9 +196,9 @@ class DGWGAN(nn.Module):
             conv_ln_lrelu(dim, dim * 2),
             conv_ln_lrelu(dim * 2, dim * 4),
             conv_ln_lrelu(dim * 4, dim * 8),
-            conv_ln_lrelu(dim * 8, dim * 16),
-            conv_ln_lrelu(dim * 16, dim * 32),
-            nn.Conv2d(dim * 32, 1, 4))
+            conv_ln_lrelu(dim * 8, dim * 8),
+            conv_ln_lrelu(dim * 8, dim * 8),
+            nn.Conv2d(dim * 8, 1, 4))
 
     def forward(self, x):
         y = self.ls(x)

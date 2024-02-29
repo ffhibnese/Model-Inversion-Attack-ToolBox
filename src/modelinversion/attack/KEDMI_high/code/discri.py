@@ -58,7 +58,6 @@ class MinibatchDiscrimination(nn.Module):
         x = torch.cat([x, o_b], 1)
         return x
 
-
 class MinibatchDiscriminator(nn.Module):
     def __init__(self, in_dim=3, dim=64, n_classes=1000):
         super(MinibatchDiscriminator, self).__init__()
@@ -75,9 +74,9 @@ class MinibatchDiscriminator(nn.Module):
         self.layer1 = conv_ln_lrelu(in_dim, dim, 5, 2, 2)
         self.layer2 = conv_ln_lrelu(dim, dim * 2, 5, 2, 2)
         self.layer3 = conv_ln_lrelu(dim * 2, dim * 4, 5, 2, 2)
-        self.layer3_2 = conv_ln_lrelu(dim * 4, dim * 4, 5, 2, 2)
-        self.layer3_3 = conv_ln_lrelu(dim * 4, dim * 4, 5, 2, 2)
         self.layer4 = conv_ln_lrelu(dim * 4, dim * 4, 3, 2, 1)
+        self.layer5 = conv_ln_lrelu(dim * 4, dim * 4, 3, 2, 1)
+        self.layer6 = conv_ln_lrelu(dim * 4, dim * 4, 3, 2, 1)
         self.mbd1 = MinibatchDiscrimination(dim * 4 * 4 * 4, 64, 50)
         self.fc_layer = nn.Linear(dim * 4 * 4 * 4 + 64, self.n_classes)
 
@@ -86,31 +85,20 @@ class MinibatchDiscriminator(nn.Module):
         bs = x.shape[0]
         feat1 = self.layer1(x)
         out.append(feat1)
-        # print('feat1', feat1.shape)
         feat2 = self.layer2(feat1)
         out.append(feat2)
-        # print('feat2', feat2.shape)
         feat3 = self.layer3(feat2)
         out.append(feat3)
-        # print('feat3', feat3.shape)
-        feat3_2 = self.layer3_2(feat3)
-        out.append(feat3_2)
-        # print('feat32', feat3_2.shape)
-        feat3_3 = self.layer3_3(feat3_2)
-        out.append(feat3_3)
-        # print('feat33', feat3_3.shape)
-        feat4 = self.layer4(feat3_3)
+        feat4 = self.layer4(feat3)
+        feat4 = self.layer5(feat4)
+        feat4 = self.layer6(feat4)
         out.append(feat4)
-        # print('feat4', feat4.shape)
-        # exit()
         feat = feat4.view(bs, -1)
         # print('feat:', feat.shape)
         mb_out = self.mbd1(feat)  # Nx(A+B)
         y = self.fc_layer(mb_out)
 
         return feat, y
-        # return mb_out, y
-
 
 class Discriminator(nn.Module):
     def __init__(self, in_dim=3, dim=64, n_classes=1000):

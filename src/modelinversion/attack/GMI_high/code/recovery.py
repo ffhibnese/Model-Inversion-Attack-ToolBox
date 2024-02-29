@@ -47,8 +47,8 @@ def get_reg_loss(featureT,fea_mean, fea_std):
     return loss_reg
 
 def get_iden_loss(imgs, labels, T: BaseTargetModel, augment_models: list[BaseTargetModel]=None, use_logit_loss=False, T_feature_means=None, T_feature_stds=None, reg_coef=0.1):
-    # if augment_models is None:
-    #     augment_models = []
+    if augment_models is None:
+        augment_models = []
     iden_loss = 0
     reg_loss = 0
     if use_logit_loss:
@@ -92,7 +92,7 @@ def inversion(config: GMIAttackConfig, G, D, T, E, iden, folder_manager: FolderM
 
     res = []
     res5 = []
-    seed_acc = torch.zeros((bs, 5))
+    seed_acc = torch.zeros((bs, config.gen_num_per_target))
     for random_seed in range(config.gen_num_per_target):
         tf = time.time()
         r_idx = random_seed
@@ -153,7 +153,7 @@ def inversion(config: GMIAttackConfig, G, D, T, E, iden, folder_manager: FolderM
                 gt = iden[i].item()
                 sample = samples[i]
                 
-                folder_manager.save_result_image(sample, gt)
+                folder_manager.save_result_image(sample, gt, save_tensor=True)
 
                 if eval_iden[i].item() == gt:
                     seed_acc[i, r_idx] = 1

@@ -29,14 +29,17 @@ class KEDMIAttacker(BaseAttacker):
         config = self.config
         
         self.G = Generator(config.z_dim).to(config.device)
-        self.D = MinibatchDiscriminator().to(config.device)
+        self.D = MinibatchDiscriminator(n_classes=530).to(config.device)
         
-        self.folder_manager.load_state_dict(self.G, 
-                                   ['KEDMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_KEDMI_G.tar'],
-                                   device=config.device)
-        self.folder_manager.load_state_dict(self.D, 
-                                    ['KEDMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_KEDMI_D.tar'],
-                                    device=config.device)
+        
+        self.G.load_state_dict(torch.load('/data/yuhongyao/papar_codes/PLG-MI-Attack/baselines/KED_metfaces2/metfaces/resnet18/metfaces_resnet18_KED_MI_G.tar', map_location=config.device)['state_dict'])
+        self.D.load_state_dict(torch.load('/data/yuhongyao/papar_codes/PLG-MI-Attack/baselines/KED_metfaces2/metfaces/resnet18/metfaces_resnet18_KED_MI_D.tar', map_location=config.device)['state_dict'])
+        # self.folder_manager.load_state_dict(self.G, 
+        #                            ['KEDMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_KEDMI_G.tar'],
+        #                            device=config.device)
+        # self.folder_manager.load_state_dict(self.D, 
+        #                             ['KEDMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_KEDMI_D.tar'],
+        #                             device=config.device)
         
         self.G.eval()
         self.D.eval()
@@ -89,8 +92,8 @@ class KEDMIAttacker(BaseAttacker):
         bs = iden.shape[0]
 
         # NOTE
-        mu = Variable(torch.zeros(bs, 100), requires_grad=True)
-        log_var = Variable(torch.ones(bs, 100), requires_grad=True)
+        mu = Variable(torch.zeros(bs, config.z_dim), requires_grad=True)
+        log_var = Variable(torch.ones(bs, config.z_dim), requires_grad=True)
 
         params = [mu, log_var]
         solver = optim.Adam(params, lr=config.lr)
@@ -129,7 +132,7 @@ class KEDMIAttacker(BaseAttacker):
         with torch.no_grad():
             res = []
             res5 = []
-            seed_acc = torch.zeros((bs, 5))
+            seed_acc = torch.zeros((bs, config.gen_num_per_target))
             for random_seed in range(config.gen_num_per_target):
                 tf = time.time()
                 z = self.reparameterize(mu, log_var).to(device)

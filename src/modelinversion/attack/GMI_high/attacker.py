@@ -24,13 +24,17 @@ class GMIAttacker(BaseAttacker):
         config: GMIAttackConfig = self.config
         self.G = Generator(100).to(config.device)
         self.D = DGWGAN(3).to(config.device)
+        import torch
         
-        self.folder_manager.load_state_dict(self.G, 
-                                   ['GMI', f'{config.gan_dataset_name}_VGG16_GMI_G.tar'],
-                                   device=config.device)
-        self.folder_manager.load_state_dict(self.D, 
-                                   ['GMI', f'{config.gan_dataset_name}_VGG16_GMI_D.tar'],
-                                   device=config.device)
+        self.G.load_state_dict(torch.load('/data/yuhongyao/papar_codes/PLG-MI-Attack/baselines/GMI_GAN_metfaces/metfaces/metfaces_GMI_G.tar', map_location=config.device)['state_dict'])
+        self.D.load_state_dict(torch.load('/data/yuhongyao/papar_codes/PLG-MI-Attack/baselines/GMI_GAN_metfaces/metfaces/metfaces_GMI_D.tar', map_location=config.device)['state_dict'])
+        
+        # self.folder_manager.load_state_dict(self.G, 
+        #                            ['GMI', f'{config.gan_dataset_name}_VGG16_GMI_G.tar'],
+        #                            device=config.device)
+        # self.folder_manager.load_state_dict(self.D, 
+        #                            ['GMI', f'{config.gan_dataset_name}_VGG16_GMI_D.tar'],
+        #                            device=config.device)
         
     def attack_step(self, iden):
         return inversion(self.config, self.G, self.D, self.T, self.E, iden, self.folder_manager)

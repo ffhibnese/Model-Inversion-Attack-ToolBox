@@ -3,6 +3,7 @@
 import statistics
 import time
 from collections import OrderedDict
+from tqdm import tqdm
 
 import torch
 from kornia import augmentation
@@ -30,12 +31,19 @@ class PLGMIAttacker(BaseAttacker):
     def prepare_attack(self):
         config: PLGMIAttackConfig = self.config
         self.G = ResNetGenerator(num_classes=NUM_CLASSES[config.dataset_name], distribution=config.gen_distribution).to(self.config.device)
-        
-        self.folder_manager.load_state_dict(
-            self.G, 
-            ['PLGMI_high', f'plgmi_high_{config.gan_dataset_name}_{config.gan_target_name}_{config.dataset_name}_G.pt'], 
-            device=config.device
-        )
+        if 'ffhq' in config.gan_dataset_name:
+            path = '/data/yuhongyao/papar_codes/PLG-MI-Attack/PLG_high_test/gen_14_iter_0014000.pth.tar'
+            
+        else:
+            path = '/data/yuhongyao/papar_codes/PLG-MI-Attack/PLG_high_metfaces_test/gen_29_iter_0029000.pth.tar'
+        print(f'load from {path}')
+        self.G.load_state_dict(torch.load(path)['model'])
+        # self.folder_manager.load_state_dict(
+        #     self.G, 
+        #     ['PLGMI_high', f'plgmi_high_{config.gan_dataset_name}_{config.gan_target_name}_{config.dataset_name}_G.pt'], 
+        #     device=config.device
+        # )
+        # self.G.load_state_dict()
         self.G = nn.DataParallel(self.G)
         
     def get_loss(self, fake, iden):
@@ -60,7 +68,7 @@ class PLGMIAttacker(BaseAttacker):
 
         res = []
         res5 = []
-        seed_acc = torch.zeros((bs, 5))
+        seed_acc = torch.zeros((bs, config.gen_num_per_target))
 
         
 
@@ -78,7 +86,7 @@ class PLGMIAttacker(BaseAttacker):
 
             optimizer = torch.optim.Adam([z], lr=config.lr)
 
-            for i in range(config.iter_times):
+            for i in tqdm(range(config.iter_times)):
                 fake = self.G(z, iden)
                 inv_loss = self.get_loss(fake, iden)
 

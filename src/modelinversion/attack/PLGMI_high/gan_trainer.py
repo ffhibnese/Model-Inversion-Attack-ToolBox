@@ -28,7 +28,7 @@ from .code.m_cgan import ResNetGenerator, SNResNetProjectionDiscriminator
          
 @dataclass
 class PlgmiGANTrainArgs(BaseGANTrainArgs):
-    top_n: int = 30
+    top_n: int = 60
     target_name: str = 'vgg16'
     target_dataset_name: str = 'celeba'
     # num_classes: int = 1000
@@ -41,9 +41,10 @@ class PlgmiGANTrainArgs(BaseGANTrainArgs):
     
     coef_inv_loss: float = 0.2
     lr: float= 0.0002
+    # beta1: float = 0.0
     beta1: float = 0.0
     beta2: float = 0.9
-    z_dim = 128
+    z_dim = 200
     gen_distribution = 'normal'
             
 class PlgmiGANTrainer(BaseGANTrainer):
@@ -58,7 +59,7 @@ class PlgmiGANTrainer(BaseGANTrainer):
         
     def get_tag(self) -> str:
         args = self.args
-        return f'plgmi_high_{args.dataset_name}_{args.target_name}_{args.target_dataset_name}'
+        return f'plgmi_high_{args.top_n}_{args.dataset_name}_{args.target_name}_{args.target_dataset_name}'
     
     def get_method_name(self) -> str:
         return 'PLGMI_high'
@@ -79,8 +80,8 @@ class PlgmiGANTrainer(BaseGANTrainer):
         dataset = ImageFolder(self.dst_dataset_dir, transform=tv_trans.Compose([
                 # Image.open,
                 tv_trans.ToTensor(), 
-                tv_trans.CenterCrop((800,800)),
-                tv_trans.Resize((256, 256), antialias=True)
+                # tv_trans.CenterCrop((800,800)),
+                # tv_trans.Resize((256, 256), antialias=True)
             ]))
         dataloader = DataLoader(dataset, self.args.batch_size, shuffle=True)
         return dataloader
@@ -90,8 +91,8 @@ class PlgmiGANTrainer(BaseGANTrainer):
         args = self.args
         self.G = ResNetGenerator(dim_z=args.z_dim, num_classes=self.num_classes, distribution=args.gen_distribution).to(args.device)
         self.D = SNResNetProjectionDiscriminator(num_classes=self.num_classes).to(args.device)
-        self.G.load_state_dict(torch.load('checkpoints/PLGMI_high/plgmi_high_metfaces_resnet18_facescrub_G.pt')['state_dict'])
-        self.D.load_state_dict(torch.load('checkpoints/PLGMI_high/plgmi_high_metfaces_resnet18_facescrub_D.pt')['state_dict'])
+        # self.G.load_state_dict(torch.load('checkpoints/PLGMI_high/plgmi_high_metfaces_resnet18_facescrub_G.pt')['state_dict'])
+        # self.D.load_state_dict(torch.load('checkpoints/PLGMI_high/plgmi_high_metfaces_resnet18_facescrub_D.pt')['state_dict'])
         self.G = nn.DataParallel(self.G)
         self.D = nn.DataParallel(self.D)
         self.T = get_model(args.target_name, args.target_dataset_name, device=args.device, backbone_pretrain=False, defense_type=args.defense_type)
@@ -111,8 +112,8 @@ class PlgmiGANTrainer(BaseGANTrainer):
             trans = tv_trans.Compose([
                 Image.open,
                 tv_trans.ToTensor(), 
-                tv_trans.CenterCrop((800,800)),
-                tv_trans.Resize((256, 256), antialias=True)
+                # tv_trans.CenterCrop((800,800)),
+                # tv_trans.Resize((256, 256), antialias=True)
             ])
             
             with torch.no_grad():
@@ -167,7 +168,7 @@ class PlgmiGANTrainer(BaseGANTrainer):
         import torchvision
         save_dir = os.path.join(self.folder_manager.config.cache_dir, 'train_sample')
         os.makedirs(save_dir, exist_ok=True)
-        save_path = os.path.join(save_dir, f'epoch_{self.epoch+50}_{labels[0]}_{labels[1]}_{labels[2]}_{labels[3]}_{labels[4]}.png')
+        save_path = os.path.join(save_dir, f'epoch_{self.epoch}_{labels[0]}_{labels[1]}_{labels[2]}_{labels[3]}_{labels[4]}.png')
         torchvision.utils.save_image(fake, save_path, nrow=5, normalize=True)
     
     def train_gen_step(self, batch):
@@ -185,9 +186,9 @@ class PlgmiGANTrainer(BaseGANTrainer):
         
         loss = dis_loss + inv_loss * args.coef_inv_loss
         
-        print('aaa', bs)
-        while 1:
-            pass
+        # print('aaa', bs)
+        # while 1:
+        #     pass
         
         super().loss_update(loss, self.optim_G)
         

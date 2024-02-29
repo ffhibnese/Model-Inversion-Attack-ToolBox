@@ -18,15 +18,9 @@ class ResNetGenerator(nn.Module):
         self.activation = activation
         self.num_classes = num_classes
         self.distribution = distribution
-        # print(dim_z)
-        self.l1 = nn.Linear(dim_z, 64 * num_features * bottom_width ** 2)
 
-        self.block0 = Block(num_features * 64, num_features * 32,
-                            activation=activation, upsample=True,
-                            num_classes=num_classes)
-        self.block1 = Block(num_features * 32, num_features * 16,
-                            activation=activation, upsample=True,
-                            num_classes=num_classes)
+        self.l1 = nn.Linear(dim_z, 16 * num_features * bottom_width ** 2)
+
         self.block2 = Block(num_features * 16, num_features * 8,
                             activation=activation, upsample=True,
                             num_classes=num_classes)
@@ -39,6 +33,12 @@ class ResNetGenerator(nn.Module):
         self.block5 = Block(num_features * 2, num_features,
                             activation=activation, upsample=True,
                             num_classes=num_classes)
+        self.block6 = Block(num_features, num_features,
+                            activation=activation, upsample=True,
+                            num_classes=num_classes)
+        self.block7 = Block(num_features, num_features,
+                            activation=activation, upsample=True,
+                            num_classes=num_classes)
         self.b6 = nn.BatchNorm2d(num_features)
         self.conv6 = nn.Conv2d(num_features, 3, 1, 1)
 
@@ -47,9 +47,9 @@ class ResNetGenerator(nn.Module):
         init.xavier_uniform_(self.conv7.weight.tensor)
 
     def forward(self, z, y=None, **kwargs):
-        h = self.l1(z)
-        h = h.reshape(z.size(0), -1, self.bottom_width, self.bottom_width)
-        for i in range(0, 6):
+        h = self.l1(z).view(z.size(0), -1, self.bottom_width, self.bottom_width)
+        for i in range(2, 8):
             h = getattr(self, 'block{}'.format(i))(h, y, **kwargs)
         h = self.activation(self.b6(h))
         return torch.tanh(self.conv6(h))
+

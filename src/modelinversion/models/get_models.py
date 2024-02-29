@@ -45,16 +45,16 @@ def get_model(model_name: str, dataset_name: str, device='cpu', backbone_pretrai
         model = Resnet50_scratch_dag(num_classes)
     elif model_name == 'inception_resnetv1':
         model = InceptionResnetV1(num_classes)
-    elif model_name.startswith('efficientnet'):
-        suffix = model_name[-2:]
-        if suffix == 'b0':
-            model = EfficientNet_b0(num_classes, pretrained=backbone_pretrain)
-        elif suffix == 'b1':
-            model = EfficientNet_b1(num_classes, pretrained=backbone_pretrain)
-        elif suffix == 'b2':
-            model = EfficientNet_b2(num_classes, pretrained=backbone_pretrain)
-        else:
-            raise RuntimeError(f'model {model_name} is NOT supported')
+    # elif model_name.startswith('efficientnet'):
+    #     suffix = model_name[-2:]
+    #     if suffix == 'b0':
+    #         model = EfficientNet_b0(num_classes, pretrained=backbone_pretrain)
+    #     elif suffix == 'b1':
+    #         model = EfficientNet_b1(num_classes, pretrained=backbone_pretrain)
+    #     elif suffix == 'b2':
+    #         model = EfficientNet_b2(num_classes, pretrained=backbone_pretrain)
+    #     else:
+    #         raise RuntimeError(f'model {model_name} is NOT supported')
     else:
         try:
             print('try to get model from torchvision')

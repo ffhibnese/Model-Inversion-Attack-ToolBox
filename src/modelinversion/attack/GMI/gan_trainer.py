@@ -43,10 +43,31 @@ class GmiGANTrainer(BaseGANTrainer):
         
     def get_tag(self) -> str:
         args = self.args
-        return f'gmi_{args.dataset_name}'
+        return f'gmi_test_{args.dataset_name}'
     
     def get_method_name(self) -> str:
-        return 'GMI'
+        return 'GMI_test'
+    
+    def get_trainloader(self) -> DataLoader:
+        ds = ImageFolder(f'dataset/{self.args.dataset_name}/split/public', transform=tv_trans.Compose([
+            tv_trans.ToTensor(),
+            # tv_trans.CenterCrop((800,800)),
+            # tv_trans.Resize((256,256))
+        ]))
+        return DataLoader(ds, batch_size=self.args.batch_size, shuffle=True)
+    
+    def before_gen_train_step(self):
+        # return super().before_gen_train_step()
+        z = torch.randn(5, self.args.z_dim).to(self.args.device)
+        # while 1:
+        fake = self.G(z)
+        
+        if self.iteration % 67 == 0:
+            import torchvision
+            save_dir = os.path.join(self.folder_manager.config.cache_dir, 'train_sample')
+            os.makedirs(save_dir, exist_ok=True)
+            save_path = os.path.join(save_dir, f'epoch_{self.epoch}.png')
+            torchvision.utils.save_image(fake, save_path, nrow=5, normalize=True)
         
     def prepare_training(self):
         args = self.args
@@ -64,7 +85,7 @@ class GmiGANTrainer(BaseGANTrainer):
         z.requires_grad_(True)
         
         o = self.D(z)
-        g = torch.autograd.grad(o, z, create_graph=True)[0].view(len(real), -1)
+        g = torch.autograd.grad(o, z, grad_outputs = torch.ones(o.size()).cuda(), create_graph=True)[0].view(len(real), -1)
         gp = ((g.norm(p=2, dim=1) - 1) ** 2).mean()
         return gp
         

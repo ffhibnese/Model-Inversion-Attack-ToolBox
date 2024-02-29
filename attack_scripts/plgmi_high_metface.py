@@ -11,9 +11,9 @@ from development_config import get_dirs
 # 
 if __name__ == '__main__':
     import os
-    os.environ["CUDA_VISIBLE_DEVICES"] = '2'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '3'
     
-    dirs = get_dirs('plgmi_high_iterhalf')
+    dirs = get_dirs('plgmi_high_metfaces')
     cache_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     
     # target name support: vgg16, ir152, facenet64, facenet
@@ -25,11 +25,11 @@ if __name__ == '__main__':
     # dataset name support: celeba
     dataset_name = 'facescrub'
     # gan dataset name support: celeba, ffhq, facescrub
-    gan_dataset_name = 'ffhq256'
+    gan_dataset_name = 'metfaces'
     
     batch_size = 70
     # target_labels = list(range(512, 544))
-    target_labels = list(range(120, 530))
+    target_labels = list(range(0, 530))
     device = 'cuda'
     
     config = PLGMIAttackConfig(

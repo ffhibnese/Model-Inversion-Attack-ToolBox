@@ -1,5 +1,6 @@
 
 from torch import LongTensor
+import torch
 
 from modelinversion.models import ModelResult
 from ..base import *
@@ -22,13 +23,13 @@ class DistillTrainer(BaseTrainer):
         return 0
         
     
-    def _train_step(self, inputs, labels) -> TrainStepResult:
+    def _train_step(self, inputs, labels):
         self.before_train_step()
         
-        result = self.model(inputs)
+        result = self.model(inputs).result
         
         pred_res = result
-        teacher_res = self.teacher(inputs)
+        teacher_res = self.teacher(inputs).result
         loss = F.kl_div(
             F.log_softmax(pred_res, dim=-1),
             F.softmax(teacher_res, dim=-1),
@@ -39,4 +40,8 @@ class DistillTrainer(BaseTrainer):
         
         self._update_step(loss)
         
-        return TrainStepResult(loss.mean().item(), acc.item())
+        # return TrainStepResult(loss.mean().item(), acc.item())
+        return {
+            'loss': loss.mean().item(),
+            'acc': acc.item()
+        }

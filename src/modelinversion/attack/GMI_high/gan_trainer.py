@@ -57,10 +57,10 @@ class GmiGANTrainer(BaseGANTrainer):
         return 'GMI_high'
     
     def get_trainloader(self) -> DataLoader:
-        ds = ImageFolder('dataset/metfaces/split/public', transform=tv_trans.Compose([
+        ds = ImageFolder(f'dataset/{self.args.dataset_name}/split/public', transform=tv_trans.Compose([
             tv_trans.ToTensor(),
-            tv_trans.CenterCrop((800,800)),
-            tv_trans.Resize((256,256))
+            # tv_trans.CenterCrop((800,800)),
+            # tv_trans.Resize((256,256))
         ]))
         return DataLoader(ds, batch_size=self.args.batch_size, shuffle=True)
         
@@ -91,6 +91,9 @@ class GmiGANTrainer(BaseGANTrainer):
         # unfreeze(self.D)
         
         batch = batch[0].to(args.device)
+        if self.iteration % 100 == 0:
+            import torchvision
+            torchvision.utils.save_image(batch[:8], 'qq.png', normalize=True, nrow=4)
         bs = len(batch)
         z = torch.randn(bs, args.z_dim).to(args.device)
         
@@ -98,7 +101,7 @@ class GmiGANTrainer(BaseGANTrainer):
         dis_fake = self.D(fake)
         dis_real = self.D(batch)
         wd = dis_fake.mean() - dis_real.mean()
-        gp = 0 # self._gradient_penalty(batch, fake)
+        gp =  self._gradient_penalty(batch, fake)
         loss = - wd + gp * 10.
         
         super().loss_update(loss, self.optim_D)
@@ -109,12 +112,18 @@ class GmiGANTrainer(BaseGANTrainer):
             loss = loss
         )
         
-    # def before_gen_train_step(self):
-    #     # return super().before_gen_train_step()
-    #     z = torch.randn(2, self.args.z_dim).to(self.args.device)
-    #     while 1:
-    #         fake = self.G(z)
-    #         df = self.D(fake)
+    def before_gen_train_step(self):
+        # return super().before_gen_train_step()
+        z = torch.randn(5, self.args.z_dim).to(self.args.device)
+        # while 1:
+        fake = self.G(z)
+        
+        if self.iteration % 67 == 0:
+            import torchvision
+            save_dir = os.path.join(self.folder_manager.config.cache_dir, 'train_sample')
+            os.makedirs(save_dir, exist_ok=True)
+            save_path = os.path.join(save_dir, f'epoch_{self.epoch}.png')
+            torchvision.utils.save_image(fake, save_path, nrow=5, normalize=True)
     
     def train_gen_step(self, batch) -> OrderedDict:
         # return {}

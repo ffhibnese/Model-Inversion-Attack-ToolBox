@@ -12,11 +12,11 @@ from modelinversion.attack.PLGMI_high.gan_trainer import PlgmiGANTrainArgs, Plgm
 from development_config import get_dirs
 
 from modelinversion.foldermanager import FolderManager
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 if __name__ == '__main__':
-    batch_size = 25
+    batch_size = 50
     
-    dataset_name = 'metfaces'
+    dataset_name = 'ffhq256'
     target_name = 'resnet18'
     target_dataset_name = 'facescrub'
     device = 'cuda'
