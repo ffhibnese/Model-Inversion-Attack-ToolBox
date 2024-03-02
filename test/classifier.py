@@ -210,13 +210,13 @@ if __name__ == '__main__':
     sys.path.append('../src')
     from modelinversion.models.defense_wrapper import TorchVisionModelWrapper
     
-    model_name = 'resnet18'
-    
-    model = Classifier(530, architecture=model_name)
-    state_dict = torch.load(f'/data/yuhongyao/intermediate-MIA/intermediate-MIA/pretrained/{model_name}_facescrub.pt', map_location='cpu')
+    model_name = 'resnet152'
+    # /data/yuhongyao/intermediate-MIA/intermediate-MIA/pretrained/resnet152_facescrub_negative_LS.pt
+    model = Classifier(1000, architecture=model_name)
+    state_dict = torch.load(f'/data/yuhongyao/intermediate-MIA/intermediate-MIA/pretrained/{model_name}_celeba.pt', map_location='cpu')
     model.load_state_dict(state_dict)
     
-    ourmodel = TorchVisionModelWrapper(model.model, 530)
+    ourmodel = TorchVisionModelWrapper(model.model, 1000)
     ourmodel.model.load_state_dict(model.model.state_dict())
-    save_path = f'/data/yuhongyao/Model_Inversion_Attack_ToolBox/checkpoints/target_eval/facescrub/{model_name}_facescrub.pt'
+    save_path = f'/data/yuhongyao/Model_Inversion_Attack_ToolBox/checkpoints/target_eval/hdceleba/{model_name}_celeba.pt'
     torch.save({'state_dict': ourmodel.state_dict()}, save_path)

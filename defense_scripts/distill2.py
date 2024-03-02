@@ -23,7 +23,7 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = "2"
     defense_type = 'distill'
     
-    model_name = 'efficientnet_b1'
+    model_name = 'efficientnet_b2'
     
     dirs = get_dirs(f'distill_metfaces_{defense_type}_{model_name}')
     cache_dir, result_dir, ckpt_dir, dataset_dir, defense_ckpt_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir'], dirs['defense_ckpt_dir']

@@ -23,15 +23,15 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = "2"
     defense_type = 'distill'
     
-    model_name = 'efficientnet_b1'
+    model_name = 'efficientnet_b2'
     
-    dirs = get_dirs(f'distill_metfaces_{defense_type}_{model_name}')
+    dirs = get_dirs(f'distill_ffhq_{defense_type}_{model_name}')
     cache_dir, result_dir, ckpt_dir, dataset_dir, defense_ckpt_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir'], dirs['defense_ckpt_dir']
     
     folder_manager = FolderManager(ckpt_dir, dataset_dir, cache_dir, result_dir, defense_ckpt_dir, defense_type)
     
     dataset_name = 'facescrub'
-    epoch_num = 1000
+    epoch_num = 100
     lr = 0.001
     device = 'cuda'
     batch_size = 50
@@ -67,7 +67,7 @@ if __name__ == '__main__':
         Normalize(0.5, 0.5)
     ])
     
-    trainset = ImageFolder('test/metfaces_crop', transform=Compose([
+    trainset = ImageFolder('dataset/ffhq256/split/public', transform=Compose([
         RandomHorizontalFlip(p=0.5), ToTensor()
     ]))
     trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, pin_memory=True, drop_last=True)

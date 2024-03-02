@@ -176,10 +176,11 @@ class BaseTrainer(metaclass=ABCMeta):
         epochs = range(self.args.epoch_num)
         if self.args.tqdm_strategy == TqdmStrategy.EPOCH:
             epochs = tqdm(epochs)
+            
+        if self.args.tqdm_strategy == TqdmStrategy.ITER:
+            trainloader = tqdm(trainloader)
         
         for epoch in epochs:
-            if self.args.tqdm_strategy == TqdmStrategy.ITER:
-                trainloader = tqdm(trainloader)
             
             self._epoch = epoch
             

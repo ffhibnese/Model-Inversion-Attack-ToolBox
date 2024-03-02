@@ -28,7 +28,7 @@ from .code.m_cgan import ResNetGenerator, SNResNetProjectionDiscriminator
          
 @dataclass
 class PlgmiGANTrainArgs(BaseGANTrainArgs):
-    top_n: int = 60
+    top_n: int = 30
     target_name: str = 'vgg16'
     target_dataset_name: str = 'celeba'
     # num_classes: int = 1000
@@ -96,7 +96,8 @@ class PlgmiGANTrainer(BaseGANTrainer):
         self.G = nn.DataParallel(self.G)
         self.D = nn.DataParallel(self.D)
         self.T = get_model(args.target_name, args.target_dataset_name, device=args.device, backbone_pretrain=False, defense_type=args.defense_type)
-        self.folder_manager.load_target_model_state_dict(self.T, args.target_dataset_name, args.target_name, device=args.device, defense_type=args.defense_type)
+        # self.folder_manager.load_target_model_state_dict(self.T, args.target_dataset_name, args.target_name, device=args.device, defense_type=args.defense_type)
+        self.T.load_state_dict(torch.load('/data/yuhongyao/Model_Inversion_Attack_ToolBox/checkpoints/target_eval/hdceleba/resnet152_celeba.pt', map_location=args.device)['state_dict'])
         self.T.eval()
         
         # self.folder_manager.load_state_dict(self.G, [self.method_name, f'{self.tag}_G.pt'], self.args.device, self.args.defense_type)
@@ -141,6 +142,7 @@ class PlgmiGANTrainer(BaseGANTrainer):
                     for idx in indice:
                         torch
                         os.system(f'cp {src_img_paths[idx]} {dst_dir}/')
+        exit()
                     
     
     def _sample(self, batch_size):

@@ -147,7 +147,7 @@ def create_evaluation_model(num_classes, architecture, path):
 
 from tqdm import tqdm
 def main():
-    root_path = '/data/yuhongyao/Model_Inversion_Attack_ToolBox/results/plgmi_high_metfaces/facescrub_resnet18_metfaces_resnet18/all_imgs'
+    root_path = '/data/yuhongyao/Model_Inversion_Attack_ToolBox/results/lomma_kedmi_high_metfaces_facescrub/facescrub_resnet18_metfaces_vgg16/all_imgs'
     all_tensors = []
     all_labels = []
     import torchvision

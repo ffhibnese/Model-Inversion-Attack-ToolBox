@@ -17,11 +17,11 @@ if __name__ == '__main__':
     batch_size = 50
     
     dataset_name = 'ffhq256'
-    target_name = 'resnet18'
-    target_dataset_name = 'facescrub'
+    target_name = 'resnet152'
+    target_dataset_name = 'celeba'
     device = 'cuda'
     
-    dirs = get_dirs('plgmi_high_gan')
+    dirs = get_dirs('plgmi_high_gan_resnet152_celeba')
     cache_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     # dataset = ImageFolder(dataset_dir, transform=Compose([
     #     ToTensor(),

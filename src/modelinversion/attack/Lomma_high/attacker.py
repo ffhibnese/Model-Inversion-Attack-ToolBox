@@ -34,21 +34,28 @@ class LommaGMIAttacker(BaseAttacker):
         config: LommaGMIAttackConfig = self.config
         
         print('prepare GAN')
+        # self.G = Generator(100).to(config.device)
+        # self.D = DGWGAN(3).to(config.device)
+        
+        # self.folder_manager.load_state_dict(self.G, 
+        #                            ['GMI', f'{config.gan_dataset_name}_VGG16_GMI_G.tar'],
+        #                            device=config.device)
+        # self.folder_manager.load_state_dict(self.D, 
+        #                            ['GMI', f'{config.gan_dataset_name}_VGG16_GMI_D.tar'],
+        #                            device=config.device)
         self.G = Generator(100).to(config.device)
         self.D = DGWGAN(3).to(config.device)
+        import torch
         
-        self.folder_manager.load_state_dict(self.G, 
-                                   ['GMI', f'{config.gan_dataset_name}_VGG16_GMI_G.tar'],
-                                   device=config.device)
-        self.folder_manager.load_state_dict(self.D, 
-                                   ['GMI', f'{config.gan_dataset_name}_VGG16_GMI_D.tar'],
-                                   device=config.device)
+        self.G.load_state_dict(torch.load('/data/yuhongyao/papar_codes/PLG-MI-Attack/baselines/GMI_GAN_metfaces/metfaces/metfaces_GMI_G.tar', map_location=config.device)['state_dict'])
+        self.D.load_state_dict(torch.load('/data/yuhongyao/papar_codes/PLG-MI-Attack/baselines/GMI_GAN_metfaces/metfaces/metfaces_GMI_D.tar', map_location=config.device)['state_dict'])
         
         print('prepare augment models')
         self.aug_models = []
         for model_name in config.aug_model_names:
             model = get_model(model_name, config.dataset_name, device=config.device)
-            self.folder_manager.load_state_dict(model, ['Lomma', f'{config.aug_model_dataset_name}_{config.target_name}_{model_name}.pth'], device=config.device)
+            # self.folder_manager.load_state_dict(model, ['Lomma', f'{config.aug_model_dataset_name}_{config.target_name}_{model_name}.pth'], device=config.device)
+            model.load_state_dict(torch.load(f'checkpoints_defense/distill_metfaces/facescrub/{model_name}_facescrub_distill.pt', map_location=config.device)['state_dict'])
             self.aug_models.append(model)
             
         print('prepare features')
@@ -60,7 +67,7 @@ class LommaGMIAttacker(BaseAttacker):
             
     def _generate_preg(self, model, save_path, sample_num = 5000):
         config: LommaGMIAttackConfig = self.config
-        data_path = os.path.join(self.folder_manager.config.dataset_dir, self.config.dataset_name, 'split', 'public')
+        data_path = 'test/metfaces_crop' #os.path.join(self.folder_manager.config.dataset_dir, self.config.dataset_name, 'split', 'public')
         dataset = ImageFolder(data_path, transform=ToTensor())
         dataloader = DataLoader(dataset, config.preg_generate_batch_size, shuffle=True)
         
@@ -100,23 +107,29 @@ class LommaKEDMIAttacker(KEDMIAttacker):
     def prepare_attack(self):
         config: LommaGMIAttackConfig = self.config
         
-        # print('prepare GAN')
-        # self.G = Generator(100).to(config.device)
-        # self.D = DGWGAN(3).to(config.device)
-        
-        # self.folder_manager.load_state_dict(self.G, 
-        #                            ['GMI', f'{config.gan_dataset_name}_VGG16_GMI_G.tar'],
-        #                            device=config.device)
-        # self.folder_manager.load_state_dict(self.D, 
-        #                            ['GMI', f'{config.gan_dataset_name}_VGG16_GMI_D.tar'],
-        #                            device=config.device)
         super().prepare_attack()
+        # self.G = Generator(config.z_dim).to(config.device)
+        # self.D = MinibatchDiscriminator(n_classes=530).to(config.device)
+        
+        
+        # self.G.load_state_dict(torch.load('/data/yuhongyao/papar_codes/PLG-MI-Attack/baselines/KED_metfaces2/metfaces/resnet18/metfaces_resnet18_KED_MI_G.tar', map_location=config.device)['state_dict'])
+        # self.D.load_state_dict(torch.load('/data/yuhongyao/papar_codes/PLG-MI-Attack/baselines/KED_metfaces2/metfaces/resnet18/metfaces_resnet18_KED_MI_D.tar', map_location=config.device)['state_dict'])
+        # # self.folder_manager.load_state_dict(self.G, 
+        # #                            ['KEDMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_KEDMI_G.tar'],
+        # #                            device=config.device)
+        # # self.folder_manager.load_state_dict(self.D, 
+        # #                             ['KEDMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_KEDMI_D.tar'],
+        # #                             device=config.device)
+        
+        # self.G.eval()
+        # self.D.eval()
         
         print('prepare augment models')
         self.aug_models = []
         for model_name in config.aug_model_names:
             model = get_model(model_name, config.dataset_name, device=config.device)
-            self.folder_manager.load_state_dict(model, ['Lomma', f'{config.aug_model_dataset_name}_{config.target_name}_{model_name}.pth'], device=config.device)
+            # self.folder_manager.load_state_dict(model, ['Lomma', f'{config.aug_model_dataset_name}_{config.target_name}_{model_name}.pth'], device=config.device)
+            model.load_state_dict(torch.load(f'checkpoints_defense/distill_metfaces/facescrub/{model_name}_facescrub_distill.pt', map_location=config.device)['state_dict'])
             self.aug_models.append(model)
             
         print('prepare features')
@@ -125,10 +138,10 @@ class LommaKEDMIAttacker(KEDMIAttacker):
         if not os.path.exists(save_path):
             self._generate_preg(self.T, save_path)
         self.T_preg = torch.load(save_path, map_location=config.device)
-        
+            
     def _generate_preg(self, model, save_path, sample_num = 5000):
         config: LommaGMIAttackConfig = self.config
-        data_path = os.path.join(self.folder_manager.config.dataset_dir, self.config.dataset_name, 'split', 'public')
+        data_path = 'test/metfaces_crop' #os.path.join(self.folder_manager.config.dataset_dir, self.config.dataset_name, 'split', 'public')
         dataset = ImageFolder(data_path, transform=ToTensor())
         dataloader = DataLoader(dataset, config.preg_generate_batch_size, shuffle=True)
         
@@ -151,6 +164,10 @@ class LommaKEDMIAttacker(KEDMIAttacker):
         
         torch.save({'mean': features_mean, 'std': features_std}, save_path)
         
+        
+    def attack_step(self, iden):
+        return inversion(self.config, self.G, self.D, self.T, self.E, iden, self.folder_manager, self.aug_models, True, self.T_preg['mean'], self.T_preg['std'], 1.)
+    
     def get_reg_loss(self, featureT):
         
         fea_mean = self.T_preg['mean']
@@ -162,10 +179,11 @@ class LommaKEDMIAttacker(KEDMIAttacker):
         # print('loss_reg',loss_reg)
         return loss_reg
         
+        
     def get_loss(self, fake, iden):
         # return super().get_iden_loss(fake, iden)
         _, D_label = self.D(fake)
-        pred = self.T(fake).result
+        # pred = self.T(fake).result
         
         Prior_Loss = torch.mean(F.softplus(self.log_sum_exp(D_label))) - torch.mean(self.log_sum_exp(D_label))
         
