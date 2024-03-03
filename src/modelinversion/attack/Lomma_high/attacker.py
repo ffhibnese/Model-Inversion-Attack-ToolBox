@@ -47,15 +47,15 @@ class LommaGMIAttacker(BaseAttacker):
         self.D = DGWGAN(3).to(config.device)
         import torch
         
-        self.G.load_state_dict(torch.load('/data/yuhongyao/papar_codes/PLG-MI-Attack/baselines/GMI_GAN_metfaces/metfaces/metfaces_GMI_G.tar', map_location=config.device)['state_dict'])
-        self.D.load_state_dict(torch.load('/data/yuhongyao/papar_codes/PLG-MI-Attack/baselines/GMI_GAN_metfaces/metfaces/metfaces_GMI_D.tar', map_location=config.device)['state_dict'])
+        self.G.load_state_dict(torch.load('/data/yuhongyao/Model_Inversion_Attack_ToolBox/checkpoints/GMI_high/gmi_high_ffhq256_G.pt', map_location=config.device)['state_dict'])
+        self.D.load_state_dict(torch.load('/data/yuhongyao/Model_Inversion_Attack_ToolBox/checkpoints/GMI_high/gmi_high_ffhq256_D.pt', map_location=config.device)['state_dict'])
         
         print('prepare augment models')
         self.aug_models = []
         for model_name in config.aug_model_names:
             model = get_model(model_name, config.dataset_name, device=config.device)
             # self.folder_manager.load_state_dict(model, ['Lomma', f'{config.aug_model_dataset_name}_{config.target_name}_{model_name}.pth'], device=config.device)
-            model.load_state_dict(torch.load(f'checkpoints_defense/distill_metfaces/facescrub/{model_name}_facescrub_distill.pt', map_location=config.device)['state_dict'])
+            model.load_state_dict(torch.load(f'checkpoints_defense/distill_ffhq/facescrub/{model_name}_facescrub_distill.pt', map_location=config.device)['state_dict'])
             self.aug_models.append(model)
             
         print('prepare features')
@@ -67,7 +67,8 @@ class LommaGMIAttacker(BaseAttacker):
             
     def _generate_preg(self, model, save_path, sample_num = 5000):
         config: LommaGMIAttackConfig = self.config
-        data_path = 'test/metfaces_crop' #os.path.join(self.folder_manager.config.dataset_dir, self.config.dataset_name, 'split', 'public')
+        # data_path = 'test/metfaces_crop' #os.path.join(self.folder_manager.config.dataset_dir, self.config.dataset_name, 'split', 'public')
+        data_path = os.path.join(self.folder_manager.config.dataset_dir, self.config.gan_dataset_name, 'split', 'public')
         dataset = ImageFolder(data_path, transform=ToTensor())
         dataloader = DataLoader(dataset, config.preg_generate_batch_size, shuffle=True)
         
@@ -92,7 +93,11 @@ class LommaGMIAttacker(BaseAttacker):
         
         
     def attack_step(self, iden):
-        return inversion(self.config, self.G, self.D, self.T, self.E, iden, self.folder_manager, self.aug_models, True, self.T_preg['mean'], self.T_preg['std'], 1.)
+        ret, allimgs, alllabels = inversion(self.config, self.G, self.D, self.T, self.E, iden, self.folder_manager, self.aug_models, True, self.T_preg['mean'], self.T_preg['std'], 1.)
+        
+        self.all_imgs.append(allimgs)
+        self.all_labels.append(alllabels)
+        return ret
         
         
 class LommaKEDMIAttacker(KEDMIAttacker):
@@ -142,6 +147,7 @@ class LommaKEDMIAttacker(KEDMIAttacker):
     def _generate_preg(self, model, save_path, sample_num = 5000):
         config: LommaGMIAttackConfig = self.config
         data_path = 'test/metfaces_crop' #os.path.join(self.folder_manager.config.dataset_dir, self.config.dataset_name, 'split', 'public')
+        # data_path = os.path.join(self.folder_manager.config.dataset_dir, self.config.gan_dataset_name, 'split', 'public')
         dataset = ImageFolder(data_path, transform=ToTensor())
         dataloader = DataLoader(dataset, config.preg_generate_batch_size, shuffle=True)
         

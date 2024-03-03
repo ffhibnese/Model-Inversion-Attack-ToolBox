@@ -14,6 +14,11 @@ from ..utils import DictAccumulator, Accumulator
 from ..enums import TqdmStrategy
 from ..trainer import BaseGANTrainArgs, BaseGANTrainer
 
+import sys
+sys.path.append('/data/yuhongyao/Model_Inversion_Attack_ToolBox/test/aux')
+from evalaa import faa
+
+
 @dataclass
 class BaseAttackConfig:
     
@@ -50,6 +55,9 @@ class BaseAttacker(metaclass=ABCMeta):
         print('--------------- config --------------')
         print(config)
         print('-------------------------------------')
+        
+        self.all_imgs = []
+        self.all_labels = []
         
     def register_dirs(self, dirs: dict):
         for k, v in dirs.items():
@@ -118,21 +126,25 @@ class BaseAttacker(metaclass=ABCMeta):
                 print(f'average {key}: {val:.6f}')
             
     def evaluation(self, batch_size, transform=None, knn=True, feature_distance=True, fid=False):
-        eval_metrics = []
         
-        if knn:
-            eval_metrics.append(KnnDistanceMetric(self.folder_manager, device=self.config.device, model=self.E))
+        self.all_imgs = torch.cat(self.all_imgs, dim=0)
+        self.all_labels = torch.cat(self.all_labels, dim=0)
+        faa(self.all_imgs, self.all_labels)
+        # eval_metrics = []
         
-        if feature_distance:
-            eval_metrics.append(FeatureDistanceMetric(self.folder_manager, self.config.device, model=self.E))
+        # if knn:
+        #     eval_metrics.append(KnnDistanceMetric(self.folder_manager, device=self.config.device, model=self.E))
         
-        if fid:
-            eval_metrics.append(FIDMetric(self.folder_manager, device=self.config.device, model=None))
+        # if feature_distance:
+        #     eval_metrics.append(FeatureDistanceMetric(self.folder_manager, self.config.device, model=self.E))
+        
+        # if fid:
+        #     eval_metrics.append(FIDMetric(self.folder_manager, device=self.config.device, model=None))
                                 
-        for metric in eval_metrics:
-            metric: BaseMetric
-            print(f'calculate {metric.get_metric_name()}')
-            metric.evaluation(self.config.dataset_name, batch_size, transform)
+        # for metric in eval_metrics:
+        #     metric: BaseMetric
+        #     print(f'calculate {metric.get_metric_name()}')
+        #     metric.evaluation(self.config.dataset_name, batch_size, transform)
             
 class BaseSingleLabelAttacker(BaseAttacker):
 

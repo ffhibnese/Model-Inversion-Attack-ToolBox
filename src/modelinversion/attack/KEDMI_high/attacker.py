@@ -13,6 +13,10 @@ from ..base import BaseAttacker
 from .code.generator import Generator
 from .code.discri import MinibatchDiscriminator
 
+import os
+import sys
+sys.path.append('/data/yuhongyao/Model_Inversion_Attack_ToolBox/test/aux')
+from evalaa import faa
 
 
 class KEDMIAttacker(BaseAttacker):
@@ -20,6 +24,7 @@ class KEDMIAttacker(BaseAttacker):
     def __init__(self, config: KEDMIAttackConfig) -> None:
         super().__init__(config)
         self.config: KEDMIAttackConfig
+        
         
     def get_tag(self) -> str:
         config = self.config
@@ -100,9 +105,12 @@ class KEDMIAttacker(BaseAttacker):
         
         tf = time.time()
         
+        
+        
         for i in range(config.iter_times):
             z = self.reparameterize(mu, log_var).to(device)
             fake = self.G(z)
+            
             
             solver.zero_grad()
 
@@ -132,11 +140,19 @@ class KEDMIAttacker(BaseAttacker):
         with torch.no_grad():
             res = []
             res5 = []
+            
+            save_fakes = []
+            save_labels = []
+            
             seed_acc = torch.zeros((bs, config.gen_num_per_target))
             for random_seed in range(config.gen_num_per_target):
                 tf = time.time()
                 z = self.reparameterize(mu, log_var).to(device)
                 fake = self.G(z)
+                
+                save_fakes.append(fake.detach().cpu())
+                save_labels.append(iden.detach().cpu())
+            
                 # score = T(fake).result
                 eval_prob = self.E(fake).result
                 eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
@@ -146,7 +162,7 @@ class KEDMIAttacker(BaseAttacker):
                     gt = iden[i].item()
                     sample = fake[i]
                     
-                    folder_manager.save_result_image(sample, gt)
+                    folder_manager.save_result_image(sample, gt, save_tensor=False)
 
                     if eval_iden[i].item() == gt:
                         seed_acc[i, random_seed] = 1
@@ -164,6 +180,12 @@ class KEDMIAttacker(BaseAttacker):
                 res5.append(cnt5 * 1.0 / bs)
 
                 torch.cuda.empty_cache()
+                
+            save_fakes = torch.cat(save_fakes, dim=0)
+            save_labels = torch.cat(save_labels, dim=0)
+            # torch.save({'img': save_fakes, 'label': save_labels}, os.path.join(folder_manager.config.result_dir, ))
+            self.all_imgs.append(save_fakes)
+            self.all_labels.append(save_labels)
 
         acc, acc_5 = statistics.mean(res), statistics.mean(res5)
         acc_var = statistics.variance(res)

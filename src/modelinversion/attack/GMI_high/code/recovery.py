@@ -93,6 +93,10 @@ def inversion(config: GMIAttackConfig, G, D, T, E, iden, folder_manager: FolderM
     res = []
     res5 = []
     seed_acc = torch.zeros((bs, config.gen_num_per_target))
+    
+    all_imgs = []
+    all_labels = []
+    
     for random_seed in range(config.gen_num_per_target):
         tf = time.time()
         r_idx = random_seed
@@ -143,6 +147,8 @@ def inversion(config: GMIAttackConfig, G, D, T, E, iden, folder_manager: FolderM
 
         with torch.no_grad():
             fake = G(z)
+            all_imgs.append(fake.detach().cpu())
+            all_labels.append(iden.detach().cpu())
             eval_prob = E(fake_img).result
             eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
 
@@ -176,10 +182,12 @@ def inversion(config: GMIAttackConfig, G, D, T, E, iden, folder_manager: FolderM
     acc_var5 = statistics.variance(res5)
     print("Acc:{:.2f}\tAcc_5:{:.2f}\tAcc_var:{:.4f}\tAcc_var5:{:.4f}".format(acc, acc_5, acc_var, acc_var5))
 
-    # return acc, acc_5, acc_var, acc_var5
+    all_imgs = torch.cat(all_imgs, dim=0)
+    all_labels = torch.cat(all_labels, dim=0)
+    
     return {
         'acc': acc,
         'acc5': acc_5,
         'acc_var': acc_var,
         'acc5_var': acc_var5
-    }
+    }, all_imgs, all_labels

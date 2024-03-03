@@ -7,10 +7,10 @@ from modelinversion.attack.Lomma_high.attacker import LommaKEDMIAttackConfig, Lo
 from development_config import get_dirs
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 if __name__ == '__main__':
-    dirs = get_dirs('lomma_kedmi_high_metfaces_facescrub')
+    dirs = get_dirs('lomma_kedmi_high_metfaces_facescrub_3')
     cache_dir, result_dir, ckpt_dir, dataset_dir = dirs['work_dir'], dirs['result_dir'], dirs['ckpt_dir'], dirs['dataset_dir']
     
     # target name support: vgg16, ir152, facenet64, facenet
