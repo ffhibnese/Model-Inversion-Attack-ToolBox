@@ -127,12 +127,14 @@ class PlgmiGANTrainArgs(BaseGANTrainArgs):
 class PlgmiGANTrainer(BaseGANTrainer):
     
     def __init__(self, args: PlgmiGANTrainArgs, folder_manager, more_args, **kwargs) -> None:
-        super().__init__(args, folder_manager, **kwargs)
+        for k, v in args.__dict__:
+            setattr(more_args, k, v)
+        more_args.num_classes = NUM_CLASSES[args.target_dataset_name]
+        super().__init__(more_args, folder_manager, **kwargs)
         self.args: PlgmiGANTrainArgs
         self.num_classes = NUM_CLASSES[args.target_dataset_name]
         
-        for k, v in more_args.__dict__:
-            setattr(self.args, k, v)
+        
         
         self.src_dataset_dir = more_args.data_root # os.path.join(folder_manager.config.dataset_dir, args.dataset_name, 'split', 'public')
         self.path_T = more_args.target_ckpt_path # '/data/yuhongyao/Model_Inversion_Attack_ToolBox/checkpoints/target_eval/hdceleba/resnet152_celeba.pt'
