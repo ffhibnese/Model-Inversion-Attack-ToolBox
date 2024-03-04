@@ -139,8 +139,8 @@ class PLGMIAttacker(BaseAttacker):
                     torch.cuda.empty_cache()
 
         acc, acc_5 = statistics.mean(res), statistics.mean(res5)
-        acc_var = statistics.variance(res)
-        acc_var5 = statistics.variance(res5)
+        acc_var = 0 #statistics.variance(res)
+        acc_var5 =0 # statistics.variance(res5)
         print("Acc:{:.2f}\tAcc_5:{:.2f}\tAcc_var:{:.4f}\tAcc_var5:{:.4f}".format(acc, acc_5, acc_var, acc_var5))
 
         # return acc, acc_5, acc_var, acc_var5
