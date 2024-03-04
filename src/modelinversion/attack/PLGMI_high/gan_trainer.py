@@ -386,10 +386,10 @@ class PlgmiGANTrainer(BaseGANTrainer):
                 #     args, n_iter, n_iter // args.checkpoint_interval,
                 #     gen.module, opt_gen, dis.module, opt_dis
                 # )
-                torch.save({'state_dict': gen.state_dict()}, os.path.join(self.folder_manager.config.cache_dir, 'G.pth'))
-                torch.save({'state_dict': dis.state_dict()}, os.path.join(self.folder_manager.config.cache_dir, 'D.pth'))
-        torch.save({'state_dict': gen.state_dict()}, os.path.join(self.folder_manager.config.cache_dir, 'G.pth'))
-        torch.save({'state_dict': dis.state_dict()}, os.path.join(self.folder_manager.config.cache_dir, 'D.pth'))
+                torch.save({'state_dict': gen.module.state_dict()}, os.path.join(self.folder_manager.config.cache_dir, 'G.pth'))
+                torch.save({'state_dict': dis.module.state_dict()}, os.path.join(self.folder_manager.config.cache_dir, 'D.pth'))
+        torch.save({'state_dict': gen.module.state_dict()}, os.path.join(self.folder_manager.config.cache_dir, 'G.pth'))
+        torch.save({'state_dict': dis.module.state_dict()}, os.path.join(self.folder_manager.config.cache_dir, 'D.pth'))
         # exit()
                     
     

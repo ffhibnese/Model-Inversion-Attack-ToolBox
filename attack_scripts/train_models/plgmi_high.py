@@ -137,9 +137,9 @@ if __name__ == '__main__':
     # gan target name support: vgg16
     gan_target_name = target_name
     # dataset name support: celeba
-    dataset_name = more_args.data_name
+    dataset_name = more_args.target_data_name
     # gan dataset name support: celeba, ffhq, facescrub
-    gan_dataset_name = more_args.target_data_name
+    gan_dataset_name = more_args.data_name
     
     batch_size = 70
     # target_labels = list(range(512, 544))
