@@ -107,6 +107,10 @@ class PLGMIAttacker(BaseAttacker):
 
             with torch.no_grad():
                 fake = self.G(z, iden)
+                
+                self.all_imgs.append(fake.detach().cpu())
+                self.all_labels.append(iden.detach().cpu())
+                
                 eval_prob = self.E(fake).result
                 eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
 
@@ -114,7 +118,7 @@ class PLGMIAttacker(BaseAttacker):
                 for i in range(bs):
                     gt = iden[i].item()
                     sample = fake[i]
-                    self.folder_manager.save_result_image(sample, gt, save_tensor=True)
+                    self.folder_manager.save_result_image(sample, gt, save_tensor=False)
 
                     if eval_iden[i].item() == gt:
                         seed_acc[i, r_idx] = 1

@@ -130,8 +130,7 @@ def create_target_dataset(dataset_name, transform):
     if dataset_name.lower() == 'facescrub':
         return FaceScrub(group='all',
                          train=True,
-                         transform=transform,
-                         root='xxxxxxxxxxxxxxxxxx')
+                         transform=transform)
     elif dataset_name.lower() == 'celeba_identities':
         return CelebA1000(train=True, transform=transform)
     elif 'stanford_dogs' in dataset_name.lower():
