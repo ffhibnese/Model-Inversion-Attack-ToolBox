@@ -202,15 +202,17 @@ class PlgmiGANTrainer(BaseGANTrainer):
             ])
             
             with torch.no_grad():
-                src_imgs = [trans(p) for p in tqdm(src_img_paths)]
-                src_imgs = torch.stack(src_imgs, dim=0)
+                # src_imgs = [trans(p) for p in tqdm(src_img_paths)]
+                # src_imgs = torch.stack(src_imgs, dim=0)
                 src_scores = []
                 total_num = len(src_img_paths)
                 for i in tqdm(range((total_num-1) // args.batch_size + 1)):
                     start_idx = i * args.batch_size
                     end_idx = min(start_idx + args.batch_size, total_num)
                     # batch_paths = src_img_paths[start_idx:end_idx]
-                    batch_imgs = src_imgs[start_idx:end_idx].to(args.device)
+                    use_paths = src_img_paths[start_idx:end_idx]
+                    batch_imgs = torch.stack([trans(p) for p in use_paths], dim=0).to(args.device)
+                    # batch_imgs = src_imgs[start_idx:end_idx].to(args.device)
                     batch_scores = self.T(batch_imgs).result.softmax(dim=-1).cpu()
                     src_scores.append(batch_scores)
                 src_scores = torch.cat(src_scores, dim=0)
