@@ -10,7 +10,7 @@ from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor, CenterCrop, Resize, Compose
 from modelinversion.attack.PLGMI_high.gan_trainer import PlgmiGANTrainArgs, PlgmiGANTrainer
 from development_config import get_dirs
-
+from modelinversion.attack.PLGMI_high.attacker import PLGMIAttacker, PLGMIAttackConfig
 from modelinversion.foldermanager import FolderManager
 
 
@@ -128,4 +128,40 @@ if __name__ == '__main__':
     
     trainer = PlgmiGANTrainer(train_args, folder_manager, args=more_args)
     
-    trainer.train()
+    trainer.prepare_training()
+    
+    del trainer
+    
+    # eval name support: vgg16, ir152, facenet64, facenet
+    eval_name = 'inception_v3'
+    # gan target name support: vgg16
+    gan_target_name = target_name
+    # dataset name support: celeba
+    dataset_name = more_args.data_name
+    # gan dataset name support: celeba, ffhq, facescrub
+    gan_dataset_name = more_args.target_data_name
+    
+    batch_size = 70
+    # target_labels = list(range(512, 544))
+    target_labels = list(range(0, 530))
+    device = 'cuda'
+    
+    config = PLGMIAttackConfig(
+        target_name=target_name,
+        eval_name=eval_name,
+        ckpt_dir=ckpt_dir,
+        result_dir=result_dir,
+        dataset_dir=dataset_dir,
+        cache_dir=cache_dir,
+        dataset_name=dataset_name,
+        device=device,
+        gan_target_name=gan_target_name,
+        gan_dataset_name=gan_dataset_name,
+        gen_num_per_target=50
+    )
+    
+    attacker = PLGMIAttacker(config)
+    
+    attacker.attack(batch_size, target_labels)
+    
+    attacker.evaluation(20)

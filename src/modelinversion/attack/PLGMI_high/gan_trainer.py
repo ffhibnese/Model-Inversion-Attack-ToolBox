@@ -380,12 +380,15 @@ class PlgmiGANTrainer(BaseGANTrainer):
                 )
             if n_iter % args.checkpoint_interval == 0:
                 # Save checkpoints!
-                utils.save_checkpoints(
-                    args, n_iter, n_iter // args.checkpoint_interval,
-                    gen.module, opt_gen, dis.module, opt_dis
-                )
-        
-        exit()
+                # utils.save_checkpoints(
+                #     args, n_iter, n_iter // args.checkpoint_interval,
+                #     gen.module, opt_gen, dis.module, opt_dis
+                # )
+                torch.save({'state_dict': gen.state_dict()}, os.path.join(self.folder_manager.config.cache_dir, 'G.pth'))
+                torch.save({'state_dict': dis.state_dict()}, os.path.join(self.folder_manager.config.cache_dir, 'D.pth'))
+        torch.save({'state_dict': gen.state_dict()}, os.path.join(self.folder_manager.config.cache_dir, 'G.pth'))
+        torch.save({'state_dict': dis.state_dict()}, os.path.join(self.folder_manager.config.cache_dir, 'D.pth'))
+        # exit()
                     
     
     def _sample(self, batch_size):
