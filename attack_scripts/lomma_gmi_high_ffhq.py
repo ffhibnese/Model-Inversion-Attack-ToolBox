@@ -7,7 +7,7 @@ from modelinversion.attack.Lomma_high.attacker import LommaGMIAttackConfig, Lomm
 from development_config import get_dirs
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '2'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,3'
 
 if __name__ == '__main__':
     dirs = get_dirs('lomma_gmi_high_ffhq_facescrub')
@@ -20,12 +20,12 @@ if __name__ == '__main__':
     # dataset name support: celeba
     dataset_name = 'facescrub'
     # gan dataset name support: celeba, ffhq, facescrub
-    gan_dataset_name = 'ffhq'
+    gan_dataset_name = 'ffhq256'
     # augment model pretrained dataset name support: celeba, ffhq
-    aug_model_dataset_name = 'ffhq'
+    aug_model_dataset_name = 'ffhq256'
     
     
-    batch_size = 40
+    batch_size = 120
     target_labels = list(range(530))
     device = 'cuda'
     
@@ -49,4 +49,4 @@ if __name__ == '__main__':
     
     attacker.attack(batch_size, target_labels)
     
-    # attacker.evaluation(batch_size, knn=True, feature_distance=True, fid=True)
+    attacker.evaluation(batch_size, knn=True, feature_distance=True, fid=True)

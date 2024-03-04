@@ -43,20 +43,26 @@ class LommaGMIAttacker(BaseAttacker):
         # self.folder_manager.load_state_dict(self.D, 
         #                            ['GMI', f'{config.gan_dataset_name}_VGG16_GMI_D.tar'],
         #                            device=config.device)
-        self.G = Generator(100).to(config.device)
-        self.D = DGWGAN(3).to(config.device)
+        self.G = Generator(100)
+        self.D = DGWGAN(3)
         import torch
         
-        self.G.load_state_dict(torch.load('/data/yuhongyao/Model_Inversion_Attack_ToolBox/checkpoints/GMI_high/gmi_high_ffhq256_G.pt', map_location=config.device)['state_dict'])
-        self.D.load_state_dict(torch.load('/data/yuhongyao/Model_Inversion_Attack_ToolBox/checkpoints/GMI_high/gmi_high_ffhq256_D.pt', map_location=config.device)['state_dict'])
+        # self.G.load_state_dict(torch.load('/data/yuhongyao/Model_Inversion_Attack_ToolBox/checkpoints/GMI_high/gmi_high_ffhq256_G.pt', map_location=config.device)['state_dict'])
+        # self.D.load_state_dict(torch.load('/data/yuhongyao/Model_Inversion_Attack_ToolBox/checkpoints/GMI_high/gmi_high_ffhq256_D.pt', map_location=config.device)['state_dict'])
+        self.G.load_state_dict(torch.load('/data/yuhongyao/papar_codes/PLG-MI-Attack/baselines/GMI_Baseline/ffhq/ffhq_GMI_G.tar', map_location='cpu')['state_dict'])
+        self.D.load_state_dict(torch.load('/data/yuhongyao/papar_codes/PLG-MI-Attack/baselines/GMI_Baseline/ffhq/ffhq_GMI_D.tar', map_location='cpu')['state_dict'])
+        
+        self.G = nn.DataParallel(self.G).to(config.device)
+        self.D = nn.DataParallel(self.D).to(config.device)
+        
         
         print('prepare augment models')
         self.aug_models = []
         for model_name in config.aug_model_names:
-            model = get_model(model_name, config.dataset_name, device=config.device)
+            model = get_model(model_name, config.dataset_name, device='cpu')
             # self.folder_manager.load_state_dict(model, ['Lomma', f'{config.aug_model_dataset_name}_{config.target_name}_{model_name}.pth'], device=config.device)
-            model.load_state_dict(torch.load(f'checkpoints_defense/distill_ffhq/facescrub/{model_name}_facescrub_distill.pt', map_location=config.device)['state_dict'])
-            self.aug_models.append(model)
+            model.load_state_dict(torch.load(f'checkpoints_defense/distill_ffhq/facescrub/{model_name}_facescrub_distill.pt', map_location='cpu')['state_dict'])
+            self.aug_models.append(nn.DataParallel(model).to(config.device))
             
         print('prepare features')
         

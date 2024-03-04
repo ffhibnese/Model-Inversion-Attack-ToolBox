@@ -127,6 +127,9 @@ class BaseAttacker(metaclass=ABCMeta):
             
     def evaluation(self, batch_size, transform=None, knn=True, feature_distance=True, fid=False):
         
+        del self.T
+        del self.E
+        
         self.all_imgs = torch.cat(self.all_imgs, dim=0)
         self.all_labels = torch.cat(self.all_labels, dim=0)
         faa(self.all_imgs, self.all_labels)

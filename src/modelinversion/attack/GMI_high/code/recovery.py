@@ -73,6 +73,7 @@ def get_iden_loss(imgs, labels, T: BaseTargetModel, augment_models: list[BaseTar
 
 def inversion(config: GMIAttackConfig, G, D, T, E, iden, folder_manager: FolderManager, augment_models: list[BaseTargetModel] = None, use_logit_loss=False, T_feature_means=None, T_feature_stds=None, reg_coef=0.1):
     
+    print(torch.cat([torch.tensor([1.])], dim=0).shape)
     device = config.device
     momentum = config.momentum
     clip_range = config.clip_range
@@ -149,7 +150,7 @@ def inversion(config: GMIAttackConfig, G, D, T, E, iden, folder_manager: FolderM
             fake = G(z)
             all_imgs.append(fake.detach().cpu())
             all_labels.append(iden.detach().cpu())
-            eval_prob = E(fake_img).result
+            eval_prob = E(fake).result
             eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
 
             cnt, cnt5 = 0, 0
@@ -178,8 +179,8 @@ def inversion(config: GMIAttackConfig, G, D, T, E, iden, folder_manager: FolderM
             torch.cuda.empty_cache()
 
     acc, acc_5 = statistics.mean(res), statistics.mean(res5)
-    acc_var = statistics.variance(res)
-    acc_var5 = statistics.variance(res5)
+    acc_var = 0 # statistics.variance(res)
+    acc_var5 =  0 # statistics.variance(res5)
     print("Acc:{:.2f}\tAcc_5:{:.2f}\tAcc_var:{:.4f}\tAcc_var5:{:.4f}".format(acc, acc_5, acc_var, acc_var5))
 
     all_imgs = torch.cat(all_imgs, dim=0)
