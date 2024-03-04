@@ -15,7 +15,7 @@ from ..enums import TqdmStrategy
 from ..trainer import BaseGANTrainArgs, BaseGANTrainer
 
 import sys
-sys.path.append('/data/yuhongyao/Model_Inversion_Attack_ToolBox/test/aux')
+sys.path.append('./test/aux')
 from evalaa import faa
 
 

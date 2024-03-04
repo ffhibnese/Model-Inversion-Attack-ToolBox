@@ -127,7 +127,7 @@ class PlgmiGANTrainArgs(BaseGANTrainArgs):
 class PlgmiGANTrainer(BaseGANTrainer):
     
     def __init__(self, args: PlgmiGANTrainArgs, folder_manager, more_args, **kwargs) -> None:
-        for k, v in args.__dict__:
+        for k, v in args.__dict__.items():
             setattr(more_args, k, v)
         more_args.num_classes = NUM_CLASSES[args.target_dataset_name]
         super().__init__(more_args, folder_manager, **kwargs)
@@ -173,7 +173,7 @@ class PlgmiGANTrainer(BaseGANTrainer):
     def prepare_training(self):
         # return "maomao"
         args = self.args
-        self.G = ResNetGenerator(dim_z=args.z_dim, num_classes=self.num_classes, distribution=args.gen_distribution)
+        self.G = ResNetGenerator(num_classes=self.num_classes, distribution=args.gen_distribution)
         self.D = SNResNetProjectionDiscriminator(num_classes=self.num_classes)
         # self.G.load_state_dict(torch.load('checkpoints/PLGMI_high/plgmi_high_metfaces_resnet18_facescrub_G.pt')['state_dict'])
         # self.D.load_state_dict(torch.load('checkpoints/PLGMI_high/plgmi_high_metfaces_resnet18_facescrub_D.pt')['state_dict'])
@@ -290,7 +290,7 @@ class PlgmiGANTrainer(BaseGANTrainer):
         )
 
         # Training loop
-        from tqdm import tqdm
+        # from tqdm import tqdm
         for n_iter in tqdm(range(1, args.max_iteration + 1)):
             # ==================== Beginning of 1 iteration. ====================
             _l_g = .0

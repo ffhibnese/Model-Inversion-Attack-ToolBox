@@ -126,7 +126,7 @@ if __name__ == '__main__':
     
     folder_manager = FolderManager(ckpt_dir, dataset_dir, cache_dir, result_dir, None)
     
-    trainer = PlgmiGANTrainer(train_args, folder_manager, args=more_args)
+    trainer = PlgmiGANTrainer(train_args, folder_manager, more_args=more_args)
     
     trainer.prepare_training()
     
