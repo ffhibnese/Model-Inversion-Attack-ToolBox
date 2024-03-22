@@ -7,7 +7,7 @@ from torchvision.transforms.functional import resize
 
 from ...utils import OutputHook, traverse_module
 from ..modelresult import ModelResult
-from ..base import BaseTargetModel
+from .. import BaseTargetModel
 
 class VGG16(BaseTargetModel):
     def __init__(self, n_classes, pretrained=False):

@@ -4,7 +4,7 @@ import torchvision
 from torch import nn
 from torch.nn import functional as F
 
-from ..base import BaseTargetModel
+from .. import BaseTargetModel
 from ..modelresult import ModelResult
 from ...utils.torchutil import OutputHook
 

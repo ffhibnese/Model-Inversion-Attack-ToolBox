@@ -2,20 +2,57 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from typing import Any
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 import torch
 import numpy as np
 from numpy import ndarray
 from scipy import linalg
-from torch import Tensor, nn
+from torch import Tensor, nn, LongTensor
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor
 
 from ..foldermanager import FolderManager
-from ..models.base import BaseTargetModel
+from ..models.classifiers import BaseTargetModel
+from ..utils import batch_apply
+
+class ImageClassifierAttackMetric(ABC):
+    
+    def __init__(self, batch_size: int):
+        self.batch_size = batch_size
+    
+    @abstractmethod
+    def __call__(self, images: Tensor, labels: LongTensor) -> OrderedDict:
+        pass
+    
+class ImageClassifierAttackAccuracy(ImageClassifierAttackMetric):
+    
+    def __init__(self, batch_size: int, model: nn.Module, device: torch.device, description: str):
+        super().__init__(batch_size)
+        self.model = model
+        self.device = device
+        self.description = description
+        
+        
+    def __call__(self, images: Tensor, labels: LongTensor) -> OrderedDict:
+        
+        def get_scores(images: Tensor):
+            images = images.to(self.device)
+            pred = self.model(images)
+            return pred.cpu()
+        
+        scores = batch_apply(get_scores, images, self.batch_size, use_tqdm=True)
+        _, topk_indices = torch.topk(scores, 5)
+        eq = (topk_indices == labels.unsqueeze(1)).float()
+        acc = eq[:, 0].mean().item()
+        acc5 = eq.sum(dim=-1).mean().item()
+        
+        return OrderedDict([
+            (f'{self.description} acc@1', acc),
+            (f'{self.description} acc@5', acc5)
+        ])
 
 class BaseMetric(ABC):
     
