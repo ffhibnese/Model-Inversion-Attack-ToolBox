@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from ..modelresult import ModelResult
 from torchvision.transforms.functional import resize
-from ..base import BaseTargetModel
+from .. import BaseTargetModel
 
 """ 
     FROM MIRROR

@@ -29,3 +29,15 @@ def print_as_yaml(obj, stdout=True, file=None, mode='w'):
         with open(file, mode) as f:
             f.write(s)
     
+def print_split_line(content=None, length=60):
+    if content is None:
+        print('-' * length)
+    if len(content) > length - 4:
+        length = len(content) + 4
+        
+    total_num = length - len(content) - 2
+    left_num = total_num // 2
+    right_num = total_num - left_num
+    print('-' * left_num, end=' ')
+    print(content, end=' ')
+    print('-' * right_num)

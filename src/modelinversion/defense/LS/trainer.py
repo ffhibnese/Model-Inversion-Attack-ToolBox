@@ -8,7 +8,7 @@ from torch.optim.lr_scheduler import LRScheduler
 from torch.nn import functional as F
 
 from ...models import ModelResult
-from ...models.base import BaseTargetModel
+from ...models.classifiers import BaseTargetModel
 from ...utils import traverse_module, OutputHook, BaseHook
 from ...foldermanager import FolderManager
 from ..base import BaseTrainArgs, BaseTrainer

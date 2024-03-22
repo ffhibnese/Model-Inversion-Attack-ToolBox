@@ -1,168 +1,253 @@
 import os
+import yaml
+import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass, field
+from typing import Any, Union, Optional, Tuple
 
 import torch
+from torch import Tensor, LongTensor
+from torchvision.utils import save_image
 from tqdm import tqdm
-import yaml
 
 from ..models import *
 from ..foldermanager import FolderManager
 from ..metrics.base import *
-from ..utils import DictAccumulator, Accumulator
+from ..utils import DictAccumulator, Accumulator, TorchLoss, batch_apply, print_as_yaml, print_split_line, get_random_string
 from ..enums import TqdmStrategy
 from ..trainer import BaseGANTrainArgs, BaseGANTrainer
 
+
+
+
+    
+
 @dataclass
-class BaseAttackConfig:
+class ImageClassifierAttackConfig:
     
-    # classifier
-    target_name: str
-    eval_name: str
+    # sample latent
+    sample_latents_fn: Callable[[int], None] = None
     
-    # folders
-    ckpt_dir: str
-    result_dir: str
-    dataset_dir: str
-    cache_dir: str
-    defense_ckpt_dir: str = None
+    # initial selection
+    initial_num: Optional[int] = None
+    initial_latents_score_fn: Optional[Callable[[Tensor, LongTensor], Tensor]] = None
+    initial_select_batch_size: Optional[int] = None
     
-    # dataset
-    dataset_name: str = 'celeba'
+    # optimzation & generate images
+    optimize_num: Optional[int] = None
+    optimize_batch_size: int = 5
+    optimize_fn: Callable[[Tensor, LongTensor], Tuple[Tensor, LongTensor]] = None
     
-    # misc
-    defense_type: str = 'no_defense'
-    device: str = 'cpu'
+    # final selection
+    final_num: int = 50
+    final_images_score_fn: Optional[Callable[[Tensor, LongTensor], Tensor]] = None
+    final_select_batch_size: Optional[int] = None
+    
+    # save
+    save_dir: Optional[str] = None
+    save_optimized_images: bool = False
+    save_final_images: bool = False
+    save_normalize = True
+    
+    
 
-class BaseAttacker(metaclass=ABCMeta):
     
-    def __init__(self, config: BaseAttackConfig) -> None:
-        self.config = config
-        tag = self.get_tag()
-        cache_dir = os.path.join(config.cache_dir, tag)
-        result_dir = os.path.join(config.result_dir, tag)
-        
-        self.folder_manager = FolderManager(config.ckpt_dir, config.dataset_dir, cache_dir, result_dir, config.defense_ckpt_dir, config.defense_type)
-        
-        self.prepare_classifiers()
-        
-        print('--------------- config --------------')
-        print(config)
-        print('-------------------------------------')
-        
-    def register_dirs(self, dirs: dict):
-        for k, v in dirs.items():
-            os.makedirs(v, exist_ok=True)
-            setattr(self.folder_manager.config, k, v)
+class ImageClassifierAttacker(ABCMeta):
     
-    @abstractmethod
-    def get_tag(self) -> str:
-        raise NotImplementedError()
+    def __init__(self, config: ImageClassifierAttackConfig, metrics: list[ImageClassifierAttackMetric]) -> None:
+        self.config = self._preprocess_config(config)
+        self.metrics = metrics
+        
+        self.optimized_images = []
+        self.optimized_labels = []
+        
     
-    @abstractmethod
-    def prepare_attack(self):
-        raise NotImplementedError()
-    
-    @abstractmethod
-    def attack_step(self, iden) -> dict:
-        raise NotImplementedError()
-    
-    def prepare_classifiers(self):
+    def _preprocess_config(self, config: ImageClassifierAttackConfig):
         
-        config = self.config
-        folder_manager = self.folder_manager
+        if (config.save_optimized_images or config.save_final_images) and not config.save_dir:
+            raise RuntimeError('`save_dir` is not set')
         
-        self.T = get_model(config.target_name, config.dataset_name, device=config.device, defense_type=config.defense_type)
-        folder_manager.load_target_model_state_dict(self.T, config.dataset_name, config.target_name, device=config.device, defense_type=config.defense_type)
-
-        self.E = get_model(config.eval_name, config.dataset_name, device=config.device)
-        folder_manager.load_target_model_state_dict(self.E, config.dataset_name, config.eval_name, device=config.device)
+        if config.sample_latents_fn is None:
+            raise RuntimeError('`sample_latents_fn` cannot be None')
         
-        self.T.eval()
-        self.E.eval()
-   
-    
-    def attack(self, batch_size: int, target_labels: list):
+        if config.optimize_fn is None:
+            raise RuntimeError('`optimize_fn` cannot be None')
         
-        self.batch_size = batch_size
-        self.target_labels = target_labels
+        if config.final_num is None:
+            raise RuntimeError('`final_num` cannot be None')
         
-        self.prepare_attack()
-        
-        config = self.config
-        
-        print("=> Begin attacking ...")
-        # aver_acc, aver_acc5, aver_var, aver_var5 = 0, 0, 0, 0
-        
-        total_num = len(target_labels)
-        
-        accumulator = DictAccumulator()
-        
-        if total_num > 0:
-            for idx in range((total_num - 1) // batch_size + 1):
-                print("--------------------- Attack batch [%s]------------------------------" % idx)
-                iden = torch.tensor(
-                    target_labels[idx * batch_size: min((idx+1)*batch_size, total_num)], device=config.device, dtype=torch.long
-                )
-                
-                update_dict = self.attack_step(iden)
-                
-                bs = len(iden)
-                
-                accumulator.add(update_dict)
-                
-            for key, val in accumulator.avg().items():
-                print(f'average {key}: {val:.6f}')
+        if config.initial_num is None:
+            config.initial_num = config.final_num
             
-    def evaluation(self, batch_size, transform=None, knn=True, feature_distance=True, fid=False):
-        eval_metrics = []
-        
-        if knn:
-            eval_metrics.append(KnnDistanceMetric(self.folder_manager, device=self.config.device, model=self.E))
-        
-        if feature_distance:
-            eval_metrics.append(FeatureDistanceMetric(self.folder_manager, self.config.device, model=self.E))
-        
-        if fid:
-            eval_metrics.append(FIDMetric(self.folder_manager, device=self.config.device, model=None))
-                                
-        for metric in eval_metrics:
-            metric: BaseMetric
-            print(f'calculate {metric.get_metric_name()}')
-            metric.evaluation(self.config.dataset_name, batch_size, transform)
+        if config.optimize_num is None:
+            config.optimize_num = config.final_num
             
-class BaseSingleLabelAttacker(BaseAttacker):
-
-    def __init__(self, config: BaseAttackConfig) -> None:
-        super().__init__(config)
-        
-    def attack_step(self, target) -> dict:
-        return super().attack_step(target)
-        
-    def attack(self, batch_size: int, target_labels: list):
+        if config.final_num > config.optimize_num:
+            warnings.warn('the final number is larger than the optimize number, automatically set the latter to the fronter')
+            config.optimize_num = config.final_num
+            
+        if config.optimize_num > config.initial_num:
+            warnings.warn('the optimize number is larger than the initial number, automatically set the latter to the fronter')
+            config.initial_num = config.optimize_num
+            
+        if config.initial_select_batch_size is None:
+            config.initial_select_batch_size = config.optimize_batch_size
+            
+        if config.final_select_batch_size is None:
+            config.final_select_batch_size = config.final_select_batch_size
+            
+        return config
     
-        self.batch_size = batch_size
-        self.target_labels = target_labels
+    def initial_latents(self, batch_size: int, sample_num: int, select_num: int, labels: list[int], latent_score_fn: Optional[Callable] = None) -> dict[int, Tensor]:
         
-        self.prepare_attack()
+        if isinstance(labels, Tensor):
+            labels = labels.tolist()
         
+        if sample_num < select_num:
+            warnings.warn('sample_num < select_num. set sample_num = select_num')
+            sample_num = select_num
+        
+        if latent_score_fn is None or sample_num == select_num:
+            if sample_num > select_num:
+                warnings.warn('no score function, automatically sample `select_num` latents')
+
+            latents = self.config.sample_latents_fn(select_num)
+            {label: latents.detach().clone() for label in labels}
+        
+        raw_latents = self.config.sample_latents_fn(sample_num)
+        
+        scores = batch_apply(latent_score_fn, raw_latents, labels, batch_size=batch_size)
+        
+        results = {}
+        
+        for i in range(labels):
+            label = labels[i]
+            _, topk_idx = torch.topk(scores, k=select_num)
+            results[label] = raw_latents[topk_idx]
+        return self.concat_tensor_labels(results)
+    
+    def concat_tensor_labels(self, target_dict):
+        tensors = []
+        labels = []
+        for target, latents in target_dict:
+            tensors.append(latents)
+            labels += [target] * len(latents)
+        
+        labels = LongTensor(labels)
+        tensors = torch.cat(tensors, dim=0)
+        raise tensors, labels
+    
+    def concat_optimized_images(self):
+        optimized_images = torch.cat(self.optimized_images, dim=0)
+        optimized_labels = torch.cat(self.optimized_labels, dim=0)
+        return optimized_images, optimized_labels
+        
+    def final_selection(self, batch_size: int, final_num: int, images: Tensor, labels: LongTensor, image_score_fn: Optional[Callable]=None):
+        
+        assert len(images) == len(labels)
+        
+        if final_num != len(images) and image_score_fn is None:
+            warnings.warn('no score function but final num is not equal to the number of latents')
+            final_num = len(images)
+                 
+        if final_num == len(images):
+            return images
+        
+        print('execute final selection')
+        scores = batch_apply(self, image_score_fn, images, labels, batch_size=batch_size)
+        
+        targets = set(labels.tolist())
+        
+        results = {}
+        
+        for target in targets:
+            indices = torch.where(labels == target)
+            target_images = images[indices]
+            target_scores = scores[indices]
+            _, topk_idx = torch.topk(target_scores, k=final_num)
+            results[target] = target_images[topk_idx]
+            
+        return self.concat_tensor_labels(results)
+    
+    def update_optimized_images(self, images: Tensor, labels: LongTensor):
+        assert len(images) == len(labels)
+        self.optimized_images.append(images)
+        self.optimized_labels.append(labels)
+    
+    def batch_optimize(self, init_latents: Tensor, labels: Tensor):
+        images, labels = self.config.optimize_fn(init_latents, labels)
+        self.update_optimized_images(images, labels)
+        
+        if self.config.save_optimized_images:
+            self.save_images(os.path.join(self.config.save_dir, 'optimized_images'), images=images, labels = labels)
+    
+    def _evaluation(self, images, labels, description):
+        
+        result = OrderedDict()
+        for metric in self.metrics:
+            for k, v in metric(images, labels).items():
+                result[k] = v
+                
+        print_split_line(description)
+        print_as_yaml(result)
+        print_split_line()
+        
+    def save_images(self, root_dir: str, images: Tensor, labels: LongTensor):
+        assert len(images) == len(labels)
+        
+        for i in range(len(images)):
+            image = images[i].detach()
+            label = labels[i].item()
+            save_dir = os.path.join(root_dir, f'{label}')
+            os.makedirs(save_dir, exist_ok=True)
+            random_str = get_random_string(length=6)
+            save_path = os.path.join(save_dir, f'{label}_{random_str}.png')
+            save_image(image, save_path, normalize=self.config.save_normalize)
+            
+    
+    def attack(self, target_list: list[int], eval_optimized = False):
         config = self.config
+        os.makedirs(config.save_dir, exist_ok=True)
         
-        print("=> Begin attacking ...")
+        print_split_line('Attack Config')
+        print_as_yaml()
+        print_split_line()
         
-        total_num = len(target_labels)
+        # initial selection for each target
+        init_latents, init_labels = self.initial_latents(
+            config.initial_select_batch_size, 
+            config.initial_num, 
+            config.optimize_num, 
+            target_list, 
+            config.initial_latents_score_fn
+        )
+
+        # execute optimize
+        batch_apply(self.batch_optimize, init_latents, init_labels, batch_size=config.optimize_batch_size, description='Optimized Batch')
         
-        accumulator = DictAccumulator()
+        # concat optimized images and labels
+        optimized_images, optimized_labels = self.concat_optimized_images()
+            
+                
+        if eval_optimized:
+            self._evaluation(optimized_images, optimized_labels, 'Optimized Image Evaluation')
         
-        if total_num > 0:
-            for target in target_labels:
-                print(f"--------------------- Attack label [{target}]------------------------------")
-                
-                update_dict = self.attack_step(target)
-                
-                
-                accumulator.add(update_dict)
-                
-            for key, val in accumulator.avg().items():
-                print(f'average {key}: {val:.6f}')
+        # final selection
+        final_images, final_labels = self.final_selection(config.final_select_batch_size, config.final_num, optimized_images, optimized_labels, config.final_images_score_fn)
+        
+        if config.save_final_images:
+            self.save_images(os.path.join(config.save_dir, 'final_images'), final_images, final_labels)
+        
+        self._evaluation(final_images, final_labels, 'Final Image Evaluation')
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

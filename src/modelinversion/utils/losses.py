@@ -35,17 +35,20 @@ _LOSS_MAPPING = {
     'max_margin': max_margin_loss
 }
 
-class ClassifyLoss:
+class TorchLoss:
     
     def __init__(self, loss_fn: str, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+        # super().__init__()
         
-        self.fn = loss_fn
         if isinstance(loss_fn, str):
-            if loss_fn in _LOSS_MAPPING:
-                self.fn = _LOSS_MAPPING[loss_fn]
-            else:
-                self.fn = importlib.import_module(loss_fn, package='torch.nn.functional')
+            if isinstance(loss_fn, str):
+                if loss_fn.lower() in _LOSS_MAPPING:
+                    self.fn = _LOSS_MAPPING[loss_fn.lower()]
+                else:
+                    module = importlib.import_module('torch.nn.functional')
+                    self.fn = getattr(module, loss_fn)
+        else:
+            self.fn = loss_fn
             
-    def __call__(self, inputs, target):
-        return self.fn(inputs, target)
+    def __call__(self, *args, **kwargs):
+        return self.fn(*args, **kwargs)
