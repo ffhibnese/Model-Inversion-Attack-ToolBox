@@ -22,15 +22,37 @@ from ..utils import batch_apply, safe_save_csv, unwrapped_parallel_module
 from .fid import fid_utils, inceptionv3
 
 class ImageMetric(ABC):
+    """Base class for all image metric classes.
+
+    Args:
+        batch_size (int): Batch size when executing the metric.
+    """
     
     def __init__(self, batch_size: int):
         self.batch_size = batch_size
     
     @abstractmethod
     def __call__(self, images: Tensor, labels: LongTensor) -> OrderedDict:
+        """Executing the evaluation for inversed images with the given labels.
+
+        Args:
+            images (Tensor): Inversed images
+            labels (LongTensor): Labels for the corresponding features.
+
+        Returns:
+            OrderedDict: Results of the metric.
+        """
         pass
-    
+
 class ImageClassifierAttackAccuracy(ImageMetric):
+    """Attack accuracy metric for inversed images.
+
+    Args:
+        batch_size (int): Batch size when executing the metric.
+        model (BaseImageClassifier): The evaluation image classifier.
+        device (device): Device to run the metric. It should be kept the same with the device of the model.
+        description (str): Prefix of the metric.
+    """
     
     def __init__(self, batch_size: int, model: BaseImageClassifier, device: torch.device, description: str):
         super().__init__(batch_size)
@@ -58,6 +80,17 @@ class ImageClassifierAttackAccuracy(ImageMetric):
         ])
         
 class ImageDistanceMetric(ImageMetric):
+    """Distance metrics for each target class.
+
+    Args:
+        batch_size (int): Batch size when executing the metric.
+        model (BaseImageClassifier): The evaluation image classifier.
+        dataset (DatasetFolder): The private dataset.
+        device (device): Device to run the metric. It should be kept the same with the device of the model.
+        description (str): Prefix of the metric.
+        save_individual_res_dir (str, optional): File folder to save results for each class if it existed. Default to `None`.
+        num_workers (int), `num_workers` of the data loader. Default to 8.
+    """
     
     def __init__(self, batch_size: int, model: BaseImageClassifier, dataset: DatasetFolder, device: torch.device, description: str, save_individual_res_dir: Optional[str] = None, num_workers = 8):
         super().__init__(batch_size)
@@ -116,6 +149,16 @@ class ImageDistanceMetric(ImageMetric):
         return OrderedDict([f'{self.description} square distance', result])
             
 class ImageFidPRDCMetric(ImageMetric):
+    """A class for calculating FID and PRDC (Precision, Recall, Diversity and Coverage). The model will use InceptionV3 pretrained with ImageNet.
+
+    Args:
+        batch_size (int): Batch size when executing the metric.
+        dataset (DatasetFolder): The private dataset.
+        device (device): Device to run the metric. It should be kept the same with the device of the model.
+        description (str): Prefix of the metric.
+        save_individual_prdc_dir (str, optional): File folder to save PRDC results for each class if it existed. Default to `None`.
+        num_workers (int), `num_workers` of the data loader. Default to 8.
+    """
     
     def __init__(self, batch_size: int, dataset: DatasetFolder, device: torch.device, prdc_k=3, fid=True, prdc=True, save_individual_prdc_dir: Optional[str] = None, num_workers=8):
         super().__init__(batch_size)

@@ -117,7 +117,7 @@ class ImageClassifierAttacker(ABC):
             raise RuntimeError('`optimize_num` cannot be None')
         
         if config.initial_num is None:
-            config.initial_num = config.final_num
+            config.initial_num = config.optimize_num
             
         if config.final_num is None:
             config.final_num = config.optimize_num

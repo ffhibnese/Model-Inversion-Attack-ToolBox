@@ -16,10 +16,21 @@ from ..models import BaseImageClassifier, BaseImageGenerator
 
 @dataclass
 class BaseImageOptimizationConfig:
+    """Base class for all optimization config classes. Handles a few parameters of the experiment settings.
+    
+    Args:
+        experiment_dir (str): The file folder that store the intermediate and final results of the optimization. 
+        device (device): The device that the optimization process run on.
+    """
     experiment_dir: str
     device: torch.device
 
 class BaseImageOptimization(ABC):
+    """Base class for all optimization class. Optimize the initial latent vectors and generate the optimized images.
+
+    Args:
+        config (BaseImageOptimizationConfig): Config of the optimization.
+    """
     
     def __init__(self, config: BaseImageOptimizationConfig) -> None:
         super().__init__()
@@ -32,20 +43,45 @@ class BaseImageOptimization(ABC):
     
     @abstractmethod
     def __call__(self, latents: Tensor, labels: LongTensor) -> Tuple[Tensor, LongTensor]:
+        """Optimize the initial latent vectors and generate the optimized images.
+
+        Args:
+            latents (Tensor): The latent vectors of the generator.
+            labels (LongTensor): The labels for the latent vectors. It has the same length with `latents`.
+
+        Returns:
+            Tuple[Tensor, LongTensor]: Returns (images, labels) that has the same length.
+        """
         pass
     
 
 @dataclass
 class SimpleWhiteBoxOptimizationConfig(BaseImageOptimizationConfig):
+    """Base class for all white-box optimization config classes. Handles a few parameters of gradient updating.
+
+    Args:
+        optimizer (str | type): The optimizer class.
+        optimizer_kwargs (dict): Args to build the optimizer. Default to `{}`.
+        iter_times (int): Update times. Defaults to 600.
+        show_loss_info_iters (int): Iteration interval for displaying loss information. Default to 100.
+    """
     
     optimizer: str | type = 'Adam'
     optimizer_kwargs: dict = field(default_factory=lambda: {})
     iter_times: int = 600
-    show_loss_info_iters: int = 10
-    
-    # image_initial_transform: Optional[Callable] = None
+    show_loss_info_iters: int = 100
 
 class SimpleWhiteBoxOptimization(BaseImageOptimization):
+    """Base class for all white-box optimization classes.
+
+    Args:
+        config (SimpleWhiteBoxOptimizationConfig): 
+            Config of the white box optimization.
+        generator (BaseImageGenerator): 
+            Generator to generate images from latent vectors.
+        image_loss_fn (Callable[[Tensor, LongTensor], Tensor | Tuple[Tensor, OrderedDict]]):
+            A function to calculate loss of the generated images with given labels. Returns the loss and an optional OrderedDict that contains loss information to show.
+    """
     
     def __init__(self, 
                  config: SimpleWhiteBoxOptimizationConfig, 
@@ -124,6 +160,8 @@ class ImageAugmentWhiteBoxOptimization(SimpleWhiteBoxOptimization):
         
         if config.create_aug_images_fn is None:
             config.create_aug_images_fn = lambda x: [x]
+            
+        # print(config.loss_fn)
         
         loss_fn = ClassificationLoss(config.loss_fn)
 
@@ -140,6 +178,9 @@ class ImageAugmentWhiteBoxOptimization(SimpleWhiteBoxOptimization):
                 conf = target_model(aug_images)
                 pred_labels = torch.argmax(conf, dim=-1)
                 loss += loss_fn(conf, labels)
+                # print(pred_labels)
+                # print(labels)
+                # exit()
                 acc += (pred_labels == labels).float().mean().item()
             
             return loss, OrderedDict([

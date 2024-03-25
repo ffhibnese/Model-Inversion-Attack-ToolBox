@@ -30,7 +30,7 @@ def cross_image_augment_scores(model: BaseImageClassifier, device: torch.device,
     return res[:, labels]
 
 class BaseLatentScore(ABC):
-    """This is a class for generating score all combinations of latents and labels.
+    """This is a class for generating score for all combinations of latents and labels.
     """
     
     def __init__(self) -> None:
@@ -50,7 +50,7 @@ class BaseLatentScore(ABC):
         pass
     
 class LatentClassificationAugmentConfidence(BaseLatentScore):
-    """This is a class for generating score all combinations of latents and labels. The score is calculated by the conficence of the classifier model.
+    """This is a class for generating score for all combinations of latents and labels. The score is calculated by the conficence of the classifier model.
 
     Args:
         generator (BaseImageGenerator): 

@@ -64,6 +64,10 @@ if __name__ == '__main__':
     eval_model = nn.DataParallel(eval_model, device_ids=gpu_devices).to(device)
     generator = nn.DataParallel(generator, device_ids=gpu_devices).to(device)
     
+    target_model.eval()
+    eval_model.eval()
+    generator.eval()
+    
     # prepare eval dataset
     
     eval_dataset = ImageFolder(eval_dataset_path)
@@ -92,17 +96,7 @@ if __name__ == '__main__':
     
     optimization_fn = ImageAugmentWhiteBoxOptimization(optimization_config, generator, target_model)
     
-    # prepare attack & metrics
-    
-    attack_config = ImageClassifierAttackConfig(
-        latents_sampler,
-        optimize_num=50,
-        optimize_batch_size=batch_size,
-        optimize_fn=optimization_fn,
-        save_dir=experiment_dir,
-        save_optimized_images=True,
-        save_final_images=True
-    )
+    # prepare metrics
     
     accuracy_metric = ImageClassifierAttackAccuracy(
         batch_size, eval_model, device=device, description='evaluation'
@@ -118,12 +112,24 @@ if __name__ == '__main__':
         fid=True, prdc=True
     )
     
-    attacker = ImageClassifierAttacker(
-        attack_config,
-        [accuracy_metric, distance_metric, fid_prdc_metric]
+    # prepare attack
+    
+    attack_config = ImageClassifierAttackConfig(
+        latents_sampler,
+        optimize_num=50,
+        optimize_batch_size=batch_size,
+        optimize_fn=optimization_fn,
+        save_dir=experiment_dir,
+        save_optimized_images=True,
+        save_final_images=False,
+        eval_metrics=[accuracy_metric, distance_metric, fid_prdc_metric],
+        eval_optimized_result=False,
+        eval_final_result=True
     )
     
-    attacker.attack(attack_targets, eval_optimized=False, eval_final=True)
+    attacker = ImageClassifierAttacker(attack_config)
+    
+    attacker.attack(attack_targets)
     
     
     
