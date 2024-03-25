@@ -50,6 +50,7 @@ def print_as_yaml(obj, stdout=True, file=None, mode='w'):
 def print_split_line(content=None, length=60):
     if content is None:
         print('-' * length)
+        return
     if len(content) > length - 4:
         length = len(content) + 4
         

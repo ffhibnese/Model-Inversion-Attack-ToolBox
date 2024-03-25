@@ -1,7 +1,8 @@
 from abc import ABCMeta, abstractmethod
 
 from torch import Tensor
-from torch.nn import Module
+from torch.nn import Module, parallel
+
 
 
 class BaseHook(metaclass=ABCMeta):
@@ -9,19 +10,31 @@ class BaseHook(metaclass=ABCMeta):
     """
     
     def __init__(self, module: Module) -> None:
-        self.hook = module.register_forward_hook(self.hook_fn)
+        self.hook = module.register_forward_hook(self._hook_gather_impl)
+        self.features = []
+        
+    def _hook_gather_impl(self, module, input, output):
+        feature = self.hook_fn(module, input, output)
+        self.features.append(feature)
         
     @abstractmethod
     def hook_fn(self, module, input, output):
         raise NotImplementedError()
     
-    @abstractmethod
-    def get_feature(self) -> Tensor:
+    def clear_feature(self) -> None:
+        self.features.clear()
+    
+    def get_feature(self, target_device='cpu') -> Tensor:
         """
         Returns:
             Tensor: the value that the hook monitor.
         """
-        raise NotImplementedError()
+        length = len(self.features)
+        if length == 0:
+            return None
+        elif length == 1:
+            return self.features[0]
+        return parallel.gather(self.features, target_device=target_device, dim=0) 
     
     def close(self):
         self.hook.remove()
@@ -34,11 +47,8 @@ class OutputHook(BaseHook):
         super().__init__(module)
         
     def hook_fn(self, module, input, output):
-        self.feature = output
+        return output
         
-    def get_feature(self):
-        return self.feature
-    
 class InputHook(BaseHook):
     """Monitor the input of the model
     """
@@ -47,10 +57,8 @@ class InputHook(BaseHook):
         super().__init__(module)
         
     def hook_fn(self, module, input, output):
-        self.feature = input
+        return input
         
-    def get_feature(self):
-        return self.feature
     
 class FirstInputHook(BaseHook):
     """Monitor the input of the model
@@ -60,7 +68,5 @@ class FirstInputHook(BaseHook):
         super().__init__(module)
         
     def hook_fn(self, module, input, output):
-        self.feature = input[0]
+        return input[0]
         
-    def get_feature(self):
-        return self.feature

@@ -68,7 +68,7 @@ class ImageClassifierAttackAccuracy(ImageMetric):
             pred = self.model(images)
             return pred.cpu()
         
-        scores = batch_apply(get_scores, images, self.batch_size, use_tqdm=True)
+        scores = batch_apply(get_scores, images, batch_size=self.batch_size, use_tqdm=True)
         _, topk_indices = torch.topk(scores, 5)
         eq = (topk_indices == labels.unsqueeze(1)).float()
         acc = eq[:, 0].mean().item()
@@ -105,9 +105,11 @@ class ImageDistanceMetric(ImageMetric):
         
     def _get_feature(self, images: Tensor):
         images = images.to(self.device)
+        self.hook.clear_feature()
         self.model(images)
-        feature = self.hook.get_feature().reshape(len(images), -1).cpu()
-        return feature
+        feature = self.hook.get_feature(self.device)
+        # print(images.shape, feature.shape)
+        return feature.reshape(len(images), -1).cpu()
         
         
     @torch.no_grad()
@@ -118,13 +120,13 @@ class ImageDistanceMetric(ImageMetric):
         target_dists = []
         target_nums = []
         
-        for step, target in enumerate(target_values):
+        for step, target in enumerate(tqdm(target_values, leave=False)):
             target_src_images = images[labels == target]
-            target_src_features = batch_apply(self._get_feature, target_src_images, self.batch_size, use_tqdm=True)
+            target_src_features = batch_apply(self._get_feature, target_src_images, batch_size=self.batch_size)
             
             target_dst_ds = ClassSubset(self.dataset, target)
             target_dst_features = []
-            for dst_img, _ in tqdm(DataLoader(target_dst_ds, self.batch_size, shuffle=False, num_workers=self.num_workers)):
+            for dst_img, _ in (DataLoader(target_dst_ds, self.batch_size, shuffle=False, num_workers=self.num_workers)):
                 target_dst_features.append(self._get_feature(dst_img))
             target_dst_features = torch.cat(target_dst_features, dim=0)
             
@@ -146,7 +148,7 @@ class ImageDistanceMetric(ImageMetric):
             safe_save_csv(df, self.save_dir, save_name)
         
         result = (target_dists * target_nums).sum() / target_nums.sum()
-        return OrderedDict([f'{self.description} square distance', result])
+        return OrderedDict([[f'{self.description} square distance', float(result)]])
             
 class ImageFidPRDCMetric(ImageMetric):
     """A class for calculating FID and PRDC (Precision, Recall, Diversity and Coverage). The model will use InceptionV3 pretrained with ImageNet.
@@ -179,13 +181,15 @@ class ImageFidPRDCMetric(ImageMetric):
         pred_arr = []
         labels_arr = []
         
-        for image, labels in tqdm(dataloader):
+        for image, labels in tqdm(dataloader, leave=False):
             labels_arr.append(labels)
             image = image.to(self.device)
             pred = self.inception_model(image)[0].squeeze(3).squeeze(2).cpu()
             pred_arr.append(pred)
         pred_arr = torch.cat(pred_arr, dim=0)
+        labels_arr = torch.cat(labels_arr, dim=0)
         pred_numpy = pred_arr.numpy()
+        labels_numpy = labels_arr.numpy()
         
         return pred_arr, labels_arr, np.mean(pred_numpy, axis=0), np.cov(pred_numpy, rowvar=False)
             
@@ -211,7 +215,7 @@ class ImageFidPRDCMetric(ImageMetric):
             fid_score = fid_utils.calculate_frechet_distance(
                 mu_fake, sigma_fake, mu_real, sigma_real
             )
-            result['FID'] = fid_score
+            result['FID'] = float(fid_score)
             
         # PRDC
         if self.calc_prdc:
@@ -219,7 +223,7 @@ class ImageFidPRDCMetric(ImageMetric):
             recall_list = []
             density_list = []
             coverage_list = []
-            for target in tqdm(target_values):
+            for target in tqdm(target_values, leave=False):
                 fake_mask = fake_labels == target
                 real_mask = real_labels == target
                 embedding_fake = fake_feature[fake_mask]
@@ -269,9 +273,9 @@ class ImageFidPRDCMetric(ImageMetric):
                 df['density'] = density
                 df['coverage'] = coverage
             
-            result['precision'] = precision.mean()
-            result['recall'] = recall.mean()
-            result['density'] = density.mean()
-            result['coverage'] = coverage.mean()
+            result['precision'] = float(precision.mean())
+            result['recall'] = float(recall.mean())
+            result['density'] = float(density.mean())
+            result['coverage'] = float(coverage.mean())
 
         return result

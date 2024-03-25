@@ -58,8 +58,9 @@ class VibWrapper(BaseImageClassifier):
         
         
     def _forward_impl(self, image: torch.Tensor, *args, **kwargs):
-        self.module(image, *args, **kwargs)
         
+        self._inner_hook.clear_feature()
+        self.module(image, *args, **kwargs)
         statis = self._inner_hook.get_feature()
         
         mu, std = statis[:, :self.k], statis[:, self.k: self.k * 2]

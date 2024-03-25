@@ -15,15 +15,13 @@ class CelebaTransform:
             transforms.ToTensor(),
             transforms.Lambda(crop),
             transforms.ToPILImage(),
-            transforms.Resize((re_size, re_size)),
-            # transforms.ToTensor()
+            transforms.Resize((re_size, re_size))
         ])
         
     def trans(self, src_path, dst_path):
         img = Image.open(src_path)
         img = self.transform(img)
         img.save(dst_path)
-        # os.system(f'cp {src_path} {dst_path}')
 
 def split(raw_img_dir, split_file_dir, dst_dir, trans):
     with open(split_file_dir) as f:
