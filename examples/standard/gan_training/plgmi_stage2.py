@@ -11,9 +11,9 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor
 
-from modelinversion.models import IR152_64, PlgmiGenerator64, PlgmiDiscriminator64
+from modelinversion.models import IR152_64, PlgmiGenerator64, PlgmiDiscriminator64, SimpleLatentsSampler
 from modelinversion.train.gan import PlgmiGanTrainer
-from modelinversion.utils import Logger, SimpleLatentsSampler
+from modelinversion.utils import Logger
 from modelinversion.datasets import InfiniteSamplerWrapper
 
 if __name__ == '__main__':

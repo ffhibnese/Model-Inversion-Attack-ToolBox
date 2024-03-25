@@ -10,8 +10,8 @@ from torch import nn
 from torchvision.datasets import ImageFolder
 from kornia import augmentation
 
-from modelinversion.models import PlgmiGenerator64, IR152_64, FaceNet112
-from modelinversion.utils import unwrapped_parallel_module, augment_images_fn_generator, Logger, SimpleLatentsSampler
+from modelinversion.models import PlgmiGenerator64, IR152_64, FaceNet112, SimpleLatentsSampler
+from modelinversion.utils import unwrapped_parallel_module, augment_images_fn_generator, Logger
 from modelinversion.attack import (
     ImageAugmentWhiteBoxOptimizationConfig,
     ImageAugmentWhiteBoxOptimization,

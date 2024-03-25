@@ -14,8 +14,8 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.utils import save_image
 from tqdm import tqdm
 
-from ..models import BaseImageGenerator, PlgmiGenerator64, PlgmiGenerator256, PlgmiDiscriminator64, PlgmiDiscriminator256, BaseImageClassifier
-from ..utils import unwrapped_parallel_module, ClassificationLoss, BaseLatentsSampler, obj_to_yaml
+from ..models import BaseImageGenerator, PlgmiGenerator64, PlgmiGenerator256, PlgmiDiscriminator64, PlgmiDiscriminator256, BaseImageClassifier, BaseLatentsSampler
+from ..utils import unwrapped_parallel_module, ClassificationLoss, obj_to_yaml
 
 def train_gan(
             max_iters: int, 

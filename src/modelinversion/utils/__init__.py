@@ -7,7 +7,6 @@ from .losses import ClassificationLoss
 from .check import check_shape
 from .batch import batch_apply
 from .hook import BaseHook, OutputHook, InputHook, FirstInputHook
-from .samples import BaseLatentsSampler, SimpleLatentsSampler
 
 TorchLoss = ClassificationLoss
 Tee = Logger

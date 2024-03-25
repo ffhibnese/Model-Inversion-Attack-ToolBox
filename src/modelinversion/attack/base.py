@@ -13,7 +13,7 @@ from torchvision.utils import save_image
 from ..models import *
 from ..metrics import *
 from ..scores import *
-from ..utils import batch_apply, print_as_yaml, print_split_line, get_random_string, BaseLatentsSampler
+from ..utils import batch_apply, print_as_yaml, print_split_line, get_random_string
 from .optimize import BaseImageOptimization
 
 @dataclass
