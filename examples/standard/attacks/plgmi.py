@@ -96,9 +96,9 @@ if __name__ == '__main__':
     
     attack_config = ImageClassifierAttackConfig(
         latents_sampler,
+        optimize_num=50,
         optimize_batch_size=batch_size,
         optimize_fn=optimization_fn,
-        final_num = 50,
         save_dir=experiment_dir,
         save_optimized_images=True,
         save_final_images=True

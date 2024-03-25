@@ -18,6 +18,44 @@ from .optimize import BaseImageOptimization
 
 @dataclass
 class ImageClassifierAttackConfig:
+    """This is the configuration class to store the configuration of a [`ImageClassifierAttacker`]. It is used to instantiate an Attacker according to the specified arguments. 
+    
+    Args:
+        latents_sampler (BaseLatentsSampler): 
+            The sampler for generating latent vectors.
+        initial_num (int, optional): 
+            The number of latent vectors at the time of initial selection. It will keep the same as `optimize_num` when it is `None`. Defaults to `None`.
+        initial_latents_score_fn (BaseLatentScore, optional): 
+            The function to generate scores of each latents vectors for each class. The attacker will select `optimize_num` latent vectors with the highest scores for each class in the initial selection process. No initial selection when it is `None`. Defaults to `None`.
+        initial_select_batch_size (int, optional): 
+            Batch size in the initial process. It will keep the same as `optimize_num` when it is `None`. Defaults to `None`.
+        optimize_num (int): 
+            The number of latent vectors at the time of optimization. Defaults to 50.
+        optimize_fn (BaseImageOptimization): 
+            The function to generate images and final labels from initial latent vectors and labels. 
+        optimize_batch_size (int): 
+            Batch size in the optimization process. It will keep the same as `optimize_num` when it is `None`. Defaults to 5.
+        final_num (int, optional): 
+            The number of latent vectors at the time of final selection. It will keep the same as `optimize_num` when it is `None`. Defaults to `None`.
+        final_images_score_fn (BaseImageClassificationScore, optional): 
+            The function to generate scores of images for the given labels. The attacker will select `final_num` images with the highest scores for the given label for each class in the final selection process. No final selection when it is `None`. Defaults to `None`.
+        final_select_batch_size (int, optional): 
+            Batch size in the final process. It will keep the same as `optimize_num` when it is `None`. Defaults to `None`.
+        save_dir (str, optional):
+            The file folder to save inversed images. Defaults to `None`.
+        save_optimized_images (bool, optional):
+            Whether to save the optimized images. Defaults to False.
+        save_final_images (bool, optional):
+            Whether to save the final images. Defaults to False.
+        save_kwargs (dict, optional):
+            Other args for saving images. Defaults to `{}`.
+        eval_metrics (list[ImageMetric], optional): 
+            A list of metric methods. Defaults to `[]`.
+        eval_optimized_result (bool, optional):
+            Whether to evaluate the optimized results. Defaults to False.
+        eval_final_result (bool, optional):
+            Whether to evaluate the final results. Defaults to False.
+    """
     
     # sample latent
     latents_sampler: BaseLatentsSampler
@@ -28,12 +66,12 @@ class ImageClassifierAttackConfig:
     initial_select_batch_size: Optional[int] = None
     
     # optimzation & generate images
-    optimize_num: Optional[int] = None
-    optimize_batch_size: int = 5
+    optimize_num: int = 50
     optimize_fn: BaseImageOptimization = None
+    optimize_batch_size: int = 5
     
     # final selection
-    final_num: int = 50
+    final_num: Optional[int] = None
     final_images_score_fn: Optional[BaseImageClassificationScore] = None
     final_select_batch_size: Optional[int] = None
     
@@ -41,16 +79,24 @@ class ImageClassifierAttackConfig:
     save_dir: Optional[str] = None
     save_optimized_images: bool = False
     save_final_images: bool = False
-    save_normalize: bool = True
+    save_kwargs: dict = field(default_factory=lambda: {})
     
+    # metric
+    eval_metrics: list[ImageMetric] = field(default=lambda: [])
+    eval_optimized_result: bool = False
+    eval_final_result: bool = False
     
 
     
 class ImageClassifierAttacker(ABC):
+    """This is the model inversion attack class for image classification task.
+
+    Args:
+        config (ImageClassifierAttackConfig): ImageClassifierAttackConfig.
+    """
     
-    def __init__(self, config: ImageClassifierAttackConfig, metrics: list[ImageMetric]) -> None:
+    def __init__(self, config: ImageClassifierAttackConfig) -> None:
         self.config = self._preprocess_config(config)
-        self.metrics = metrics
         
         self.optimized_images = []
         self.optimized_labels = []
@@ -67,14 +113,14 @@ class ImageClassifierAttacker(ABC):
         if config.optimize_fn is None:
             raise RuntimeError('`optimize_fn` cannot be None')
         
-        if config.final_num is None:
-            raise RuntimeError('`final_num` cannot be None')
+        if config.optimize_num is None:
+            raise RuntimeError('`optimize_num` cannot be None')
         
         if config.initial_num is None:
             config.initial_num = config.final_num
             
-        if config.optimize_num is None:
-            config.optimize_num = config.final_num
+        if config.final_num is None:
+            config.final_num = config.optimize_num
             
         if config.final_num > config.optimize_num:
             warnings.warn('the final number is larger than the optimize number, automatically set the latter to the fronter')
@@ -179,7 +225,7 @@ class ImageClassifierAttacker(ABC):
     def _evaluation(self, images, labels, description):
         
         result = OrderedDict()
-        for metric in self.metrics:
+        for metric in self.config.eval_metrics:
             for k, v in metric(images, labels).items():
                 result[k] = v
                 
@@ -197,10 +243,10 @@ class ImageClassifierAttacker(ABC):
             os.makedirs(save_dir, exist_ok=True)
             random_str = get_random_string(length=6)
             save_path = os.path.join(save_dir, f'{label}_{random_str}.png')
-            save_image(image, save_path, normalize=self.config.save_normalize)
+            save_image(image, save_path, **self.config.save_kwargs)
             
     
-    def attack(self, target_list: list[int], eval_optimized = False, eval_final = True):
+    def attack(self, target_list: list[int]):
         config = self.config
         os.makedirs(config.save_dir, exist_ok=True)
         
@@ -226,7 +272,7 @@ class ImageClassifierAttacker(ABC):
         optimized_images, optimized_labels = self.concat_optimized_images()
             
                 
-        if eval_optimized:
+        if self.config.eval_optimized_result:
             print('evaluate optimized result')
             self._evaluation(optimized_images, optimized_labels, 'Optimized Image Evaluation')
         
@@ -238,7 +284,7 @@ class ImageClassifierAttacker(ABC):
             print('save final images')
             self.save_images(os.path.join(config.save_dir, 'final_images'), final_images, final_labels)
         
-        if eval_final:
+        if self.config.eval_final_result:
             print('evaluate final result')
             self._evaluation(final_images, final_labels, 'Final Image Evaluation')
         
