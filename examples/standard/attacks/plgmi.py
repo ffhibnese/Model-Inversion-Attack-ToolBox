@@ -8,6 +8,7 @@ sys.path.append('../../../src')
 import torch
 from torch import nn
 from torchvision.datasets import ImageFolder
+from torchvision.transforms import ToTensor
 from kornia import augmentation
 
 from modelinversion.models import PlgmiGenerator64, IR152_64, FaceNet112, SimpleLatentsSampler
@@ -60,9 +61,9 @@ if __name__ == '__main__':
     eval_model.load_state_dict(torch.load(eval_model_ckpt_path, map_location='cpu')['state_dict'])
     generator.load_state_dict(torch.load(generator_ckpt_path, map_location='cpu')['state_dict'])
     
-    target_model = nn.DataParallel(target_model, device_ids=gpu_devices).to(device)
-    eval_model = nn.DataParallel(eval_model, device_ids=gpu_devices).to(device)
-    generator = nn.DataParallel(generator, device_ids=gpu_devices).to(device)
+    target_model = nn.parallel.DistributedDataParallel(target_model, device_ids=gpu_devices).to(device)
+    eval_model = nn.parallel.DistributedDataParallel(eval_model, device_ids=gpu_devices).to(device)
+    generator = nn.parallel.DistributedDataParallel(generator, device_ids=gpu_devices).to(device)
     
     target_model.eval()
     eval_model.eval()
@@ -70,7 +71,7 @@ if __name__ == '__main__':
     
     # prepare eval dataset
     
-    eval_dataset = ImageFolder(eval_dataset_path)
+    eval_dataset = ImageFolder(eval_dataset_path, transform=ToTensor())
     
     # prepare optimization
     
