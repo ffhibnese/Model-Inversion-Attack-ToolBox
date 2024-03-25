@@ -217,7 +217,7 @@ class ImageClassifierAttacker(ABC):
     
     def batch_optimize(self, init_latents: Tensor, labels: Tensor):
         images, labels = self.config.optimize_fn(init_latents, labels)
-        self.update_optimized_images(images, labels)
+        self.update_optimized_images(images.detach().cpu(), labels.detach().cpu())
         
         if self.config.save_optimized_images:
             self.save_images(os.path.join(self.config.save_dir, 'optimized_images'), images=images, labels = labels)

@@ -141,7 +141,7 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
                 
         final_labels = labels
         
-        return final_fake, final_labels
+        return final_fake.detach(), final_labels.detach()
     
 @dataclass
 class ImageAugmentWhiteBoxOptimizationConfig(SimpleWhiteBoxOptimizationConfig):
