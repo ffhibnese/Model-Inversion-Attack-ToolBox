@@ -35,7 +35,7 @@ def _gather(outputs, dim=0):
         gather_map = None
     return res
 
-def batch_apply(fn: Callable, *inputs, batch_size: int, description: Optional[str] = None, use_tqdm: bool=False):
+def batch_apply(fn: Callable, *inputs, batch_size: int, description: Optional[str] = None, use_tqdm: bool=False, **other_input_kwargs):
     
     def _check_valid(inputs):
         if len(inputs) == 0:
@@ -69,7 +69,7 @@ def batch_apply(fn: Callable, *inputs, batch_size: int, description: Optional[st
             print_split_line(f'{description}: {i} / {iter_times}')
         
         end = min(total_len, start + batch_size)
-        res = fn(*[p[start:end] for p in inputs])
+        res = fn(*[p[start:end] for p in inputs], **other_input_kwargs)
         # print(res.device)
         results.append(res)
     return _gather(results)

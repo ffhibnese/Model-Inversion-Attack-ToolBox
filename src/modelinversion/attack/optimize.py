@@ -3,7 +3,7 @@ import os
 import importlib
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Tuple, Callable, Optional, Iterable
 
 import torch
@@ -39,7 +39,7 @@ class BaseImageOptimization(ABC):
 class SimpleWhiteBoxOptimizationConfig(BaseImageOptimizationConfig):
     
     optimizer: str | type = 'Adam'
-    optimizer_kwargs: dict = {}
+    optimizer_kwargs: dict = field(default_factory=lambda: {})
     iter_times: int = 600
     show_loss_info_iters: int = 10
     
@@ -81,7 +81,7 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
         bar = tqdm(range(1, config.iter_times + 1), leave=False)
         for i in bar:
             
-            fake = self.generator(latents, labels)
+            fake = self.generator(latents, labels=labels)
             # if config.image_initial_transform is not None:
             #     fake = config.image_initial_transform(fake)
                 
@@ -98,7 +98,7 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
             loss.backward()
             optimizer.step()
             
-        final_fake = self.generator(latents, labels).cpu()
+        final_fake = self.generator(latents, labels=labels).cpu()
         
         # if config.image_initial_transform is not None:
         #     final_fake = config.image_initial_transform(final_fake)

@@ -20,7 +20,7 @@ _ALL_LOGITS_INDICES = np.arange(len(_ALL_LOGITS), dtype=np.int32)
 def get_random_string(length: int=6):
     
     seed = int(time.time() * 1000) % (2**30) ^ random.randint(0, 2**30)
-    print(seed)
+    # print(seed)
     
     resindices = np.random.RandomState(seed).choice(_ALL_LOGITS_INDICES, length)
     return ''.join(map(lambda x: _ALL_LOGITS[x], resindices))

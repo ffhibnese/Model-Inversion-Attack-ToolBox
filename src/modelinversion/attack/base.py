@@ -1,7 +1,7 @@
 import os
 import yaml
 import warnings
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any, Union, Optional, Tuple, Callable
@@ -46,7 +46,7 @@ class ImageClassifierAttackConfig:
     
 
     
-class ImageClassifierAttacker(ABCMeta):
+class ImageClassifierAttacker(ABC):
     
     def __init__(self, config: ImageClassifierAttackConfig, metrics: list[ImageMetric]) -> None:
         self.config = self._preprocess_config(config)
@@ -106,30 +106,31 @@ class ImageClassifierAttacker(ABCMeta):
                 warnings.warn('no score function, automatically sample `select_num` latents')
 
             latents = self.config.latents_sampler(select_num, batch_size)
-            {label: latents.detach().clone() for label in labels}
-        
-        raw_latents = self.config.latents_sampler(sample_num, batch_size)
-        
-        scores = batch_apply(latent_score_fn, raw_latents, labels, batch_size=batch_size, use_tqdm=True)
-        
-        results = {}
-        
-        for i in range(labels):
-            label = labels[i]
-            _, topk_idx = torch.topk(scores[:,i], k=select_num)
-            results[label] = raw_latents[topk_idx]
+            results = {label: latents.detach().clone() for label in labels}
+        else:
+            raw_latents = self.config.latents_sampler(sample_num, batch_size)
+            
+            scores = batch_apply(latent_score_fn, raw_latents, labels=labels, batch_size=batch_size, use_tqdm=True)
+            
+            results = {}
+            
+            for i in range(labels):
+                label = labels[i]
+                _, topk_idx = torch.topk(scores[:,i], k=select_num)
+                results[label] = raw_latents[topk_idx]
+
         return self.concat_tensor_labels(results)
     
-    def concat_tensor_labels(self, target_dict):
+    def concat_tensor_labels(self, target_dict: dict):
         tensors = []
         labels = []
-        for target, latents in target_dict:
+        for target, latents in target_dict.items():
             tensors.append(latents)
             labels += [target] * len(latents)
         
         labels = LongTensor(labels)
         tensors = torch.cat(tensors, dim=0)
-        raise tensors, labels
+        return tensors, labels
     
     def concat_optimized_images(self):
         optimized_images = torch.cat(self.optimized_images, dim=0)
@@ -145,7 +146,7 @@ class ImageClassifierAttacker(ABCMeta):
             final_num = len(images)
                  
         if final_num == len(images):
-            return images
+            return images, labels
         
         print('execute final selection')
         scores = batch_apply(self, image_score_fn, images, labels, batch_size=batch_size, use_tqdm=True)
@@ -203,11 +204,12 @@ class ImageClassifierAttacker(ABCMeta):
         config = self.config
         os.makedirs(config.save_dir, exist_ok=True)
         
-        print_split_line('Attack Config')
-        print_as_yaml()
-        print_split_line()
+        # print_split_line('Attack Config')
+        # print(config)
+        # print_split_line()
         
         # initial selection for each target
+        print('execute initial selection')
         init_latents, init_labels = self.initial_latents(
             config.initial_select_batch_size, 
             config.initial_num, 
@@ -217,6 +219,7 @@ class ImageClassifierAttacker(ABCMeta):
         )
 
         # execute optimize
+        print('execute optimization')
         batch_apply(self.batch_optimize, init_latents, init_labels, batch_size=config.optimize_batch_size, description='Optimized Batch')
         
         # concat optimized images and labels
@@ -224,15 +227,19 @@ class ImageClassifierAttacker(ABCMeta):
             
                 
         if eval_optimized:
+            print('evaluate optimized result')
             self._evaluation(optimized_images, optimized_labels, 'Optimized Image Evaluation')
         
         # final selection
+        print('execute final selection')
         final_images, final_labels = self.final_selection(config.final_select_batch_size, config.final_num, optimized_images, optimized_labels, config.final_images_score_fn)
         
         if config.save_final_images:
+            print('save final images')
             self.save_images(os.path.join(config.save_dir, 'final_images'), final_images, final_labels)
         
         if eval_final:
+            print('evaluate final result')
             self._evaluation(final_images, final_labels, 'Final Image Evaluation')
         
     

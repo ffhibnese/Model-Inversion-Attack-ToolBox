@@ -60,9 +60,9 @@ if __name__ == '__main__':
     eval_model.load_state_dict(torch.load(eval_model_ckpt_path, map_location='cpu')['state_dict'])
     generator.load_state_dict(torch.load(generator_ckpt_path, map_location='cpu')['state_dict'])
     
-    target_model = nn.DataParallel(target_model, device_ids=gpu_devices)
-    eval_model = nn.DataParallel(eval_model, device_ids=gpu_devices)
-    generator = nn.DataParallel(generator, device_ids=gpu_devices)
+    target_model = nn.DataParallel(target_model, device_ids=gpu_devices).to(device)
+    eval_model = nn.DataParallel(eval_model, device_ids=gpu_devices).to(device)
+    generator = nn.DataParallel(generator, device_ids=gpu_devices).to(device)
     
     # prepare eval dataset
     
@@ -100,6 +100,7 @@ if __name__ == '__main__':
         optimize_fn=optimization_fn,
         final_num = 50,
         save_dir=experiment_dir,
+        save_optimized_images=True,
         save_final_images=True
     )
     

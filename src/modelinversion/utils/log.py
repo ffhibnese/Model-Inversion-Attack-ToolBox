@@ -33,10 +33,10 @@ class Logger(object):
 
         self.should_flush = should_flush
         self.stdout = sys.stdout
-        self.stderr = sys.stderr
+        # self.stderr = sys.stderr
 
         sys.stdout = self
-        sys.stderr = self
+        # sys.stderr = self
 
     def __enter__(self) -> "Logger":
         return self
@@ -73,8 +73,8 @@ class Logger(object):
         # if using multiple loggers, prevent closing in wrong order
         if sys.stdout is self:
             sys.stdout = self.stdout
-        if sys.stderr is self:
-            sys.stderr = self.stderr
+        # if sys.stderr is self:
+        #     sys.stderr = self.stderr
 
         if self.file is not None:
             self.file.close()

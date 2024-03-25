@@ -9,7 +9,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
-from torchvision.transforms import ToTensor
+from torchvision.transforms import ToTensor, Compose
 
 from modelinversion.models import IR152_64, PlgmiGenerator64, PlgmiDiscriminator64, SimpleLatentsSampler
 from modelinversion.train.gan import PlgmiGanTrainer
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     experiment_dir = '<fill it>'
     
     batch_size = 64
-    max_iters = 30000
+    max_iters = 150000
     
     device_ids_str = '0'
     
@@ -48,7 +48,14 @@ if __name__ == '__main__':
     target_model = nn.DataParallel(target_model, device_ids=gpu_devices).to(device)
     
     # prepare dataset
-    dataset = ImageFolder(dataset_path, transform=ToTensor())
+    
+    def _noise_adder(img):
+        return torch.empty_like(img, dtype=img.dtype).uniform_(0.0, 1 / 256.0) + img
+    
+    dataset = ImageFolder(dataset_path, transform=Compose([
+        ToTensor(),
+        _noise_adder
+    ]))
     dataloader = iter(DataLoader(dataset, batch_size=batch_size, sampler=InfiniteSamplerWrapper(dataset)))
     
     # prepare GANs
