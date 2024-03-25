@@ -4,58 +4,51 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import Any, Union, Optional, Tuple
+from typing import Any, Union, Optional, Tuple, Callable
 
 import torch
 from torch import Tensor, LongTensor
 from torchvision.utils import save_image
-from tqdm import tqdm
 
 from ..models import *
-from ..foldermanager import FolderManager
-from ..metrics.base import *
-from ..utils import DictAccumulator, Accumulator, TorchLoss, batch_apply, print_as_yaml, print_split_line, get_random_string
-from ..enums import TqdmStrategy
-from ..trainer import BaseGANTrainArgs, BaseGANTrainer
-
-
-
-
-    
+from ..metrics import *
+from ..scores import *
+from ..utils import batch_apply, print_as_yaml, print_split_line, get_random_string, BaseLatentsSampler
+from .optimize import BaseImageOptimization
 
 @dataclass
 class ImageClassifierAttackConfig:
     
     # sample latent
-    sample_latents_fn: Callable[[int], None] = None
+    latents_sampler: BaseLatentsSampler
     
     # initial selection
     initial_num: Optional[int] = None
-    initial_latents_score_fn: Optional[Callable[[Tensor, LongTensor], Tensor]] = None
+    initial_latents_score_fn: Optional[BaseLatentScore] = None
     initial_select_batch_size: Optional[int] = None
     
     # optimzation & generate images
     optimize_num: Optional[int] = None
     optimize_batch_size: int = 5
-    optimize_fn: Callable[[Tensor, LongTensor], Tuple[Tensor, LongTensor]] = None
+    optimize_fn: BaseImageOptimization = None
     
     # final selection
     final_num: int = 50
-    final_images_score_fn: Optional[Callable[[Tensor, LongTensor], Tensor]] = None
+    final_images_score_fn: Optional[BaseImageClassificationScore] = None
     final_select_batch_size: Optional[int] = None
     
     # save
     save_dir: Optional[str] = None
     save_optimized_images: bool = False
     save_final_images: bool = False
-    save_normalize = True
+    save_normalize: bool = True
     
     
 
     
 class ImageClassifierAttacker(ABCMeta):
     
-    def __init__(self, config: ImageClassifierAttackConfig, metrics: list[ImageClassifierAttackMetric]) -> None:
+    def __init__(self, config: ImageClassifierAttackConfig, metrics: list[ImageMetric]) -> None:
         self.config = self._preprocess_config(config)
         self.metrics = metrics
         
@@ -68,8 +61,8 @@ class ImageClassifierAttacker(ABCMeta):
         if (config.save_optimized_images or config.save_final_images) and not config.save_dir:
             raise RuntimeError('`save_dir` is not set')
         
-        if config.sample_latents_fn is None:
-            raise RuntimeError('`sample_latents_fn` cannot be None')
+        if config.latents_sampler is None:
+            raise RuntimeError('`latents_sampler` cannot be None')
         
         if config.optimize_fn is None:
             raise RuntimeError('`optimize_fn` cannot be None')
@@ -112,18 +105,18 @@ class ImageClassifierAttacker(ABCMeta):
             if sample_num > select_num:
                 warnings.warn('no score function, automatically sample `select_num` latents')
 
-            latents = self.config.sample_latents_fn(select_num)
+            latents = self.config.latents_sampler(select_num, batch_size)
             {label: latents.detach().clone() for label in labels}
         
-        raw_latents = self.config.sample_latents_fn(sample_num)
+        raw_latents = self.config.latents_sampler(sample_num, batch_size)
         
-        scores = batch_apply(latent_score_fn, raw_latents, labels, batch_size=batch_size)
+        scores = batch_apply(latent_score_fn, raw_latents, labels, batch_size=batch_size, use_tqdm=True)
         
         results = {}
         
         for i in range(labels):
             label = labels[i]
-            _, topk_idx = torch.topk(scores, k=select_num)
+            _, topk_idx = torch.topk(scores[:,i], k=select_num)
             results[label] = raw_latents[topk_idx]
         return self.concat_tensor_labels(results)
     
@@ -155,7 +148,7 @@ class ImageClassifierAttacker(ABCMeta):
             return images
         
         print('execute final selection')
-        scores = batch_apply(self, image_score_fn, images, labels, batch_size=batch_size)
+        scores = batch_apply(self, image_score_fn, images, labels, batch_size=batch_size, use_tqdm=True)
         
         targets = set(labels.tolist())
         
@@ -206,7 +199,7 @@ class ImageClassifierAttacker(ABCMeta):
             save_image(image, save_path, normalize=self.config.save_normalize)
             
     
-    def attack(self, target_list: list[int], eval_optimized = False):
+    def attack(self, target_list: list[int], eval_optimized = False, eval_final = True):
         config = self.config
         os.makedirs(config.save_dir, exist_ok=True)
         
@@ -239,7 +232,8 @@ class ImageClassifierAttacker(ABCMeta):
         if config.save_final_images:
             self.save_images(os.path.join(config.save_dir, 'final_images'), final_images, final_labels)
         
-        self._evaluation(final_images, final_labels, 'Final Image Evaluation')
+        if eval_final:
+            self._evaluation(final_images, final_labels, 'Final Image Evaluation')
         
     
     

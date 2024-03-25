@@ -4,11 +4,13 @@ import torch
 import torch.nn.functional as F
 from scipy import linalg
 
+import warnings
+
 
 def get_activations(images, model, batch_size=64, dims=2048, device=None):
     model.eval()
 
-    d0 = images.shape[0]
+    d0 = len(images)
     if batch_size > d0:
         print(('Warning: batch size is bigger than the data size. '
                'Setting batch size to data size'))
@@ -66,7 +68,9 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
     if np.iscomplexobj(covmean):
         if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
             m = np.max(np.abs(covmean.imag))
-            raise ValueError('Imaginary component {}'.format(m))
+            # raise ValueError('Imaginary component {}'.format(m))
+            warnings.warn(f'Insufficient image quantity. Return FID=0')
+            return 0
         covmean = covmean.real
 
     tr_covmean = np.trace(covmean)

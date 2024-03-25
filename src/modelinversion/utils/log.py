@@ -1,4 +1,5 @@
 import sys
+import os
 from typing import Any, List, Tuple, Union
 
 # class Tee(object):
@@ -21,10 +22,13 @@ from typing import Any, List, Tuple, Union
 class Logger(object):
     """Redirect stderr to stdout, optionally print stdout to a file, and optionally force flushing on both stdout and the file."""
 
-    def __init__(self, file_name: str = None, file_mode: str = "w", should_flush: bool = True):
+    def __init__(self, file_dir: str = None, file_name: str = None, file_mode: str = "w", should_flush: bool = True):
         self.file = None
 
         if file_name is not None:
+            if file_dir is not None:
+                os.makedirs(file_dir, exist_ok=True)
+                file_name = os.path.join(file_dir, file_name)
             self.file = open(file_name, file_mode)
 
         self.should_flush = should_flush
@@ -76,4 +80,3 @@ class Logger(object):
             self.file.close()
             self.file = None
             
-Tee = Logger

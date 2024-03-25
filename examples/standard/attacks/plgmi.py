@@ -1,0 +1,128 @@
+import sys
+import os
+import argparse
+import time
+
+sys.path.append('../../../src')
+
+import torch
+from torch import nn
+from torchvision.datasets import ImageFolder
+from kornia import augmentation
+
+from modelinversion.models import PlgmiGenerator64, IR152_64, FaceNet112
+from modelinversion.utils import unwrapped_parallel_module, augment_images_fn_generator, Logger, SimpleLatentsSampler
+from modelinversion.attack import (
+    ImageAugmentWhiteBoxOptimizationConfig,
+    ImageAugmentWhiteBoxOptimization,
+    ImageClassifierAttackConfig,
+    ImageClassifierAttacker
+)
+from modelinversion.metrics import ImageClassifierAttackAccuracy, ImageDistanceMetric, ImageFidPRDCMetric
+
+
+if __name__ == '__main__':
+    
+    experiment_dir = 'plgmi'
+    device_ids_str = '0'
+    num_classes = 1000
+    generator_ckpt_path = '<fill it>'
+    target_model_ckpt_path = '<fill it>'
+    eval_model_ckpt_path = '<fill it>'
+    eval_dataset_path = '<fill it>'
+    attack_targets = list(range(50))
+    
+    batch_size = 50
+    
+    # prepare logger
+    
+    now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
+    logger = Logger(experiment_dir, f'attack_{now_time}.log')
+    
+    # prepare devices
+    
+    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_str
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = torch.device(device)
+    gpu_devices = [i for i in range(torch.cuda.device_count())]
+    
+    # prepare models
+    
+    z_dim = 128
+    
+    latents_sampler = SimpleLatentsSampler(z_dim)
+    
+    target_model = IR152_64(num_classes=num_classes)
+    eval_model = FaceNet112(num_classes)
+    generator = PlgmiGenerator64(num_classes)
+    
+    target_model.load_state_dict(torch.load(target_model_ckpt_path, map_location='cpu')['state_dict'])
+    eval_model.load_state_dict(torch.load(eval_model_ckpt_path, map_location='cpu')['state_dict'])
+    generator.load_state_dict(torch.load(generator_ckpt_path, map_location='cpu')['state_dict'])
+    
+    target_model = nn.DataParallel(target_model, device_ids=gpu_devices)
+    eval_model = nn.DataParallel(eval_model, device_ids=gpu_devices)
+    generator = nn.DataParallel(generator, device_ids=gpu_devices)
+    
+    # prepare eval dataset
+    
+    eval_dataset = ImageFolder(eval_dataset_path)
+    
+    # prepare optimization
+    
+    create_aug_images_fn = augment_images_fn_generator(
+        None, add_origin_image=False,
+        augment=augmentation.container.ImageSequential(
+            augmentation.RandomResizedCrop((64, 64), scale=(0.8, 1.0), ratio=(1.0, 1.0)),
+            augmentation.ColorJitter(brightness=0.2, contrast=0.2),
+            augmentation.RandomHorizontalFlip(),
+            augmentation.RandomRotation(5),
+        ),
+        augment_times=2
+    )
+    
+    optimization_config = ImageAugmentWhiteBoxOptimizationConfig(
+        experiment_dir=experiment_dir,
+        device=device,
+        optimizer='Adam',
+        optimizer_kwargs={'lr': 0.1},
+        loss_fn='max_margin',
+        create_aug_images_fn= create_aug_images_fn
+    )
+    
+    optimization_fn = ImageAugmentWhiteBoxOptimization(optimization_config, generator, target_model)
+    
+    # prepare attack & metrics
+    
+    attack_config = ImageClassifierAttackConfig(
+        latents_sampler,
+        optimize_batch_size=batch_size,
+        optimize_fn=optimization_fn,
+        final_num = 50,
+        save_dir=experiment_dir,
+        save_final_images=True
+    )
+    
+    accuracy_metric = ImageClassifierAttackAccuracy(
+        batch_size, eval_model, device=device, description='evaluation'
+    )
+    
+    
+    distance_metric = ImageDistanceMetric(
+        batch_size, eval_model, eval_dataset, device=device, description='evaluation', save_individual_res_dir=experiment_dir
+    )
+    
+    fid_prdc_metric = ImageFidPRDCMetric(
+        batch_size, eval_dataset, device=device, save_individual_prdc_dir=experiment_dir,
+        fid=True, prdc=True
+    )
+    
+    attacker = ImageClassifierAttacker(
+        attack_config,
+        [accuracy_metric, distance_metric, fid_prdc_metric]
+    )
+    
+    attacker.attack(attack_targets, eval_optimized=False, eval_final=True)
+    
+    
+    

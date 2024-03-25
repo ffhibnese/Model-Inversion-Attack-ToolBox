@@ -86,9 +86,9 @@ class SimpleGenerator256(BaseIntermediateImageGenerator):
         blocks = self.l2_5[start_block:end_block]
         return blocks[x]
     
-class DGWGAN64(nn.Module):
+class GmiDiscriminator64(nn.Module):
     def __init__(self):
-        super(DGWGAN64, self).__init__()
+        super(GmiDiscriminator64, self).__init__()
         
         in_dim=3
         dim=64
@@ -113,9 +113,9 @@ class DGWGAN64(nn.Module):
         y = y.view(-1)
         return y
     
-class DGWGAN256(nn.Module):
+class GmiDiscriminator256(nn.Module):
     def __init__(self):
-        super(DGWGAN64, self).__init__()
+        super(GmiDiscriminator256, self).__init__()
         
         in_dim=3
         dim=64
@@ -169,9 +169,9 @@ class _MinibatchDiscrimination(nn.Module):
         x = torch.cat([x, o_b], 1)
         return x
     
-class MinibatchDiscriminator64(nn.Module):
+class KedmiDiscriminator64(nn.Module):
     def __init__(self, num_classes):
-        super(MinibatchDiscriminator64, self).__init__()
+        super(KedmiDiscriminator64, self).__init__()
         
         in_dim=3
         dim=64
@@ -210,9 +210,9 @@ class MinibatchDiscriminator64(nn.Module):
 
         return feat, y
     
-class MinibatchDiscriminator256(nn.Module):
+class KedmiDiscriminator256(nn.Module):
     def __init__(self, num_classes):
-        super(MinibatchDiscriminator256, self).__init__()
+        super(KedmiDiscriminator256, self).__init__()
         
         in_dim=3
         dim=64

@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import torch
 from tqdm import tqdm
@@ -35,7 +35,7 @@ def _gather(outputs, dim=0):
         gather_map = None
     return res
 
-def batch_apply(fn: Callable, *inputs, batch_size: int, description: str = None, use_tqdm: bool=False):
+def batch_apply(fn: Callable, *inputs, batch_size: int, description: Optional[str] = None, use_tqdm: bool=False):
     
     def _check_valid(inputs):
         if len(inputs) == 0:
@@ -59,14 +59,17 @@ def batch_apply(fn: Callable, *inputs, batch_size: int, description: str = None,
     iter_times = len(starts)
     
     if use_tqdm:
+        if description is not None:
+            print_split_line(description)
         starts = tqdm(starts, leave=False)
     
     for i, start in enumerate(starts, start=1):
         
-        if description is not None:
+        if description is not None and not use_tqdm:
             print_split_line(f'{description}: {i} / {iter_times}')
         
         end = min(total_len, start + batch_size)
         res = fn(*[p[start:end] for p in inputs])
+        # print(res.device)
         results.append(res)
     return _gather(results)

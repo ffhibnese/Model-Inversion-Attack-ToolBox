@@ -18,7 +18,7 @@ from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 from PIL import Image
 
-from modelinversion.metrics.base import DataLoader
+from modelinversion.metrics.base_od import DataLoader
 
 
 from ..base import BaseGANTrainArgs, BaseGANTrainer

@@ -19,7 +19,7 @@ from PIL import Image
 from modelinversion.attack.base import BaseGANTrainArgs
 from modelinversion.foldermanager import FolderManager
 
-from modelinversion.metrics.base import DataLoader, FolderManager
+from modelinversion.metrics.base_od import DataLoader, FolderManager
 
 
 from ..base import BaseGANTrainArgs, BaseGANTrainer

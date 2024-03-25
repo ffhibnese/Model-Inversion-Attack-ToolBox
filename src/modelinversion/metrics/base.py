@@ -1,8 +1,7 @@
 import os
-import warnings
-from abc import ABC, abstractmethod
-from typing import Any
-from collections import defaultdict, OrderedDict
+from abc import abstractmethod, ABC
+from collections import OrderedDict
+from typing import Optional
 
 import torch
 import numpy as np
@@ -10,15 +9,19 @@ from numpy import ndarray
 from scipy import linalg
 from torch import Tensor, nn, LongTensor
 from torch.nn import functional as F
-from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader, TensorDataset
+from torchvision.datasets import DatasetFolder
 from torchvision.transforms import ToTensor
+from tqdm import tqdm
+import pandas as pd
 
-from ..foldermanager import FolderManager
-from ..models.classifiers import BaseTargetModel
-from ..utils import batch_apply
+# from ..foldermanager import FolderManager
+from ..models import BaseImageClassifier, BaseImageEncoder
+from ..datasets.utils import  ClassSubset
+from ..utils import batch_apply, safe_save_csv, unwrapped_parallel_module
+from .fid import fid_utils, inceptionv3
 
-class ImageClassifierAttackMetric(ABC):
+class ImageMetric(ABC):
     
     def __init__(self, batch_size: int):
         self.batch_size = batch_size
@@ -27,15 +30,15 @@ class ImageClassifierAttackMetric(ABC):
     def __call__(self, images: Tensor, labels: LongTensor) -> OrderedDict:
         pass
     
-class ImageClassifierAttackAccuracy(ImageClassifierAttackMetric):
+class ImageClassifierAttackAccuracy(ImageMetric):
     
-    def __init__(self, batch_size: int, model: nn.Module, device: torch.device, description: str):
+    def __init__(self, batch_size: int, model: BaseImageClassifier, device: torch.device, description: str):
         super().__init__(batch_size)
         self.model = model
         self.device = device
         self.description = description
         
-        
+    @torch.no_grad()
     def __call__(self, images: Tensor, labels: LongTensor) -> OrderedDict:
         
         def get_scores(images: Tensor):
@@ -53,311 +56,179 @@ class ImageClassifierAttackAccuracy(ImageClassifierAttackMetric):
             (f'{self.description} acc@1', acc),
             (f'{self.description} acc@5', acc5)
         ])
-
-class BaseMetric(ABC):
+        
+class ImageDistanceMetric(ImageMetric):
     
-    def __init__(self, folder_manager: FolderManager, device:str, model: BaseTargetModel=None) -> None:
-        self.folder_manager = folder_manager
-        self.device = device
-        self.metric_name = self.get_metric_name()
+    def __init__(self, batch_size: int, model: BaseImageClassifier, dataset: DatasetFolder, device: torch.device, description: str, save_individual_res_dir: Optional[str] = None, num_workers = 8):
+        super().__init__(batch_size)
         
         self.model = model
+        self.dataset = dataset
+        self.device = device
+        self.description = description
+        self.save_dir = save_individual_res_dir
+        self.hook = unwrapped_parallel_module(model).get_last_feature_hook()
+        self.num_workers = num_workers
         
-    def evaluation(self, dataset_name, batch_size=100, transform=None):
-        # raise NotImplementedError()
-        private_path = os.path.join(self.folder_manager.config.dataset_dir, dataset_name, 'split', 'private')
-        private_img_path = os.path.join(private_path, 'train')
-        private_save_path = os.path.join(private_path, 'features', self.metric_name)
-        if self.model is not None:
-            private_save_path = os.path.join(private_save_path, self.model.__class__.__name__.lower())
-        os.makedirs(private_save_path, exist_ok=True)
-        invert_path = os.path.join(self.folder_manager.get_result_folder())
-        
-        if transform is None:
-            transform = ToTensor()
-        
-        return self.calculate(invert_path, private_img_path, private_save_path, batch_size=batch_size, transform=transform)
-        
-    
-    @abstractmethod
-    def calculate(self, invert_path, private_img_path, private_save_path, batch_size, transform, **kwargs) -> float:
-        raise NotImplementedError()
-    
-    @abstractmethod
-    def get_metric_name(self) -> str:
-        raise NotImplementedError()
-    
-class LabelSpecMetric(BaseMetric):
-    
-    def __init__(self, folder_manager: FolderManager, device:str, model: BaseTargetModel=None) -> None:
-        super().__init__(folder_manager, device, model)
-        
-    def calculate(self, invert_path, private_img_path, private_save_path, batch_size, transform, **kwargs) -> float:
-        # step 1: generate features
-        
-        metric_folder = os.path.join(self.folder_manager.config.cache_dir, self.metric_name)
+    def _get_feature(self, images: Tensor):
+        images = images.to(self.device)
+        self.model(images)
+        feature = self.hook.get_feature().reshape(len(images), -1).cpu()
+        return feature
         
         
-        # private_save_dir = os.path.join(metric_folder, 'private')
-        os.makedirs(metric_folder, exist_ok=True)
+    @torch.no_grad()
+    def __call__(self, images: Tensor, labels: LongTensor) -> OrderedDict:
         
-        class_len = len(os.listdir(private_img_path))
-        if len(os.listdir(private_save_path)) < class_len:
-            print(f'generate features of private images')
-            self.save_features(private_img_path, private_save_path, batch_size, transform=transform)
+        target_values = list(set(labels.cpu().tolist()))
         
-        print(f'generate features of private images')
-        invert_save_dir = os.path.join(metric_folder, 'invert_features')
-        os.makedirs(invert_save_dir, exist_ok=True)
-        self.save_features(invert_path, invert_save_dir, batch_size, transform=transform)
+        target_dists = []
+        target_nums = []
         
-        # step 2: calculate result for each label
-        
-        score = 0
-        total_num = 0
-        
-        for filename in os.listdir(invert_save_dir):
-            invert_file = os.path.join(invert_save_dir, filename)
-            private_file = os.path.join(private_save_path, filename)
-            if not os.path.exists(private_file):
-                class_id = filename[:filename.rfind('.')]
-                warnings.warn(f'class {class_id} is not existed in private data')
-                continue
-            invert_features = torch.load(invert_file)
-            private_features = torch.load(private_file)
-            num = len(invert_features)
-            total_num += num
-            score += num * self.get_label_final_result(invert_features, private_features)
-        
-        if total_num == 0:
-            warnings.warn(f'no feature of inverted or private images')
-            return 0
-        
-        result = score / total_num
-        print(f'{self.metric_name}: {result}')
-        return result
-    
-    def save_features(self, img_path, save_dir, batch_size, transform):
-        
-        ds = ImageFolder(img_path, transform=transform)
-        dataloader = DataLoader(ds, batch_size=batch_size, shuffle=False)
-        
-        label_dict = defaultdict(list)
-        
-        with torch.no_grad():
-            for imgs, labels in dataloader:
-                imgs = imgs.to(self.device)
-                feats = self.input_transform(imgs)
-                labels = labels.numpy()
-                for feat, label in zip(feats, labels):
-                    label_dict[label].append(feat[np.newaxis,:])
-                # for i in range(len())
-                    
-        for label, values in label_dict.items():
-            values = np.concatenate(values)
-            save_path = os.path.join(save_dir, f'{label}.pt')
-            torch.save(values, save_path)
+        for step, target in enumerate(target_values):
+            target_src_images = images[labels == target]
+            target_src_features = batch_apply(self._get_feature, target_src_images, self.batch_size, use_tqdm=True)
             
-    @abstractmethod
-    def input_transform(self, img_tensor: Tensor) -> ndarray:
-        raise NotImplementedError()
-    
-    @abstractmethod
-    def get_label_final_result(self, invert_features, private_features) -> float:
-        raise NotImplementedError()
-  
-class KnnDistanceMetric(LabelSpecMetric):
-    
-    def __init__(self, folder_manager: FolderManager, device: str, model: BaseTargetModel) -> None:
-        super().__init__(folder_manager, device, model)
-        # self.model = model
-        
-    def get_metric_name(self) -> str:
-        return 'knn'
-    
-    def input_transform(self, img_tensor: Tensor) -> ndarray:
-        bs = len(img_tensor)
-        features = self.model(img_tensor).feat[-1].reshape(bs, -1)
-        return features.cpu().numpy()
-    
-    def get_label_final_result(self, invert_features, private_features) -> float:
-        # ( N_i, 1, dim )
-        invert_features = invert_features[:, np.newaxis, :]
-        # ( 1, N_p, dim )
-        private_features = private_features[np.newaxis, :, :]
-        
-        diff = ((invert_features - private_features) ** 2).sum(axis=-1)
-        knns = np.min(diff, axis=1)
-        return knns.mean()
-    
-
-class FeatureDistanceMetric(LabelSpecMetric):
-    
-    def __init__(self, folder_manager: FolderManager, device: str, model: BaseTargetModel) -> None:
-        super().__init__(folder_manager, device, model)
-        # self.model = model
-        
-    def get_metric_name(self) -> str:
-        return 'feature_dist'
-    
-    def input_transform(self, img_tensor: Tensor) -> ndarray:
-        bs = len(img_tensor)
-        features = self.model(img_tensor).feat[-1].reshape(bs, -1)
-        return features.cpu().numpy()
-    
-    def get_label_final_result(self, invert_features, private_features) -> float:
-
-        private_features = np.mean(private_features, axis=0, keepdims=True)
-        
-        diff = ((invert_features - private_features) ** 2).sum(axis=-1)
-        return diff.mean()     
- 
-class GeneralMetric(BaseMetric):
-    
-    def __init__(self, folder_manager: FolderManager, device:str, model: BaseTargetModel=None) -> None:
-        super().__init__(folder_manager, device, model=model)
-        
-    def calculate(self, invert_path, private_img_path, private_save_path, batch_size, transform, **kwargs) -> float:
-        
-        # step 1: generate features
-        
-        
-        metric_folder = os.path.join(self.folder_manager.config.cache_dir, self.metric_name)
-        os.makedirs(metric_folder, exist_ok=True)
-        
-        private_save_path = os.path.join(private_save_path, 'private.pt')
-        
-        if not os.path.exists(private_save_path):
-            print(f'generate features of private images')
-            self.save_features(private_img_path, private_save_path, batch_size, transform=transform)
-        
-    
-        invert_save_path = os.path.join(metric_folder, 'invert_features.pt')
-        print(f'generate features of inverted images')
-        self.save_features(invert_path, invert_save_path, batch_size, transform)
-        
-        
+            target_dst_ds = ClassSubset(self.dataset, target)
+            target_dst_features = []
+            for dst_img, _ in tqdm(DataLoader(target_dst_ds, self.batch_size, shuffle=False, num_workers=self.num_workers)):
+                target_dst_features.append(self._get_feature(dst_img))
+            target_dst_features = torch.cat(target_dst_features, dim=0)
             
-        # step 2: calculation
-        invert_features = torch.load(invert_save_path)
-        private_features = torch.load(private_save_path)
-        
-        result = self.get_final_result(invert_features, private_features)
-        print(f'{self.metric_name}: {result}')
-        return result
-        
-        
-    def save_features(self, img_path, save_path, batch_size, transform):
-        ds = ImageFolder(img_path, transform=transform)
-        dataloader = DataLoader(ds, batch_size=batch_size, shuffle=False)
-        
-        with torch.no_grad():
-            inputs = []
-            for img, _ in dataloader:
-                img = img.to(self.device)
-                feat = self.input_transform(img)
-                inputs.append(feat)
-            inputs = np.concatenate(inputs, axis=0)
-        
-        features = self.generate_features(inputs)
-        # np.save(save_path, features)
-        torch.save(features, save_path)
-        
-    
-    @abstractmethod
-    def input_transform(self, img_tensor: Tensor) -> ndarray:
-        raise NotImplementedError()
-    
-    @abstractmethod
-    def generate_features(self, inputs: list) -> ndarray:
-        raise NotImplementedError()
-    
-    @abstractmethod
-    def get_final_result(self, invert_features, private_features) -> float:
-        raise NotImplementedError()
-    
-class FIDMetric(GeneralMetric):
-    
-    def __init__(self, folder_manager: FolderManager, device: str, model: BaseTargetModel) -> None:
-        
-        if model is None:
-            from .fid.inceptionv3 import InceptionV3
-            model = InceptionV3().to(device)
+            distance = torch.cdist(target_src_features, target_dst_features) ** 2
+            distance, _ = torch.min(distance, dim=1)
             
-        super().__init__(folder_manager, device, model)
-        
-    def get_metric_name(self) -> str:
-        return 'fid'
-    
-    def input_transform(self, img_tensor: Tensor) -> ndarray:
-        features = self.model(img_tensor)[-1]
-        
-        if features.shape[2] != 1 or features.shape[3] != 1:
-            features = F.adaptive_avg_pool2d(features, output_size=(1, 1))
+            target_dists.append(distance.mean().item())
+            target_nums.append(len(distance))
             
-        batch_size = len(features)
-        return features.reshape(batch_size, -1).cpu().numpy()
+        target_values = np.array(target_values, dtype=np.int32)
+        target_dists = np.array(target_dists)
+        target_nums = np.array(target_nums)
+        
+        if self.save_dir is not None:
+            df = pd.DataFrame()
+            df['target'] = target_values
+            df['square distance'] = target_dists
+            save_name = f'{self.description}_square_distance.csv'
+            safe_save_csv(df, self.save_dir, save_name)
+        
+        result = (target_dists * target_nums).sum() / target_nums.sum()
+        return OrderedDict([f'{self.description} square distance', result])
+            
+class ImageFidPRDCMetric(ImageMetric):
     
-    def generate_features(self, inputs: ndarray) -> ndarray:
-        # print(inputs.shape)
-        mu = np.mean(inputs, axis=0)
-        var = np.cov(inputs, rowvar=False)
+    def __init__(self, batch_size: int, dataset: DatasetFolder, device: torch.device, prdc_k=3, fid=True, prdc=True, save_individual_prdc_dir: Optional[str] = None, num_workers=8):
+        super().__init__(batch_size)
         
-        # print(f'fid gen feature inputs {inputs.shape}, mu {mu.shape}, var: {var.shape}')
+        self.device = device
+        self.dataset = dataset
+        self.inception_model = inceptionv3.InceptionV3().to(self.device)
+        self.num_workers = num_workers
+        self.prdc_k = prdc_k
         
-        return {'mu': mu, 'var': var}
-    
-    def get_final_result(self, invert_features, private_features) -> float:
+        self.calc_fid = fid
+        self.calc_prdc = prdc
+        self.save_dir = save_individual_prdc_dir
         
+    def _calculate_activation_statistics(self, dataset):
+        dataloader = DataLoader(dataset, self.batch_size, shuffle=False, num_workers=self.num_workers)
         
+        pred_arr = []
+        labels_arr = []
         
-        mu1, mu2 = invert_features['mu'], private_features['mu']
-        sigma1, sigma2 = invert_features['var'], private_features['var']
+        for image, labels in tqdm(dataloader):
+            labels_arr.append(labels)
+            image = image.to(self.device)
+            pred = self.inception_model(image)[0].squeeze(3).squeeze(2).cpu()
+            pred_arr.append(pred)
+        pred_arr = torch.cat(pred_arr, dim=0)
+        pred_numpy = pred_arr.numpy()
         
-        # print(sigma1.shape)
+        return pred_arr, labels_arr, np.mean(pred_numpy, axis=0), np.cov(pred_numpy, rowvar=False)
+            
         
-        # if len(mu1) <= 2048:
-        #     warnings.warn(f'calculate fid failed: the number of inverted images is {len(mu1)} less than 2048')
-        #     return 0
+    @torch.no_grad()
+    def __call__(self, images: Tensor, labels: LongTensor) -> OrderedDict:
         
-        # if len(mu2) <= 2048:
-        #     warnings.warn(f'calculate fid failed: the number of private images is {len(mu2)} less than 2048')
-        #     return 0
+        target_values = list(set(labels.cpu().tolist()))
+        src_ds = TensorDataset(images, labels)
+        dst_ds = ClassSubset(self.dataset, target_values)
         
-        eps = 1e-6
+        fake_feature, fake_labels, mu_fake, sigma_fake = self._calculate_activation_statistics(
+            src_ds
+        )
+        real_feature, real_labels, mu_real, sigma_real = self._calculate_activation_statistics(
+            dst_ds
+        )
         
-        mu1 = np.atleast_1d(mu1)
-        mu2 = np.atleast_1d(mu2)
-
-        sigma1 = np.atleast_2d(sigma1)
-        sigma2 = np.atleast_2d(sigma2)
-
-        assert mu1.shape == mu2.shape, \
-            'Training and test mean vectors have different lengths'
-        assert sigma1.shape == sigma2.shape, \
-            'Training and test covariances have different dimensions'
-
-        diff = mu1 - mu2
-
-        # Product might be almost singular
-        covmean, _ = linalg.sqrtm(sigma1.dot(sigma2), disp=False)
-        if not np.isfinite(covmean).all():
-            msg = ('fid calculation produces singular product; '
-                'adding %s to diagonal of cov estimates') % eps
-            print(msg)
-            offset = np.eye(sigma1.shape[0]) * eps
-            covmean = linalg.sqrtm((sigma1 + offset).dot(sigma2 + offset))
-
-        # Numerical error might give slight imaginary component
-        if np.iscomplexobj(covmean):
-            if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
-                m = np.max(np.abs(covmean.imag))
-                # raise ValueError('Imaginary component {}'.format(m))
+        result = OrderedDict()
+        
+        # FID
+        if self.calc_fid:
+            fid_score = fid_utils.calculate_frechet_distance(
+                mu_fake, sigma_fake, mu_real, sigma_real
+            )
+            result['FID'] = fid_score
+            
+        # PRDC
+        if self.calc_prdc:
+            precision_list = []
+            recall_list = []
+            density_list = []
+            coverage_list = []
+            for target in tqdm(target_values):
+                fake_mask = fake_labels == target
+                real_mask = real_labels == target
+                embedding_fake = fake_feature[fake_mask]
+                embedding_real = real_feature[real_mask]
                 
-                warnings.warn(f'the number of inverted or private image is less than 2048')
-                return 0
-            covmean = covmean.real
+                pair_dist_real = torch.cdist(embedding_real, embedding_real, p=2)
+                pair_dist_real = torch.sort(pair_dist_real, dim=1, descending=False)[0]
+                pair_dist_fake = torch.cdist(embedding_fake, embedding_fake, p=2)
+                pair_dist_fake = torch.sort(pair_dist_fake, dim=1, descending=False)[0]
+                radius_real = pair_dist_real[:, self.prdc_k]
+                radius_fake = pair_dist_fake[:, self.prdc_k]
 
-        tr_covmean = np.trace(covmean)
+                # Compute precision
+                distances_fake_to_real = torch.cdist(embedding_fake, embedding_real, p=2)
+                min_dist_fake_to_real, nn_real = distances_fake_to_real.min(dim=1)
+                precision = (min_dist_fake_to_real <= radius_real[nn_real]).float().mean()
+                precision_list.append(precision.cpu().item())
 
-        return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
+                # Compute recall
+                distances_real_to_fake = torch.cdist(embedding_real, embedding_fake, p=2)
+                min_dist_real_to_fake, nn_fake = distances_real_to_fake.min(dim=1)
+                recall = (min_dist_real_to_fake <= radius_fake[nn_fake]).float().mean()
+                recall_list.append(recall.cpu().item())
+
+                # Compute density
+                num_samples = distances_fake_to_real.shape[0]
+                sphere_counter = (distances_fake_to_real <= radius_real.repeat(num_samples, 1)).float().sum(dim=0).mean()
+                density = sphere_counter / self.prdc_k
+                density_list.append(density.cpu().item())
+
+                # Compute coverage
+                num_neighbors = (distances_fake_to_real <= radius_real.repeat(num_samples, 1)).float().sum(dim=0)
+                coverage = (num_neighbors > 0).float().mean()
+                coverage_list.append(coverage.cpu().item())
+                
+            target_values = np.array(target_values, dtype=np.int32)
+            precision = np.array(precision_list)
+            recall = np.array(recall_list)
+            density = np.array(density_list)
+            coverage = np.array(coverage_list)
+            
+            if self.save_dir is not None:
+                df = pd.DataFrame()
+                df['target'] = target_values
+                df['precision'] = precision
+                df['recall'] = recall
+                df['density'] = density
+                df['coverage'] = coverage
+            
+            result['precision'] = precision.mean()
+            result['recall'] = recall.mean()
+            result['density'] = density.mean()
+            result['coverage'] = coverage.mean()
+
+        return result

@@ -1,8 +1,10 @@
 from abc import abstractmethod
-from typing import Union, Optional
+from typing import Union, Optional, Sequence
 
 import torch
 import torch.nn as nn
+
+from ...utils import unwrapped_parallel_module
 
 class LambdaModule(nn.Module):
     
@@ -15,12 +17,14 @@ class LambdaModule(nn.Module):
 
 class BaseImageGenerator(nn.Module):
     
-    def __init__(self, resolution, input_size: Union[int, tuple[int]], *args, **kwargs) -> None:
+    def __init__(self, resolution, input_size: Union[int, Sequence[int]], *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         
         self._resolution = resolution
         if isinstance(input_size, int):
             input_size = (input_size, )
+        if not isinstance(input_size, tuple):
+            input_size = tuple(input_size)
         self._input_size = input_size
     
     @property
@@ -31,11 +35,11 @@ class BaseImageGenerator(nn.Module):
     def input_size(self):
         return self._input_size
     
-    @abstractmethod
-    def sample_latents(self, sample_num: int, batch_size: int):
-        pass
+    # @staticmethod
+    # def sample_latents(self, sample_num: int, batch_size: int, **kwargs):
+    #     size = (sample_num, ) + unwrapped_parallel_module(self).input_size
+    #     return torch.randn(size)
     
-    @abstractmethod
     def forward(self, *inputs, labels=None, **kwargs):
         pass
     
@@ -50,7 +54,7 @@ class BaseIntermediateImageGenerator(BaseImageGenerator):
         return self._block_num
     
     @abstractmethod
-    def _forward_impl(self, *inputs, labels: Optional[torch.LongTensor]=None, start_block: int=None, end_block: int=None, **kwargs):
+    def _forward_impl(self, *inputs, labels: Optional[torch.LongTensor], start_block: int, end_block: int, **kwargs):
         pass
     
     def forward(self, *inputs, labels: Optional[torch.LongTensor]=None, start_block: Optional[int]=None, end_block: Optional[int]=None, **kwargs):
@@ -64,4 +68,4 @@ class BaseIntermediateImageGenerator(BaseImageGenerator):
         if start_block >= end_block:
             raise RuntimeError(f'expect `start_block` < `end_block`, but find `start_block`={start_block} and `end_block`={end_block}')
         
-        return self._forward_impl(*inputs, labels, start_block, end_block, **kwargs)
+        return self._forward_impl(*inputs, labels=labels, start_block=start_block, end_block=end_block, **kwargs)

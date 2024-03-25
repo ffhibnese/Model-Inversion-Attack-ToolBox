@@ -9,8 +9,6 @@ from torch.nn import init
 from .base import BaseIntermediateImageGenerator, LambdaModule
 
 
-
-
 class _ConditionalBatchNorm2d(nn.BatchNorm2d):
     """Conditional Batch Normalization"""
 
@@ -133,11 +131,11 @@ class _GenBlock(nn.Module):
             h = self.b2(h)
         return self.c2(self.activation(h))
 
-class ResNetGenerator64(BaseIntermediateImageGenerator):
+class PlgmiGenerator64(BaseIntermediateImageGenerator):
     """Generator generates 64x64."""
 
     def __init__(self, num_classes, dim_z=128, bottom_width=4):
-        super(ResNetGenerator64, self).__init__(64, dim_z, 6)
+        super(PlgmiGenerator64, self).__init__(64, dim_z, 6)
         activation = nn.ReLU()
         self.num_features = num_features = 64
         self.dim_z = dim_z
@@ -146,7 +144,7 @@ class ResNetGenerator64(BaseIntermediateImageGenerator):
         self.num_classes = num_classes
         # self.distribution = distribution
         
-        def _reshape(x):
+        def _reshape():
             return LambdaModule(lambda x: x.reshape(x.size(0), -1, self.bottom_width, self.bottom_width))
         
         
@@ -175,6 +173,7 @@ class ResNetGenerator64(BaseIntermediateImageGenerator):
 
     def _forward_impl(self, *inputs, labels: torch.LongTensor | None = None, start_block: int = None, end_block: int = None, **kwargs):
         h = inputs[0]
+        
         for i in range(start_block, end_block):
             if i in [0, 5]:
                 h = getattr(self, f'block{i+1}')(h)
@@ -184,11 +183,11 @@ class ResNetGenerator64(BaseIntermediateImageGenerator):
                 h = self.block5_res(h)
         return h
     
-class ResNetGenerator256(BaseIntermediateImageGenerator):
+class PlgmiGenerator256(BaseIntermediateImageGenerator):
     """Generator generates 64x64."""
 
     def __init__(self, num_classes, dim_z=128, bottom_width=4):
-        super(ResNetGenerator64, self).__init__(256, dim_z, 8)
+        super(PlgmiGenerator256, self).__init__(256, dim_z, 8)
         activation = nn.ReLU()
         self.num_features = num_features = 64
         self.dim_z = dim_z
@@ -197,7 +196,7 @@ class ResNetGenerator256(BaseIntermediateImageGenerator):
         self.num_classes = num_classes
         # self.distribution = distribution
         
-        def _reshape(x):
+        def _reshape():
             return LambdaModule(lambda x: x.reshape(x.size(0), -1, self.bottom_width, self.bottom_width))
         
         
@@ -314,10 +313,10 @@ class _OptimizedBlock(nn.Module):
         h = self.activation(self.c1(x))
         return F.avg_pool2d(self.c2(h), 2)
 
-class SNResNetProjectionDiscriminator64(nn.Module):
+class PlgmiDiscriminator64(nn.Module):
 
     def __init__(self, num_classes):
-        super(SNResNetProjectionDiscriminator64, self).__init__()
+        super(PlgmiDiscriminator64, self).__init__()
         
         num_features=64
         activation=F.relu
@@ -363,10 +362,10 @@ class SNResNetProjectionDiscriminator64(nn.Module):
         return output
     
     
-class SNResNetProjectionDiscriminator256(nn.Module):
+class PlgmiDiscriminator256(nn.Module):
 
     def __init__(self, num_classes):
-        super(SNResNetProjectionDiscriminator256, self).__init__()
+        super(PlgmiDiscriminator256, self).__init__()
         
         num_features=64
         activation=F.relu

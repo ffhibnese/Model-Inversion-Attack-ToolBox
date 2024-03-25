@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 from .models import *
 from .foldermanager import FolderManager
-from .metrics.base import *
+from .metrics import *
 from .utils import DictAccumulator, Accumulator, print_as_yaml
 from .enums import TqdmStrategy
 

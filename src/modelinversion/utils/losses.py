@@ -35,7 +35,7 @@ _LOSS_MAPPING = {
     'max_margin': max_margin_loss
 }
 
-class TorchLoss:
+class ClassificationLoss:
     
     def __init__(self, loss_fn: str, *args, **kwargs) -> None:
         # super().__init__()
