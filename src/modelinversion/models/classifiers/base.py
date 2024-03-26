@@ -67,11 +67,10 @@ class BaseImageClassifier(BaseImageModel):
         super().__init__(resolution, feature_dim, *args, **kwargs)
         self._num_classes = num_classes
         
-        if register_last_feature_hook:
-            hook = self.get_last_feature_hook()
-            if hook is None:
-                raise RuntimeError('The last feature hook is not set.')
-            self.register_hook_for_forward(HOOK_NAME_FEATURE, hook=hook)
+        self._feature_flag = False
+        
+        self.register_last_feature_hook = register_last_feature_hook
+        
         
     @property
     def num_classes(self):
@@ -79,6 +78,15 @@ class BaseImageClassifier(BaseImageModel):
     
     def get_last_feature_hook(self) -> BaseHook:
         return None
+    
+    def forward(self, image: torch.Tensor, *args, **kwargs):
+        if not self._feature_flag and self.register_last_feature_hook:
+            self._feature_flag = True
+            hook = self.get_last_feature_hook()
+            if hook is None:
+                raise RuntimeError('The last feature hook is not set.')
+            self.register_hook_for_forward(HOOK_NAME_FEATURE, hook=hook)
+        return super().forward(image, *args, **kwargs)
 
     
 def _operate_fc_impl(module: nn.Module, reset_num_classes: int = None, visit_fc_fn: Callable = None):

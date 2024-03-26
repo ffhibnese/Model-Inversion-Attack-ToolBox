@@ -54,7 +54,7 @@ if __name__ == '__main__':
     latents_sampler = SimpleLatentsSampler(z_dim)
     
     target_model = IR152_64(num_classes=num_classes)
-    eval_model = FaceNet112(num_classes)
+    eval_model = FaceNet112(num_classes=num_classes, register_last_feature_hook=True)
     generator = PlgmiGenerator64(num_classes)
     
     target_model.load_state_dict(torch.load(target_model_ckpt_path, map_location='cpu')['state_dict'])
