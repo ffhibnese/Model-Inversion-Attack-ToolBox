@@ -39,14 +39,20 @@ class ClassificationLoss:
     
     def __init__(self, loss_fn: str, *args, **kwargs) -> None:
         # super().__init__()
-        
+        self.fn = None
         if isinstance(loss_fn, str):
-            if isinstance(loss_fn, str):
-                if loss_fn.lower() in _LOSS_MAPPING:
-                    self.fn = _LOSS_MAPPING[loss_fn.lower()]
-                else:
-                    module = importlib.import_module('torch.nn.functional')
-                    self.fn = getattr(module, loss_fn)
+            if loss_fn.lower() in _LOSS_MAPPING:
+                self.fn = _LOSS_MAPPING[loss_fn.lower()]
+            else:
+                module = importlib.import_module('torch.nn.functional')
+                self.fn = getattr(module, loss_fn, None)
+                if self.fn is None:
+                    module = importlib.import_module('torch.nn')
+                    t = getattr(module, loss_fn, None)
+                    if t is not None:
+                        self.fn = t()
+                if self.fn is None:
+                    raise RuntimeError(f'loss_fn {loss_fn} not found.')
         else:
             self.fn = loss_fn
             

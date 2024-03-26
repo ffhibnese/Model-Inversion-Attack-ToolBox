@@ -12,7 +12,7 @@ from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor, Compose
 
 from modelinversion.models import IR152_64, PlgmiGenerator64, PlgmiDiscriminator64, SimpleLatentsSampler
-from modelinversion.train.gan import PlgmiGanTrainer
+from modelinversion.train import PlgmiGanTrainer
 from modelinversion.utils import Logger
 from modelinversion.datasets import InfiniteSamplerWrapper
 

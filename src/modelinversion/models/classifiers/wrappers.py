@@ -10,16 +10,14 @@ class TorchvisionClassifierModel(BaseImageClassifier):
         
         def _add_hook_fn(m):
             self._feature_hook = FirstInputHook(m)
-        
-        feature_dim = operate_fc(model, num_classes, _add_hook_fn)
-        
-        super().__init__(resolution, feature_dim, num_classes, register_last_feature_hook)
-        
+            
         tv_module = importlib.import_module('torchvision.models')
         factory = getattr(tv_module, arch_name, None)
         model = factory(weights=weights, **arch_kwargs)
         
+        feature_dim = operate_fc(model, num_classes, _add_hook_fn)
         
+        super().__init__(resolution, feature_dim, num_classes, register_last_feature_hook)
         
         self.model = model
         
