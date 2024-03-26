@@ -19,11 +19,11 @@ def specific_image_augment_scores(model: BaseImageClassifier, device: torch.devi
         total_num = 0
         for trans in create_aug_images_fn(trans):
             total_num += 1
-            conf = model(trans).softmax(dim=-1).cpu()
+            conf, _ = model(trans).softmax(dim=-1).cpu()
             scores += torch.gather(conf, 1, labels.unsqueeze(1)).squeeze(1)
         return scores / total_num
     else:
-        conf = model(images).softmax(dim=-1).cpu()
+        conf, _ = model(images).softmax(dim=-1).cpu()
         return torch.gather(conf, 1, labels.unsqueeze(1)).squeeze(1)
     
 

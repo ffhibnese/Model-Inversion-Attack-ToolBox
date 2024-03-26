@@ -7,9 +7,9 @@ from .base import *
 from .evolve import evolve
 
 class VGG16_64(BaseImageClassifier):
-    def __init__(self, num_classes, pretrained=False):
+    def __init__(self, num_classes, pretrained=False, register_last_feature_hook=False):
         self.feat_dim = 512 * 2 * 2
-        super(VGG16_64, self).__init__(64, self.feat_dim, num_classes)
+        super(VGG16_64, self).__init__(64, self.feat_dim, num_classes, register_last_feature_hook)
         model = torchvision.models.vgg16_bn(pretrained=pretrained)
         self.feature = model.features
         
@@ -53,7 +53,7 @@ class VGG16_64(BaseImageClassifier):
         return res
 
 
-    
+
 
 class Flatten(nn.Module):
     def forward(self, input):
@@ -61,9 +61,9 @@ class Flatten(nn.Module):
 
 
 class IR152_64(BaseImageClassifier):
-    def __init__(self, num_classes=1000):
+    def __init__(self, num_classes=1000, register_last_feature_hook=False):
         self.feat_dim = 512
-        super(IR152_64, self).__init__(64, self.feat_dim, num_classes)
+        super(IR152_64, self).__init__(64, self.feat_dim, num_classes, register_last_feature_hook)
         self.feature = evolve.IR_152_64((64, 64))
         
         self.output_layer = nn.Sequential(nn.BatchNorm2d(512),
@@ -106,8 +106,8 @@ class IR152_64(BaseImageClassifier):
         return out
 
 class FaceNet64(BaseImageClassifier):
-    def __init__(self, num_classes=1000):
-        super(FaceNet64, self).__init__(64, 512, num_classes)
+    def __init__(self, num_classes=1000, register_last_feature_hook=False):
+        super(FaceNet64, self).__init__(64, 512, num_classes, register_last_feature_hook)
         self.feature = evolve.IR_50_64((64, 64))
         self.feat_dim = 512
         self.output_layer = nn.Sequential(nn.BatchNorm2d(512),

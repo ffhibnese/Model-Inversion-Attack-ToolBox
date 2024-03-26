@@ -16,7 +16,7 @@ from tqdm import tqdm
 import pandas as pd
 
 # from ..foldermanager import FolderManager
-from ..models import BaseImageClassifier, BaseImageEncoder
+from ..models import BaseImageClassifier, BaseImageEncoder, HOOK_NAME_FEATURE
 from ..datasets.utils import  ClassSubset
 from ..utils import batch_apply, safe_save_csv, unwrapped_parallel_module
 from .fid import fid_utils, inceptionv3
@@ -65,7 +65,7 @@ class ImageClassifierAttackAccuracy(ImageMetric):
         
         def get_scores(images: Tensor):
             images = images.to(self.device)
-            pred = self.model(images)
+            pred, _ = self.model(images)
             return pred.cpu()
         
         scores = batch_apply(get_scores, images, batch_size=self.batch_size, use_tqdm=True)
@@ -105,9 +105,11 @@ class ImageDistanceMetric(ImageMetric):
         
     def _get_feature(self, images: Tensor):
         images = images.to(self.device)
-        self.hook.clear_feature()
-        self.model(images)
-        feature = self.hook.get_feature(self.device)
+        # self.hook.clear_feature()
+        _, hook_res = self.model(images)
+        if HOOK_NAME_FEATURE not in hook_res:
+            raise RuntimeError(f'The model has not registered the hook for {HOOK_NAME_FEATURE}')
+        feature = hook_res[HOOK_NAME_FEATURE]
         # print(images.shape, feature.shape)
         return feature.reshape(len(images), -1).cpu()
         

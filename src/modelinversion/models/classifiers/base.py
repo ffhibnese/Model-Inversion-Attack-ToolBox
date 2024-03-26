@@ -10,6 +10,8 @@ import torchvision.transforms.functional as TF
 
 from ...utils import traverse_name_module, FirstInputHook, BaseHook
 
+HOOK_NAME_FEATURE = 'feature'
+
 class ModelConstructException(Exception):
     pass
 
@@ -24,6 +26,7 @@ class BaseImageModel(BaseTargetModel):
         
         self._resolution = resolution
         self._feature_dim = feature_dim
+        self._inner_hooks = {}
         
     @property
     def resolution(self):
@@ -32,6 +35,13 @@ class BaseImageModel(BaseTargetModel):
     @property
     def feature_dim(self):
         return self._feature_dim
+    
+    def _check_hook(self, name: str):
+        if name not in self._inner_hooks:
+            raise RuntimeError(f'The model do not have feature for `{name}`')
+        
+    def register_hook_for_forward(self, name: str, hook: BaseHook):
+        self._inner_hooks[name] = hook
     
     @abstractmethod
     def _forward_impl(self, image: torch.Tensor, *args, **kwargs):
@@ -42,7 +52,9 @@ class BaseImageModel(BaseTargetModel):
         if image.shape[-1] != self.resolution or image.shape[-2] != self.resolution:
             image = TF.resize(image, (self.resolution, self.resolution), antialias=True)
             
-        return self._forward_impl(image, *args, **kwargs)
+        forward_res = self._forward_impl(image, *args, **kwargs)
+        hook_res = {k: v.get_feature() for k, v in self._inner_hooks.items()}
+        return  forward_res, hook_res
     
 class BaseImageEncoder(BaseImageModel):
     
@@ -51,9 +63,15 @@ class BaseImageEncoder(BaseImageModel):
     
 class BaseImageClassifier(BaseImageModel):
     
-    def __init__(self, resolution, feature_dim, num_classes, *args, **kwargs) -> None:
+    def __init__(self, resolution, feature_dim, num_classes, register_last_feature_hook=False, *args, **kwargs) -> None:
         super().__init__(resolution, feature_dim, *args, **kwargs)
         self._num_classes = num_classes
+        
+        if register_last_feature_hook:
+            hook = self.get_last_feature_hook()
+            if hook is None:
+                raise RuntimeError('The last feature hook is not set.')
+            self.register_hook_for_forward(HOOK_NAME_FEATURE, hook=hook)
         
     @property
     def num_classes(self):

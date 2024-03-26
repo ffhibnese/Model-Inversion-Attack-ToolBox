@@ -15,26 +15,27 @@ class BaseHook(metaclass=ABCMeta):
         
     def _hook_gather_impl(self, module, input, output):
         feature = self.hook_fn(module, input, output)
-        self.features.append(feature)
+        self.features = feature #.append(feature)
         
     @abstractmethod
     def hook_fn(self, module, input, output):
         raise NotImplementedError()
     
-    def clear_feature(self) -> None:
-        self.features.clear()
+    # def clear_feature(self) -> None:
+    #     self.features.clear()
     
-    def get_feature(self, target_device='cpu') -> Tensor:
+    def get_feature(self) -> Tensor:
         """
         Returns:
             Tensor: the value that the hook monitor.
         """
-        length = len(self.features)
-        if length == 0:
-            return None
-        elif length == 1:
-            return self.features[0]
-        return parallel.gather(self.features, target_device=target_device, dim=0) 
+        return self.features
+        # length = len(self.features)
+        # if length == 0:
+        #     return None
+        # elif length == 1:
+        #     return self.features[0]
+        # return parallel.gather(self.features, target_device=target_device, dim=0) 
     
     def close(self):
         self.hook.remove()

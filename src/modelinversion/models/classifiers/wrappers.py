@@ -3,14 +3,8 @@ from .base import *
 
 class TorchvisionClassifierModel(BaseImageClassifier):
     
-    def __init__(self, arch_name: str, num_classes: int, resolution=224, weights=None, arch_kwargs={}, *args, **kwargs) -> None:
+    def __init__(self, arch_name: str, num_classes: int, resolution=224, weights=None, arch_kwargs={}, register_last_feature_hook=False, *args, **kwargs) -> None:
         # weights: None, 'IMAGENET1K_V1', 'IMAGENET1K_V2' or 'DEFAULT'
-        
-        super().__init__(resolution, feature_dim, num_classes)
-        
-        tv_module = importlib.import_module('torchvision.models')
-        factory = getattr(tv_module, arch_name, None)
-        model = factory(weights=weights, **arch_kwargs)
         
         self._feature_hook = None
         
@@ -18,6 +12,14 @@ class TorchvisionClassifierModel(BaseImageClassifier):
             self._feature_hook = FirstInputHook(m)
         
         feature_dim = operate_fc(model, num_classes, _add_hook_fn)
+        
+        super().__init__(resolution, feature_dim, num_classes, register_last_feature_hook)
+        
+        tv_module = importlib.import_module('torchvision.models')
+        factory = getattr(tv_module, arch_name, None)
+        model = factory(weights=weights, **arch_kwargs)
+        
+        
         
         self.model = model
         
@@ -29,15 +31,15 @@ class TorchvisionClassifierModel(BaseImageClassifier):
     
 class VibWrapper(BaseImageClassifier):
     
-    def __init__(self, module: BaseImageClassifier, *args, **kwargs) -> None:
-        super().__init__(module.resolution, module.feature_dim, module.num_classes, *args, **kwargs)
+    def __init__(self, module: BaseImageClassifier, register_last_feature_hook=False, *args, **kwargs) -> None:
+        super().__init__(module.resolution, module.feature_dim, module.num_classes, register_last_feature_hook, *args, **kwargs)
         
         # assert module.feature_dim % 2 == 0
         
-        self._inner_hook = module.get_last_feature_hook()
+        # self._inner_hook = module.get_last_feature_hook()
         
-        if self._inner_hook is None:
-            raise ModelConstructException('the module lack `last_feature_hook`')
+        # if self._inner_hook is None:
+        #     raise ModelConstructException('the module lack `last_feature_hook`')
         
         self.module = module
         self.hidden_dim = module.feature_dim
@@ -59,9 +61,12 @@ class VibWrapper(BaseImageClassifier):
         
     def _forward_impl(self, image: torch.Tensor, *args, **kwargs):
         
-        self._inner_hook.clear_feature()
-        self.module(image, *args, **kwargs)
-        statis = self._inner_hook.get_feature()
+        # self._inner_hook.clear_feature()
+        _, hook_res = self.module(image, *args, **kwargs)
+        
+        self._check_hook(HOOK_NAME_FEATURE)
+        
+        statis = hook_res[HOOK_NAME_FEATURE]
         
         mu, std = statis[:, :self.k], statis[:, self.k: self.k * 2]
         
@@ -69,7 +74,8 @@ class VibWrapper(BaseImageClassifier):
 
         std = F.softplus(std - 5, beta=1)
         
-        eps = torch.FloatTensor(std.size()).normal_().to(std)
+        # eps = torch.FloatTensor(std.size()).normal_().to(std)
+        eps = torch.randn_like(std)
         feat = mu + std * eps
         out = self.fc_layer(feat)
         

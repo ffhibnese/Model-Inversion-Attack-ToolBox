@@ -188,7 +188,7 @@ class PlgmiGanTrainer(GanTrainer):
         dis_fake = self.discriminator(fake, pseudo_y)
 
         aug_fake = self.augment(fake) if self.augment is not None else fake
-        target_pred = self.target_model(aug_fake)
+        target_pred, _ = self.target_model(aug_fake)
         inv_loss = self.classification_loss(target_pred, pseudo_y).mean()
         
         dis_loss = - torch.mean(dis_fake)

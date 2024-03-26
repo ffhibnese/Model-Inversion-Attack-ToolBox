@@ -175,7 +175,7 @@ class ImageAugmentWhiteBoxOptimization(SimpleWhiteBoxOptimization):
             total_num = 0
             for aug_images in config.create_aug_images_fn(images):
                 total_num += 1
-                conf = target_model(aug_images)
+                conf, _ = target_model(aug_images)
                 pred_labels = torch.argmax(conf, dim=-1)
                 loss += loss_fn(conf, labels)
                 # print(pred_labels)

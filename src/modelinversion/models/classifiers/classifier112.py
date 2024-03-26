@@ -12,8 +12,8 @@ class Flatten(nn.Module):
         return input.view(input.size(0), -1)
 
 class FaceNet112(BaseImageClassifier):
-    def __init__(self, num_classes=1000):
-        super(FaceNet112, self).__init__(112, 512, num_classes)
+    def __init__(self, num_classes=1000, register_last_feature_hook=False):
+        super(FaceNet112, self).__init__(112, 512, num_classes, register_last_feature_hook)
         self.feature = evolve.IR_50_112((112, 112))
         self.feat_dim = 512
         # self.num_classes = num_classes

@@ -20,11 +20,11 @@ def cross_image_augment_scores(model: BaseImageClassifier, device: torch.device,
         total_num = 0
         for trans in create_aug_images_fn(trans):
             total_num += 1
-            conf = model(trans).softmax(dim=-1).cpu()
+            conf, _ = model(trans).softmax(dim=-1).cpu()
             scores += conf
         res = scores / total_num
     else:
-        conf = model(images).softmax(dim=-1).cpu()
+        conf, _ = model(images).softmax(dim=-1).cpu()
         res = conf
         
     return res[:, labels]
