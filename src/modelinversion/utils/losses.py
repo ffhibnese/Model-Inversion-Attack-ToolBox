@@ -1,4 +1,5 @@
 import importlib
+from typing import Callable
 
 import torch
 from torch.nn import functional as F
@@ -37,7 +38,7 @@ _LOSS_MAPPING = {
 
 class ClassificationLoss:
     
-    def __init__(self, loss_fn: str, *args, **kwargs) -> None:
+    def __init__(self, loss_fn: str | Callable, *args, **kwargs) -> None:
         # super().__init__()
         self.fn = None
         if isinstance(loss_fn, str):

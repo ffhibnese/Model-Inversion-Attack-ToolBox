@@ -11,18 +11,15 @@ class BaseHook(metaclass=ABCMeta):
     
     def __init__(self, module: Module) -> None:
         self.hook = module.register_forward_hook(self._hook_gather_impl)
-        self.features = []
+        self.features = None
         
     def _hook_gather_impl(self, module, input, output):
         feature = self.hook_fn(module, input, output)
-        self.features = feature #.append(feature)
+        self.features = feature
         
     @abstractmethod
     def hook_fn(self, module, input, output):
         raise NotImplementedError()
-    
-    # def clear_feature(self) -> None:
-    #     self.features.clear()
     
     def get_feature(self) -> Tensor:
         """
@@ -30,12 +27,6 @@ class BaseHook(metaclass=ABCMeta):
             Tensor: the value that the hook monitor.
         """
         return self.features
-        # length = len(self.features)
-        # if length == 0:
-        #     return None
-        # elif length == 1:
-        #     return self.features[0]
-        # return parallel.gather(self.features, target_device=target_device, dim=0) 
     
     def close(self):
         self.hook.remove()
