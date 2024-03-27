@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.utils import save_image
 from tqdm import tqdm
 
-from ..models import BaseImageClassifier, BaseLatentsSampler
+from ..models import BaseImageClassifier
 from ..utils import unwrapped_parallel_module, ClassificationLoss, obj_to_yaml, print_as_yaml, DictAccumulator
 
 

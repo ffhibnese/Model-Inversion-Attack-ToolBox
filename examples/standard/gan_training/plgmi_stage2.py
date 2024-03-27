@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor, Compose
 
-from modelinversion.models import IR152_64, PlgmiGenerator64, PlgmiDiscriminator64, SimpleLatentsSampler
+from modelinversion.models import IR152_64, PlgmiGenerator64, PlgmiDiscriminator64
 from modelinversion.train import PlgmiGanTrainer
 from modelinversion.utils import Logger
 from modelinversion.datasets import InfiniteSamplerWrapper
@@ -62,8 +62,6 @@ if __name__ == '__main__':
     
     z_dim = 128
     
-    latents_sampler = SimpleLatentsSampler(z_dim)
-    
     generator = PlgmiGenerator64(num_classes, dim_z=z_dim)
     discriminator = PlgmiDiscriminator64(num_classes)
     
@@ -86,7 +84,7 @@ if __name__ == '__main__':
     trainer = PlgmiGanTrainer(
         experiment_dir=experiment_dir,
         batch_size=batch_size,
-        latents_sampler=latents_sampler,
+        input_size=z_dim,
         generator=generator,
         discriminator=discriminator,
         num_classes=num_classes,

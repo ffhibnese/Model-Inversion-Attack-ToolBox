@@ -14,7 +14,8 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.utils import save_image
 from tqdm import tqdm
 
-from ..models import BaseImageGenerator, PlgmiGenerator64, PlgmiGenerator256, PlgmiDiscriminator64, PlgmiDiscriminator256, BaseImageClassifier, BaseLatentsSampler
+from ..models import BaseImageGenerator, PlgmiGenerator64, PlgmiGenerator256, PlgmiDiscriminator64, PlgmiDiscriminator256, BaseImageClassifier
+from ..sampler import BaseLatentsSampler
 from ..utils import unwrapped_parallel_module, ClassificationLoss, obj_to_yaml
 
 def train_gan(
@@ -145,7 +146,7 @@ class PlgmiGanTrainer(GanTrainer):
     
     def __init__(self, experiment_dir: str, 
                  batch_size: str, 
-                 latents_sampler: BaseLatentsSampler,
+                 input_size: int | Sequence[int],
                  generator: PlgmiGenerator64 | PlgmiGenerator256, 
                  discriminator: PlgmiDiscriminator64 | PlgmiDiscriminator256,
                  num_classes: int,
@@ -168,17 +169,18 @@ class PlgmiGanTrainer(GanTrainer):
         self.augment = augment
         self.classification_loss = ClassificationLoss(classification_loss_fn)
         
-        self.latents_sampler = latents_sampler
+        # self.latents_sampler = latents_sampler
+        self.input_size = (input_size, ) if isinstance(input_size, int) else tuple(input_size)
         
     def sample_images(self, num: int):
-        latents = self.latents_sampler(num, self.batch_size).to(self.device)
+        latents = torch.randn((num, *self.input_size)).to(self.device)
         labels = torch.randint(0, self.num_classes, (len(latents), ), dtype=torch.long, device=self.device)
         fake = self.generator(latents, labels = labels)
         return fake
     
     def sample_fake(self):
         
-        latents = self.latents_sampler(self.batch_size, self.batch_size).to(self.device)
+        latents = torch.randn((self.batch_size, *self.input_size)).to(self.device)
         labels = torch.randint(0, self.num_classes, (len(latents), ), dtype=torch.long, device=self.device)
         fake = self.generator(latents, labels = labels)
         return fake, labels

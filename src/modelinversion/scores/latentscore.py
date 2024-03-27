@@ -6,31 +6,11 @@ from torch import Tensor, LongTensor
 
 from .imgscore import *
 from ..models import BaseImageClassifier, BaseImageGenerator
+from .funtional import specific_image_augment_scores
 
-@torch.no_grad()
-def cross_image_augment_scores(model: BaseImageClassifier, device: torch.device, 
-                 create_aug_images_fn: Optional[Callable[[Tensor], Iterable[Tensor]]],
-                 images: Tensor, labels: LongTensor | list[int]):
-    images = images.detach().to(device)
-    
-    labels = torch.LongTensor(labels).cpu()
-        
-    if create_aug_images_fn is not None:
-        scores = 0
-        total_num = 0
-        for trans in create_aug_images_fn(trans):
-            total_num += 1
-            conf, _ = model(trans).softmax(dim=-1).cpu()
-            scores += conf
-        res = scores / total_num
-    else:
-        conf, _ = model(images).softmax(dim=-1).cpu()
-        res = conf
-        
-    return res[:, labels]
 
 class BaseLatentScore(ABC):
-    """This is a class for generating score for all combinations of latents and labels.
+    """This is a class for generating scores for each latent vector with the corresponding label.
     """
     
     def __init__(self) -> None:
@@ -38,19 +18,19 @@ class BaseLatentScore(ABC):
 
     @abstractmethod
     def __call__(self, latents: Tensor, labels: LongTensor | list[int]) -> Tensor:
-        """The scoring function to score all combinations of latents and labels.
+        """The scoring function to score all latent vectors with the corresponding labels.
 
         Args:
-            latents (Tensor): Latent vectors with size (M, ...)
-            labels (LongTensor | list[int]): Labels with size (N, )
+            latents (Tensor): Latent vectors.
+            labels (LongTensor): The corresponding labels for latent vectors. The length of `labels` should keep the same as `images`
 
         Returns:
-            Tensor: The score matrix with the size of (M, N).
+            Tensor: The score of each latent vectors.
         """
         pass
     
 class LatentClassificationAugmentConfidence(BaseLatentScore):
-    """This is a class for generating score for all combinations of latents and labels. The score is calculated by the conficence of the classifier model.
+    """This is a class for generating scores for each latent vector with the corresponding label.. The score is calculated by the conficence of the classifier model.
 
     Args:
         generator (BaseImageGenerator): 
@@ -75,7 +55,7 @@ class LatentClassificationAugmentConfidence(BaseLatentScore):
     def __call__(self, latents: Tensor, labels: LongTensor | list[int]) -> Tensor:
         latents = latents.to(self.device)
         images = self.generator(latents, labels=labels)
-        return cross_image_augment_scores(self.model, self.device, self.create_aug_images_fn, images, labels)
+        return specific_image_augment_scores(self.model, self.device, self.create_aug_images_fn, images, labels)
     
     
     

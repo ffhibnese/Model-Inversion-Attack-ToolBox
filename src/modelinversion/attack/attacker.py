@@ -13,6 +13,7 @@ from torchvision.utils import save_image
 from ..models import *
 from ..metrics import *
 from ..scores import *
+from ..sampler import *
 from ..utils import batch_apply, print_as_yaml, print_split_line, get_random_string
 from .optimize import BaseImageOptimization
 
@@ -22,21 +23,21 @@ class ImageClassifierAttackConfig:
     
     Args:
         latents_sampler (BaseLatentsSampler): 
-            The sampler for generating latent vectors.
+            The sampler for generating latent vectors for each label.
         initial_num (int, optional): 
-            The number of latent vectors at the time of initial selection. It will keep the same as `optimize_num` when it is `None`. Defaults to `None`.
+            The number of latent vectors for each label at the time of initial selection. It will keep the same as `optimize_num` when it is `None`. Defaults to `None`.
         initial_latents_score_fn (BaseLatentScore, optional): 
             The function to generate scores of each latents vectors for each class. The attacker will select `optimize_num` latent vectors with the highest scores for each class in the initial selection process. No initial selection when it is `None`. Defaults to `None`.
         initial_select_batch_size (int, optional): 
             Batch size in the initial process. It will keep the same as `optimize_num` when it is `None`. Defaults to `None`.
         optimize_num (int): 
-            The number of latent vectors at the time of optimization. Defaults to 50.
+            The number of latent vectors for each label at the time of optimization. Defaults to 50.
         optimize_fn (BaseImageOptimization): 
             The function to generate images and final labels from initial latent vectors and labels. 
         optimize_batch_size (int): 
             Batch size in the optimization process. It will keep the same as `optimize_num` when it is `None`. Defaults to 5.
         final_num (int, optional): 
-            The number of latent vectors at the time of final selection. It will keep the same as `optimize_num` when it is `None`. Defaults to `None`.
+            The number of latent vectors for each label at the time of final selection. It will keep the same as `optimize_num` when it is `None`. Defaults to `None`.
         final_images_score_fn (BaseImageClassificationScore, optional): 
             The function to generate scores of images for the given labels. The attacker will select `final_num` images with the highest scores for the given label for each class in the final selection process. No final selection when it is `None`. Defaults to `None`.
         final_select_batch_size (int, optional): 
@@ -60,7 +61,7 @@ class ImageClassifierAttackConfig:
     # sample latent
     latents_sampler: BaseLatentsSampler
     
-    # initial selection
+    # # initial selection
     initial_num: Optional[int] = None
     initial_latents_score_fn: Optional[BaseLatentScore] = None
     initial_select_batch_size: Optional[int] = None
@@ -143,28 +144,26 @@ class ImageClassifierAttacker(ABC):
         if isinstance(labels, Tensor):
             labels = labels.tolist()
         
-        if sample_num < select_num:
-            warnings.warn('sample_num < select_num. set sample_num = select_num')
-            sample_num = select_num
+        # if sample_num < select_num:
+        #     warnings.warn('sample_num < select_num. set sample_num = select_num')
+        #     sample_num = select_num
+        
+        latents_dict = self.config.latents_sampler(labels, sample_num)
         
         if latent_score_fn is None or sample_num == select_num:
             if sample_num > select_num:
                 warnings.warn('no score function, automatically sample `select_num` latents')
-
-            latents = self.config.latents_sampler(select_num, batch_size)
-            results = {label: latents.detach().clone() for label in labels}
+            results = latents_dict
         else:
-            raw_latents = self.config.latents_sampler(sample_num, batch_size)
-            
-            scores = batch_apply(latent_score_fn, raw_latents, labels=labels, batch_size=batch_size, use_tqdm=True)
-            
             results = {}
-            
-            for i in range(labels):
-                label = labels[i]
-                _, topk_idx = torch.topk(scores[:,i], k=select_num)
-                results[label] = raw_latents[topk_idx]
-
+            for label in tqdm(labels):
+                latents = latents[label]
+                labels = torch.ones((len(latents),), dtype=torch.long)
+                # scores = latent_score_fn(latents, labels)
+                scores = batch_apply(latent_score_fn, latents, labels, batch_size=batch_size)
+                _, indices = torch.topk(scores, k=select_num)
+                results[label] = latents[indices]
+                
         return self.concat_tensor_labels(results)
     
     def concat_tensor_labels(self, target_dict: dict):
@@ -289,12 +288,5 @@ class ImageClassifierAttacker(ABC):
             self._evaluation(final_images, final_labels, 'Final Image Evaluation')
         
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+  

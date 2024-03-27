@@ -1,2 +1,3 @@
-from .imgscore import BaseImageClassificationScore, ImageClassificationAugmentConfidence, specific_image_augment_scores
-from .latentscore import BaseLatentScore, LatentClassificationAugmentConfidence, cross_image_augment_scores
+from .imgscore import BaseImageClassificationScore, ImageClassificationAugmentConfidence
+from .latentscore import BaseLatentScore, LatentClassificationAugmentConfidence
+from .funtional import cross_image_augment_scores, specific_image_augment_scores
