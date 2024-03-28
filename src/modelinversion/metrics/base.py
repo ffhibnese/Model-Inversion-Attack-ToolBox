@@ -1,7 +1,7 @@
 import os
 from abc import abstractmethod, ABC
 from collections import OrderedDict
-from typing import Optional
+from typing import Optional, Callable
 
 import torch
 import numpy as np
@@ -28,10 +28,14 @@ class ImageMetric(ABC):
         batch_size (int): Batch size when executing the metric.
     """
     
-    def __init__(self, batch_size: int):
+    def __init__(self, batch_size: int, transform: Optional[Callable] = None):
         self.batch_size = batch_size
-    
+        self.transform = transform
+        
     @abstractmethod
+    def _call_impl(self, images: Tensor, labels: LongTensor) -> OrderedDict:
+        pass
+    
     def __call__(self, images: Tensor, labels: LongTensor) -> OrderedDict:
         """Executing the evaluation for inversed images with the given labels.
 
@@ -42,7 +46,9 @@ class ImageMetric(ABC):
         Returns:
             OrderedDict: Results of the metric.
         """
-        pass
+        if self.transform is not None:
+            images = self.transform(images)
+        return self._call_impl(images, labels)
 
 class ImageClassifierAttackAccuracy(ImageMetric):
     """Attack accuracy metric for inversed images.
@@ -54,14 +60,14 @@ class ImageClassifierAttackAccuracy(ImageMetric):
         description (str): Prefix of the metric.
     """
     
-    def __init__(self, batch_size: int, model: BaseImageClassifier, device: torch.device, description: str):
-        super().__init__(batch_size)
+    def __init__(self, batch_size: int, model: BaseImageClassifier, device: torch.device, description: str, transform: Optional[Callable]=None):
+        super().__init__(batch_size, transform)
         self.model = model
         self.device = device
         self.description = description
         
     @torch.no_grad()
-    def __call__(self, images: Tensor, labels: LongTensor) -> OrderedDict:
+    def _call_impl(self, images: Tensor, labels: LongTensor) -> OrderedDict:
         
         def get_scores(images: Tensor):
             images = images.to(self.device)
@@ -92,8 +98,8 @@ class ImageDistanceMetric(ImageMetric):
         num_workers (int), `num_workers` of the data loader. Default to 8.
     """
     
-    def __init__(self, batch_size: int, model: BaseImageClassifier, dataset: DatasetFolder, device: torch.device, description: str, save_individual_res_dir: Optional[str] = None, num_workers = 8):
-        super().__init__(batch_size)
+    def __init__(self, batch_size: int, model: BaseImageClassifier, dataset: DatasetFolder, device: torch.device, description: str, transform: Optional[Callable] = None, save_individual_res_dir: Optional[str] = None, num_workers = 8):
+        super().__init__(batch_size, transform)
         
         self.model = model
         self.dataset = dataset
@@ -110,12 +116,12 @@ class ImageDistanceMetric(ImageMetric):
         if HOOK_NAME_FEATURE not in hook_res:
             raise RuntimeError(f'The model has not registered the hook for {HOOK_NAME_FEATURE}')
         feature = hook_res[HOOK_NAME_FEATURE]
-        # print(images.shape, feature.shape)
+        print(images.shape, feature.shape)
         return feature.reshape(len(images), -1).cpu()
         
         
     @torch.no_grad()
-    def __call__(self, images: Tensor, labels: LongTensor) -> OrderedDict:
+    def _call_impl(self, images: Tensor, labels: LongTensor) -> OrderedDict:
         
         target_values = list(set(labels.cpu().tolist()))
         
@@ -164,8 +170,8 @@ class ImageFidPRDCMetric(ImageMetric):
         num_workers (int), `num_workers` of the data loader. Default to 8.
     """
     
-    def __init__(self, batch_size: int, dataset: DatasetFolder, device: torch.device, prdc_k=3, fid=True, prdc=True, save_individual_prdc_dir: Optional[str] = None, num_workers=8):
-        super().__init__(batch_size)
+    def __init__(self, batch_size: int, dataset: DatasetFolder, device: torch.device, transform: Optional[Callable] = None, prdc_k=3, fid=True, prdc=True, save_individual_prdc_dir: Optional[str] = None, num_workers=8):
+        super().__init__(batch_size, transform)
         
         self.device = device
         self.dataset = dataset
@@ -197,7 +203,7 @@ class ImageFidPRDCMetric(ImageMetric):
             
         
     @torch.no_grad()
-    def __call__(self, images: Tensor, labels: LongTensor) -> OrderedDict:
+    def _call_impl(self, images: Tensor, labels: LongTensor) -> OrderedDict:
         
         target_values = list(set(labels.cpu().tolist()))
         src_ds = TensorDataset(images, labels)

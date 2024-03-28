@@ -39,7 +39,10 @@ def preprocess_facescrub(src_path, dst_path, mode = COPY, split_seed=42):
     root_actors = os.path.join(src_path, 'actors/faces')
     root_actresses = os.path.join(src_path, 'actresses/faces')
     
-    classes, folders = find_classes_folder(root_actors) + root_actresses(root_actresses)
+    classes_actors, folders_actors = find_classes_folder(root_actors)
+    classes_actoresses, folders_actoresses = find_classes_folder(root_actresses)
+    classes = classes_actors + classes_actoresses
+    folders = folders_actors + folders_actoresses
     
     files = []
     
@@ -54,8 +57,8 @@ def preprocess_facescrub(src_path, dst_path, mode = COPY, split_seed=42):
     np.random.RandomState(split_seed).shuffle(indices)
     
     training_set_size = int(0.9 * len(indices))
-    train_idx = indices[:training_set_size].tolist()
-    test_idx = indices[training_set_size:].tolist()
+    train_idx = indices[:training_set_size]
+    test_idx = indices[training_set_size:]
     
     for split, indices in zip(['train', 'test'], [train_idx, test_idx]):
         root_path = os.path.join(dst_path, split)
@@ -64,7 +67,10 @@ def preprocess_facescrub(src_path, dst_path, mode = COPY, split_seed=42):
             src_img_path = os.path.join(src_folder, fname)
             dst_class_dir = os.path.join(root_path, classname)
             os.makedirs(dst_class_dir, exist_ok=True)
-            dst_img_path = os.path.join(src_img_path, fname)
+            dst_img_path = os.path.join(dst_class_dir, fname)
+            # print(src_img_path)
+            # print(dst_img_path)
+            # exit()
             file_transfer(src_img_path, dst_img_path, mode=mode)
 
 

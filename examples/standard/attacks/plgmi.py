@@ -25,9 +25,10 @@ from modelinversion.metrics import ImageClassifierAttackAccuracy, ImageDistanceM
 
 if __name__ == '__main__':
     
-    experiment_dir = 'plgmi'
+    
     device_ids_str = '0'
-    num_classes = 1000
+    
+    experiment_dir = '<fill it>'
     generator_ckpt_path = '<fill it>'
     target_model_ckpt_path = '<fill it>'
     eval_model_ckpt_path = '<fill it>'
@@ -35,6 +36,7 @@ if __name__ == '__main__':
     attack_targets = list(range(50))
     
     batch_size = 50
+    num_classes = 1000
     
     # prepare logger
     

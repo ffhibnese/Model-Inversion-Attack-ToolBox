@@ -38,7 +38,7 @@ class LabelOnlySelectLatentsSampler(SimpleLatentsSampler):
             batch_images = self.generator(batch_latents)
             if self.image_transform is not None:
                 batch_images = self.image_transform(batch_images)
-            pred_scores = self.classifier(batch_images)
+            pred_scores = self.classifier(batch_images)[0]
             pred_labels = torch.argmax(pred_scores, dim=-1).detach().tolist()
             batch_latents = batch_latents.detach().cpu()
             

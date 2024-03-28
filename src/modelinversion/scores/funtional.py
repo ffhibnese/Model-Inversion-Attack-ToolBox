@@ -18,13 +18,13 @@ def specific_image_augment_scores(model: BaseImageClassifier, device: torch.devi
     if create_aug_images_fn is not None:
         scores = torch.zeros_like(labels, dtype=images.dtype, device='cpu')
         total_num = 0
-        for trans in create_aug_images_fn(trans):
+        for trans in create_aug_images_fn(images):
             total_num += 1
-            conf, _ = model(trans).softmax(dim=-1).cpu()
+            conf = model(trans)[0].softmax(dim=-1).cpu()
             scores += torch.gather(conf, 1, labels.unsqueeze(1)).squeeze(1)
         return scores / total_num
     else:
-        conf, _ = model(images).softmax(dim=-1).cpu()
+        conf = model(images)[0].softmax(dim=-1).cpu()
         return torch.gather(conf, 1, labels.unsqueeze(1)).squeeze(1)
     
     
@@ -39,13 +39,13 @@ def cross_image_augment_scores(model: BaseImageClassifier, device: torch.device,
     if create_aug_images_fn is not None:
         scores = 0
         total_num = 0
-        for trans in create_aug_images_fn(trans):
+        for trans in create_aug_images_fn(images):
             total_num += 1
-            conf, _ = model(trans).softmax(dim=-1).cpu()
+            conf = model(trans)[0].softmax(dim=-1).cpu()
             scores += conf
         res = scores / total_num
     else:
-        conf, _ = model(images).softmax(dim=-1).cpu()
+        conf = model(images)[0].softmax(dim=-1).cpu()
         res = conf
         
     return res[:, labels]

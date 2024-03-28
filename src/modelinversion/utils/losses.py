@@ -17,7 +17,7 @@ def poincare_loss(outputs, targets, xi=1e-4):
     # Normalize logits
     u = outputs / torch.norm(outputs, p=1, dim=-1).unsqueeze(1)
     # Create one-hot encoded target vector
-    v = torch.clip(torch.eye(outputs.shape[-1])[targets] - xi, 0, 1)
+    v = torch.clip(torch.eye(outputs.shape[-1])[targets.detach().cpu()] - xi, 0, 1)
     v = v.to(u.device)
     # Compute squared norms
     u_norm_squared = torch.norm(u, p=2, dim=1) ** 2

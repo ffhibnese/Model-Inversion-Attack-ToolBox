@@ -79,3 +79,5 @@ def augment_images_fn_generator(initial_transform: Optional[Callable]=None,  add
         if augment is not None:
             for i in range(augment_times):
                 yield augment(image)
+                
+    return fn

@@ -27,8 +27,6 @@ def _gather(outputs, dim=0):
             return type(out)._make(map(gather_map, zip(*outputs)))
         return type(out)(map(gather_map, zip(*outputs)))
 
-    # Recursive function calls like this create reference cycles.
-    # Setting the function to None clears the refcycle.
     try:
         res = gather_map(outputs)
     finally:
@@ -41,11 +39,11 @@ def batch_apply(fn: Callable, *inputs, batch_size: int, description: Optional[st
         if len(inputs) == 0:
             return
         lens = []
-        for inp in inputs:
+        for i, inp in enumerate(inputs):
             try:
                 lens.append(len(inp))
             except:
-                raise RuntimeError('some inputs have no attr `len`')
+                raise RuntimeError(f'the {i} inputs have no attr `len`')
         valid_len = lens[0]
         if not all(map(lambda x: x == valid_len, lens)):
             raise RuntimeError('lengths of all inputs are not the same')

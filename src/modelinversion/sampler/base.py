@@ -63,13 +63,13 @@ def cross_image_augment_scores(model: BaseImageClassifier, device: torch.device,
     if create_aug_images_fn is not None:
         scores = 0
         total_num = 0
-        for trans in create_aug_images_fn(trans):
+        for trans in create_aug_images_fn(images):
             total_num += 1
-            conf, _ = model(trans).softmax(dim=-1).cpu()
+            conf = model(trans)[0].softmax(dim=-1).cpu()
             scores += conf
         res = scores / total_num
     else:
-        conf, _ = model(images).softmax(dim=-1).cpu()
+        conf = model(images)[0].softmax(dim=-1).cpu()
         res = conf
         
     return res[:, labels]
@@ -99,7 +99,7 @@ class ImageAugmentSelectLatentsSampler(SimpleLatentsSampler):
         raw_size = self.get_batch_latent_size(all_sample_num)
         latents = torch.randn(raw_size)
         if self.latents_mapping is not None:
-            latents = batch_apply(self.latents_mapping, latents)
+            latents = batch_apply(self.latents_mapping, latents, batch_size=self.batch_size)
         scores = batch_apply(self._get_score, latents, batch_size=self.batch_size, labels=labels, use_tqdm=True)
         
         results = {}
