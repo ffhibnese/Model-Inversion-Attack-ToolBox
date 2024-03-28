@@ -2,7 +2,7 @@ import copy
 import random
 import os
 import shutil
-from typing import Sequence, Callable, Optional
+from typing import Sequence, Callable, Optional, Tuple
 from collections import defaultdict
 
 import numpy as np
@@ -157,3 +157,4 @@ def top_k_selection(
             filename = os.path.split(src_path)[1]
             dst_path = os.path.join(dst_dir, filename)
             transfer_fn(src_path, dst_path)
+            

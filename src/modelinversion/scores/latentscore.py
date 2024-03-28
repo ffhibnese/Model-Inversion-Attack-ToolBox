@@ -54,6 +54,7 @@ class LatentClassificationAugmentConfidence(BaseLatentScore):
     @torch.no_grad()
     def __call__(self, latents: Tensor, labels: LongTensor | list[int]) -> Tensor:
         latents = latents.to(self.device)
+        labels = torch.LongTensor(labels).to(self.device)
         images = self.generator(latents, labels=labels)
         return specific_image_augment_scores(self.model, self.device, self.create_aug_images_fn, images, labels)
     

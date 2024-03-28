@@ -45,7 +45,7 @@ if __name__ == '__main__':
     
     # prepare target model
     
-    model = TorchvisionClassifierModel(arch_name=torchvison_model_name, num_classes=num_classes)
+    model = TorchvisionClassifierModel(arch_name=torchvison_model_name, num_classes=num_classes, weights='DEFAULT')
     model = nn.DataParallel(model, device_ids=gpu_devices).to(device)
     
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=[0.9, 0.999])

@@ -109,6 +109,8 @@ cache/
 *.pt
 *.pth
 *.tar
+*.pkl
+*.tar.gz
 results/*
 # checkpoints/*/*
 dataset/*/*
@@ -122,6 +124,6 @@ nohup.txt
 # !dataset/celeba/README.md
 /test.py
 /test.ipynb
-/test
+/test*
 .vscode
 test*.py

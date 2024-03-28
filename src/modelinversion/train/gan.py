@@ -7,14 +7,13 @@ import math
 
 import torch
 from torch import nn, Tensor, LongTensor
-from torch.nn import Module
-from torch.nn.parallel import DataParallel, DistributedDataParallel
+from torch.nn import Module, functional as F
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 from torchvision.utils import save_image
 from tqdm import tqdm
 
-from ..models import BaseImageGenerator, PlgmiGenerator64, PlgmiGenerator256, PlgmiDiscriminator64, PlgmiDiscriminator256, BaseImageClassifier
+from ..models import *
 from ..sampler import BaseLatentsSampler
 from ..utils import unwrapped_parallel_module, ClassificationLoss, obj_to_yaml
 
@@ -141,6 +140,213 @@ class GanTrainer(ABC):
             self.before_iter_step,
             self.ncritic
         )
+        
+        
+class KedmiGanTrainer(GanTrainer):
+    
+    def __init__(self, experiment_dir: str, 
+                 batch_size: str, 
+                 input_size: int | Sequence[int],
+                 generator: SimpleGenerator64 | SimpleGenerator256, 
+                 discriminator: GmiDiscriminator64 | GmiDiscriminator256,
+                #  num_classes: int,
+                #  target_model: BaseImageClassifier, 
+                #  classification_loss_fn: str | Callable,
+                 device: torch.device, 
+                #  augment: Optional[Callable],
+                 gen_optimizer: Optimizer,
+                 dis_optimizer: Optimizer,
+                 save_ckpt_iters: int, 
+                 show_images_iters: int | None = None, 
+                 show_train_info_iters: int | None = None, 
+                 ncritic: int = 5) -> None:
+        super().__init__(experiment_dir, batch_size, generator, discriminator, device, gen_optimizer, dis_optimizer, save_ckpt_iters, show_images_iters, show_train_info_iters, ncritic)
+        
+        # self.num_classes = num_classes
+        self.generator: SimpleGenerator64 | SimpleGenerator256
+        self.discriminator: GmiDiscriminator64 | GmiDiscriminator256
+        
+        # self.latents_sampler = latents_sampler
+        self.input_size = (input_size, ) if isinstance(input_size, int) else tuple(input_size)
+        
+    def sample_images(self, num: int):
+        latents = torch.randn((num, *self.input_size)).to(self.device)
+        fake = self.generator(latents)
+        return fake
+    
+    # def _entropy_loss(self, x) :
+    #     b = - F.softmax(x, dim=-1) * F.log_softmax(x, dim=-1)
+    #     return b.sum()
+    
+    def _get_next_real_images(self, dataloader: Iterator[Tensor | Tuple[Tensor, LongTensor]]):
+        result = next(dataloader)
+        if isinstance(result, Tensor):
+            return result.to(self.device)
+        return result[0].to(self.device)
+    
+    def train_gen_step(self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor, LongTensor]]):
+        
+        fake = self.sample_images(self.batch_size)
+        
+        dis_res = self.discriminator(fake)
+        
+        loss = - dis_res.mean()
+        
+        self.gen_optimizer.zero_grad()
+        loss.backward()
+        self.gen_optimizer.step()
+        
+        return OrderedDict([
+            ['loss', loss.item()]
+        ])
+        
+    def _gradient_penalty(self, x, y):
+        # interpolation
+        shape = [x.size(0)] + [1] * (x.dim() - 1)
+        alpha = torch.rand(shape).to(self.device)
+        z = x + alpha * (y - x)
+        z = z.to(self.device)
+        z.requires_grad_(True)
+
+        o = self.discriminator(z)
+        g = torch.autograd.grad(o, z, grad_outputs=torch.ones(o.size()).cuda(), create_graph=True)[0].view(z.size(0), -1)
+        gp = ((g.norm(p=2, dim=1) - 1) ** 2).mean()
+
+        return gp
+        
+    def train_dis_step(self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor | LongTensor]]):
+        
+        fake = self.sample_images(self.batch_size)
+        real = self._get_next_real_images(dataloader)
+        
+        output_real = self.discriminator(real)
+        output_fake = self.discriminator(fake)
+        
+        wd = output_fake.mean() - output_real.mean()
+        gp = self._gradient_penalty(real.data, fake.data)
+        loss = wd + 10. * gp
+        
+        self.dis_optimizer.zero_grad()
+        loss.backward()
+        self.dis_optimizer.step()
+        
+        return OrderedDict([
+            ['wasserstein-1 distance loss', wd.item()],
+            ['gradient penalty loss', gp.item()],
+            ['loss', loss.item()]
+        ])
+        
+class KedmiGanTrainer(GanTrainer):
+    
+    def __init__(self, experiment_dir: str, 
+                 batch_size: str, 
+                 input_size: int | Sequence[int],
+                 generator: SimpleGenerator64 | SimpleGenerator256, 
+                 discriminator: KedmiDiscriminator64 | KedmiDiscriminator256,
+                #  num_classes: int,
+                 target_model: BaseImageClassifier, 
+                #  classification_loss_fn: str | Callable,
+                 device: torch.device, 
+                 augment: Optional[Callable],
+                 gen_optimizer: Optimizer,
+                 dis_optimizer: Optimizer,
+                 save_ckpt_iters: int, 
+                 show_images_iters: int | None = None, 
+                 show_train_info_iters: int | None = None, 
+                 ncritic: int = 5) -> None:
+        super().__init__(experiment_dir, batch_size, generator, discriminator, device, gen_optimizer, dis_optimizer, save_ckpt_iters, show_images_iters, show_train_info_iters, ncritic)
+        
+        # self.num_classes = num_classes
+        self.generator: SimpleGenerator64 | SimpleGenerator256
+        self.discriminator: KedmiDiscriminator64 | KedmiDiscriminator256
+        self.target_model = target_model
+        self.augment = augment
+        # self.classification_loss = ClassificationLoss(classification_loss_fn)
+        
+        # self.latents_sampler = latents_sampler
+        self.input_size = (input_size, ) if isinstance(input_size, int) else tuple(input_size)
+        
+    def sample_images(self, num: int):
+        latents = torch.randn((num, *self.input_size)).to(self.device)
+        fake = self.generator(latents)
+        return fake
+    
+    def _entropy_loss(self, x) :
+        b = - F.softmax(x, dim=-1) * F.log_softmax(x, dim=-1)
+        return b.sum()
+    
+    def _get_next_real_images(self, dataloader: Iterator[Tensor | Tuple[Tensor, LongTensor]]):
+        result = next(dataloader)
+        if isinstance(result, Tensor):
+            return result.to(self.device)
+        return result[0].to(self.device)
+    
+    def train_gen_step(self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor, LongTensor]]):
+        
+        fake = self.sample_images(self.batch_size)
+        real = self._get_next_real_images(dataloader)
+        
+        mom_gen, output_fake = self.discriminator(fake)
+        mom_unlabel, _ = self.discriminator(real)
+        
+        mom_gen = torch.mean(mom_gen, dim=0)
+        mom_unlabel = torch.mean(mom_gen, dim=0)
+        
+        entropy_loss = self._entropy_loss(output_fake)
+        feature_loss = torch.mean((mom_gen - mom_unlabel).abs())
+        loss = feature_loss + 1e-4 * entropy_loss
+        
+        self.gen_optimizer.zero_grad()
+        loss.backward()
+        self.gen_optimizer.step()
+        
+        return OrderedDict([
+            ['entropy loss', entropy_loss.item()],
+            ['feature loss', feature_loss.item()],
+            ['loss', loss.item()]
+        ])
+        
+    def _softXEnt(self, input, target):
+        targetprobs = nn.functional.softmax(target, dim=-1)
+        logprobs = nn.functional.log_softmax(input, dim=-1)
+        return -(targetprobs * logprobs).sum() / input.shape[0]
+    
+    def log_sum_exp(x, axis=1):
+        m = torch.max(x, dim=1)[0]
+        return m + torch.log(torch.sum(torch.exp(x - m.unsqueeze(1)), dim=axis))
+        
+    def train_dis_step(self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor | LongTensor]]):
+        
+        fake = self.sample_images(self.batch_size)
+        real = self._get_next_real_images(dataloader)
+        real_unlabel = self._get_next_real_images(dataloader)
+        
+        real_T = real if self.augment is None else self.augment(real)
+        y_prob = self.target_model(real_T)[0]
+        y = torch.argmax(y_prob, dim=-1)
+        
+        _, output_label = self.discriminator(real)
+        _, output_unlabel = self.discriminator(real_unlabel)
+        _, output_fake = self.discriminator(fake)
+        
+        loss_lab = self._softXEnt(output_label, y_prob)
+        loss_unlab = 0.5 * (torch.mean(F.softplus(torch.logsumexp(output_unlabel))) - torch.mean(
+                torch.log_sum_exp(output_unlabel)) + torch.mean(F.softplus(torch.log_sum_exp(output_fake))))
+        loss = loss_lab + loss_unlab
+        
+        self.dis_optimizer.zero_grad()
+        loss.backward()
+        self.dis_optimizer.step()
+        
+        with torch.no_grad():
+            acc = torch.mean((torch.argmax(output_label, dim=-1) == y).float())
+        
+        return OrderedDict([
+            ['label loss', loss_lab.item()],
+            ['unlabel loss', loss_unlab.item()],
+            ['loss', loss.item()],
+            ['acc', acc.item()]
+        ])
         
 class PlgmiGanTrainer(GanTrainer):
     

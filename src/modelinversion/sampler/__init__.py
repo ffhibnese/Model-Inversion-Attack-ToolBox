@@ -1,1 +1,1 @@
-from .base import BaseLatentsSampler, SimpleLatentsSampler
+from .base import BaseLatentsSampler, SimpleLatentsSampler, ImageAugmentSelectLatentsSampler

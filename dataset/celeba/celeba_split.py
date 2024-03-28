@@ -3,6 +3,7 @@ import argparse
 from torchvision import transforms
 from PIL import Image
 from tqdm import tqdm
+
 class CelebaTransform:
     
     def __init__(self) -> None:
