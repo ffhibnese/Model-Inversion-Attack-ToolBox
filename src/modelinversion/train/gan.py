@@ -142,7 +142,7 @@ class GanTrainer(ABC):
         )
         
         
-class KedmiGanTrainer(GanTrainer):
+class GmiGanTrainer(GanTrainer):
     
     def __init__(self, experiment_dir: str, 
                  batch_size: str, 

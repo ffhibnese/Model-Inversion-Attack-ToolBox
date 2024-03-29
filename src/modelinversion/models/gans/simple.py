@@ -42,7 +42,7 @@ class SimpleGenerator64(BaseIntermediateImageGenerator):
     def _forward_impl(self, *inputs, labels: torch.LongTensor | None = None, start_block: int = None, end_block: int = None, **kwargs):
         x = inputs[0]
         blocks = self.l2_5[start_block:end_block]
-        return blocks[x]
+        return blocks(x)
 
 class SimpleGenerator256(BaseIntermediateImageGenerator):
     def __init__(self, in_dim=100):
@@ -84,7 +84,7 @@ class SimpleGenerator256(BaseIntermediateImageGenerator):
     def _forward_impl(self, *inputs, labels: torch.LongTensor | None = None, start_block: int = None, end_block: int = None, **kwargs):
         x = inputs[0]
         blocks = self.l2_5[start_block:end_block]
-        return blocks[x]
+        return blocks(x)
     
 class GmiDiscriminator64(nn.Module):
     def __init__(self):

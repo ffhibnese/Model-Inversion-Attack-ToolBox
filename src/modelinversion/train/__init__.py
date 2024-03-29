@@ -1,4 +1,4 @@
-from .gan import PlgmiGanTrainer
+from .gan import PlgmiGanTrainer, GmiGanTrainer, KedmiGanTrainer    
 from .classifier import (
     BaseTrainConfig,
     BaseTrainer,
