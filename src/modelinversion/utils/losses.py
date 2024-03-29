@@ -36,6 +36,21 @@ _LOSS_MAPPING = {
     'max_margin': max_margin_loss
 }
 
+class LabelSmoothingCrossEntropyLoss:
+    
+    def __init__(self, label_smoothing: float = 0.) -> None:
+        self.label_smoothing = label_smoothing
+    
+    def __call__(self, inputs, labels) -> torch.Any:
+        ls = self.label_smoothing
+        confidence = 1.0 - ls
+        logprobs = F.log_softmax(inputs, dim=-1)
+        nll_loss = -logprobs.gather(dim=-1, index=labels.unsqueeze(1))
+        nll_loss = nll_loss.squeeze(1)
+        smooth_loss = -logprobs.mean(dim=-1)
+        loss = confidence * nll_loss + ls * smooth_loss
+        return torch.mean(loss, dim=0).sum()
+
 class ClassificationLoss:
     
     def __init__(self, loss_fn: str | Callable, *args, **kwargs) -> None:

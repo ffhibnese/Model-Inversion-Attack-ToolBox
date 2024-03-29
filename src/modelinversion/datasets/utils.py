@@ -140,7 +140,7 @@ def top_k_selection(
         imgs = [totensor(Image.open(p)) for p in paths]
         imgs = torch.stack(imgs, dim=0)
         
-        return cross_image_augment_scores(target_model, device, create_aug_images_fn, imgs, labels)
+        return cross_image_augment_scores(target_model, device, create_aug_images_fn, imgs)
     
     scores = batch_apply(score_calculate, src_paths, batch_size=batch_size, use_tqdm=True)
     

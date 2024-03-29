@@ -50,7 +50,7 @@ def preprocess_facescrub(src_path, dst_path, mode = COPY, split_seed=42):
         classname = classes[i]
         filenames = sorted([name for name in os.listdir(folder) if name.endswith(IMG_EXTENSIONS)])
         for fname in filenames:
-            files.append([classname, folder, fname])
+            files.append([i, folder, fname])
         
     
     indices = list(range(len(files)))
@@ -63,9 +63,9 @@ def preprocess_facescrub(src_path, dst_path, mode = COPY, split_seed=42):
     for split, indices in zip(['train', 'test'], [train_idx, test_idx]):
         root_path = os.path.join(dst_path, split)
         for idx in tqdm(indices, leave=False):
-            classname, src_folder, fname = files[idx]
+            i, src_folder, fname = files[idx]
             src_img_path = os.path.join(src_folder, fname)
-            dst_class_dir = os.path.join(root_path, classname)
+            dst_class_dir = os.path.join(root_path, f'{i}')
             os.makedirs(dst_class_dir, exist_ok=True)
             dst_img_path = os.path.join(dst_class_dir, fname)
             # print(src_img_path)

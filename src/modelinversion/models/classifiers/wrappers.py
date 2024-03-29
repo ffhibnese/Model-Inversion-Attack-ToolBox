@@ -1,3 +1,4 @@
+from torch import Tensor
 from ...utils import BaseHook
 from .base import *
 
@@ -32,26 +33,14 @@ class VibWrapper(BaseImageClassifier):
     def __init__(self, module: BaseImageClassifier, register_last_feature_hook=False, *args, **kwargs) -> None:
         super().__init__(module.resolution, module.feature_dim, module.num_classes, register_last_feature_hook, *args, **kwargs)
         
-        # assert module.feature_dim % 2 == 0
-        
-        # self._inner_hook = module.get_last_feature_hook()
-        
-        # if self._inner_hook is None:
-        #     raise ModelConstructException('the module lack `last_feature_hook`')
-        
         self.module = module
         self.hidden_dim = module.feature_dim
         self.output_dim = module.num_classes
         self.k = self.hidden_dim // 2
         self.fc_layer = nn.Linear(self.k, module.num_classes)
         
-        self._last_statics = None, None
-        
         self.feature_hook = FirstInputHook(self.fc_layer)
         
-    @property
-    def last_statics(self):
-        return self._last_statics
     
     def get_last_feature_hook(self) -> BaseHook:
         return self.feature_hook
@@ -77,4 +66,39 @@ class VibWrapper(BaseImageClassifier):
         feat = mu + std * eps
         out = self.fc_layer(feat)
         
-        return out
+        return out, {'mu': mu, 'std': std}
+    
+def get_default_create_hidden_hook_fn(num: int = 3):
+    
+    def _fn(model: BaseImageClassifier):
+        linear_modules = []
+        for m in model.modules():
+            if isinstance(m, nn.Linear):
+                linear_modules.append(m)
+        linear_modules = linear_modules[1:]
+                
+        num = min(num, len(linear_modules))
+        splitnum = (len(linear_modules)+1) // (num + 1)
+        use_nums = [splitnum * (i+1) - 1 for i in range(num)]
+        use_linear_modules = [linear_modules[i] for i in use_nums]
+        return [FirstInputHook(l) for l in use_linear_modules]
+    return _fn
+    
+class BiDOWrapper(BaseImageClassifier):
+    
+    def __init__(self, module: BaseImageClassifier, register_last_feature_hook=False, create_hidden_hook_fn: Optional[Callable] = None, *args, **kwargs) -> None:
+        super().__init__(module.resolution, module.feature_dim, module.num_classes, register_last_feature_hook, *args, **kwargs)
+        
+        self.module = module
+        
+        create_hidden_hook_fn = create_hidden_hook_fn if create_hidden_hook_fn is not None else get_default_create_hidden_hook_fn()
+        
+        self.hidden_hooks = create_hidden_hook_fn(module)
+        
+    def get_last_feature_hook(self) -> BaseHook:
+        return self.module.get_last_feature_hook()
+    
+    def _forward_impl(self, image: Tensor, *args, **kwargs):
+        forward_res, addition_info = self.module(image, *args, **kwargs)
+        addition_info[HOOK_NAME_HIDDEN] = [h.get_feature() for h in self.hidden_hooks]
+        return forward_res, addition_info

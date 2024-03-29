@@ -197,7 +197,7 @@ class ImageFidPRDCMetric(ImageMetric):
         pred_arr = torch.cat(pred_arr, dim=0)
         labels_arr = torch.cat(labels_arr, dim=0)
         pred_numpy = pred_arr.numpy()
-        labels_numpy = labels_arr.numpy()
+        # labels_numpy = labels_arr.numpy()
         
         return pred_arr, labels_arr, np.mean(pred_numpy, axis=0), np.cov(pred_numpy, rowvar=False)
             

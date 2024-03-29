@@ -11,6 +11,7 @@ import torchvision.transforms.functional as TF
 from ...utils import traverse_name_module, FirstInputHook, BaseHook
 
 HOOK_NAME_FEATURE = 'feature'
+HOOK_NAME_HIDDEN = 'hidden'
 
 class ModelConstructException(Exception):
     pass
@@ -54,6 +55,15 @@ class BaseImageModel(BaseTargetModel):
             
         forward_res = self._forward_impl(image, *args, **kwargs)
         hook_res = {k: v.get_feature() for k, v in self._inner_hooks.items()}
+        if isinstance(forward_res, tuple):
+            if len(forward_res) != 2:
+                raise RuntimeError(f'The number of model output must be 1 or 2, but found {len(forward_res)}')
+            forward_res, forward_addition = forward_res
+            if forward_addition is not None:
+                for k, v in forward_addition.items():
+                    if k in hook_res:
+                        raise RuntimeError('hook result key conflict')
+                    hook_res[k] = v
         return  forward_res, hook_res
     
 class BaseImageEncoder(BaseImageModel):

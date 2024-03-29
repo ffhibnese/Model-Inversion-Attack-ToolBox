@@ -31,10 +31,8 @@ def specific_image_augment_scores(model: BaseImageClassifier, device: torch.devi
 @torch.no_grad()
 def cross_image_augment_scores(model: BaseImageClassifier, device: torch.device, 
                  create_aug_images_fn: Optional[Callable[[Tensor], Iterable[Tensor]]],
-                 images: Tensor, labels: LongTensor | list[int]):
+                 images: Tensor):
     images = images.detach().to(device)
-    
-    labels = torch.LongTensor(labels).cpu()
         
     if create_aug_images_fn is not None:
         scores = 0
@@ -48,4 +46,4 @@ def cross_image_augment_scores(model: BaseImageClassifier, device: torch.device,
         conf = model(images)[0].softmax(dim=-1).cpu()
         res = conf
         
-    return res[:, labels]
+    return res

@@ -3,6 +3,7 @@ import importlib
 from dataclasses import field, dataclass
 from abc import abstractmethod, ABC
 from collections import OrderedDict
+from copy import deepcopy
 from typing import Optional, Iterator, Tuple, Callable, Sequence
 import math
 
@@ -15,10 +16,11 @@ from torch.nn.parallel import DataParallel, DistributedDataParallel
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 from torchvision.utils import save_image
+from torchvision.models.inception import InceptionOutputs
 from tqdm import tqdm
 
-from ..models import BaseImageClassifier
-from ..utils import unwrapped_parallel_module, ClassificationLoss, obj_to_yaml, print_as_yaml, DictAccumulator
+from ...models import BaseImageClassifier
+from ...utils import unwrapped_parallel_module, ClassificationLoss, obj_to_yaml, print_as_yaml, DictAccumulator
 
 
 @dataclass
@@ -73,6 +75,8 @@ class BaseTrainer(ABC):
     
     def calc_acc(self, inputs, result, labels: torch.LongTensor):
         res = result[0]
+        if isinstance(res, InceptionOutputs):
+            res, _ = res
         assert res.ndim <= 2
         
         pred = torch.argmax(res, dim=-1)
@@ -168,6 +172,9 @@ class BaseTrainer(ABC):
         
         epochs = range(epoch_num)
         
+        bestacc = 0
+        bestckpt = None
+        
         for epoch in epochs:
             
             self._epoch = epoch
@@ -178,8 +185,9 @@ class BaseTrainer(ABC):
             
             if testloader is not None:
                 test_res = self._test_loop(testloader)
+                if 'acc' in test_res and test_res['acc'] > bestacc:
+                    bestckpt = deepcopy(self.model).cpu().eval()
                 print_as_yaml({'test': test_res})
-            
             
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
@@ -187,13 +195,17 @@ class BaseTrainer(ABC):
             if (epoch+1) % self.config.save_per_epochs == 0:
                 self.save_state_dict()
                 
-        self.save_state_dict()
+        if bestckpt is None:
+            self.save_state_dict()
+        else:
+            self.save_state_dict(bestckpt)
 
 
-    def save_state_dict(self):
-        model = self.model
-        if isinstance(self.model, (DataParallel, DistributedDataParallel)):
-            model = self.model.module
+    def save_state_dict(self, model = None):
+        if model is None:
+            model = self.model
+        if isinstance(model, (DataParallel, DistributedDataParallel)):
+            model = model.module
             
         torch.save({'state_dict': model.state_dict()}, self.save_path)
 
@@ -204,18 +216,39 @@ class SimpleTrainConfig(BaseTrainConfig):
 
 class SimpleTrainer(BaseTrainer):
     
-    def __init__(self, config: BaseTrainConfig, *args, **kwargs) -> None:
+    def __init__(self, config: SimpleTrainConfig, *args, **kwargs) -> None:
         super().__init__(config, *args, **kwargs)
         
         self.loss_fn = ClassificationLoss(config.loss_fn)
     
     def calc_loss(self, inputs, result, labels: LongTensor):
-        return self.loss_fn(result[0], labels)
+        result = result[0]
+        if isinstance(result, InceptionOutputs):
+            output, aux = result
+            return self.loss_fn(output, labels) + self.loss_fn(aux, labels)
+        return self.loss_fn(result, labels)
+ 
+@dataclass   
+class VibTrainConfig(SimpleTrainConfig):
     
+    beta: float = 1e-2
     
+class VibTrainer(SimpleTrainer):
     
+    def __init__(self, config: BaseTrainConfig, *args, **kwargs) -> None:
+        super().__init__(config, *args, **kwargs)
+        
+    def calc_loss(self, inputs, result, labels: LongTensor):
+        result, addition_info = result
+        if isinstance(result, InceptionOutputs):
+            output, aux = result
+            main_loss = self.loss_fn(output, labels) + self.loss_fn(aux, labels)
+        else:
+            main_loss = self.loss_fn(result, labels)
     
-    
-    
-    
+        mu = addition_info['mu']
+        std = addition_info['std']
+        info_loss = - 0.5 * (1 + 2 * std.log() - mu.pow(2) - std.pow(2)).sum(dim=1).mean()
+        loss = main_loss + self.config.beta * info_loss
+        return loss
     

@@ -55,7 +55,7 @@ class SimpleLatentsSampler(BaseLatentsSampler):
 @torch.no_grad()
 def cross_image_augment_scores(model: BaseImageClassifier, device: torch.device, 
                  create_aug_images_fn: Optional[Callable[[Tensor], Iterable[Tensor]]],
-                 images: Tensor, labels: LongTensor | list[int]):
+                 images: Tensor):
     images = images.detach().to(device)
     
     labels = torch.LongTensor(labels).cpu()
@@ -72,7 +72,7 @@ def cross_image_augment_scores(model: BaseImageClassifier, device: torch.device,
         conf = model(images)[0].softmax(dim=-1).cpu()
         res = conf
         
-    return res[:, labels]
+    return res
    
 class ImageAugmentSelectLatentsSampler(SimpleLatentsSampler):
     
@@ -88,7 +88,7 @@ class ImageAugmentSelectLatentsSampler(SimpleLatentsSampler):
     def _get_score(self, latents: Tensor, labels: list[int]):
         
         images = self.generator(latents.to(self.device))
-        return cross_image_augment_scores(self.classifier, self.device, self.create_aug_images_fn, images, labels)
+        return cross_image_augment_scores(self.classifier, self.device, self.create_aug_images_fn, images)
         
         
     def __call__(self, labels: list[int], sample_num: int):
