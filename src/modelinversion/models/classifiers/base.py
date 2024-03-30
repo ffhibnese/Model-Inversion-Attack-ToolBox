@@ -7,6 +7,7 @@ from torch import nn
 import torch.nn.functional as F
 import torchvision.models as tvmodel
 import torchvision.transforms.functional as TF
+from torchvision.models.inception import InceptionOutputs
 
 from ...utils import traverse_name_module, FirstInputHook, BaseHook
 
@@ -55,7 +56,7 @@ class BaseImageModel(BaseTargetModel):
             
         forward_res = self._forward_impl(image, *args, **kwargs)
         hook_res = {k: v.get_feature() for k, v in self._inner_hooks.items()}
-        if isinstance(forward_res, tuple):
+        if isinstance(forward_res, tuple) and not isinstance(forward_res, InceptionOutputs):
             if len(forward_res) != 2:
                 raise RuntimeError(f'The number of model output must be 1 or 2, but found {len(forward_res)}')
             forward_res, forward_addition = forward_res

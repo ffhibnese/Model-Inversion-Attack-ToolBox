@@ -118,8 +118,6 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
         for i in bar:
             
             fake = self.generator(latents, labels=labels)
-            # if config.image_initial_transform is not None:
-            #     fake = config.image_initial_transform(fake)
                 
             loss = self.image_loss_fn(fake, labels)
             if isinstance(loss, tuple):
@@ -135,13 +133,78 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
             optimizer.step()
             
         final_fake = self.generator(latents, labels=labels).cpu()
-        
-        # if config.image_initial_transform is not None:
-        #     final_fake = config.image_initial_transform(final_fake)
                 
         final_labels = labels
         
         return final_fake.detach(), final_labels.detach()
+    
+@dataclass
+class VarienceWhiteboxOptimizationConfig(SimpleWhiteBoxOptimizationConfig):
+    generate_num: int = 50
+    
+class VarienceWhiteboxOptimization(SimpleWhiteBoxOptimization):
+    
+    def __init__(self, config: VarienceWhiteboxOptimizationConfig, generator: BaseImageGenerator, image_loss_fn: Callable[[Tensor, LongTensor], Tensor | Tuple[Tensor, OrderedDict]]) -> None:
+        super().__init__(config, generator, image_loss_fn)
+        
+    def _reparameterize(self, mu, logvar):
+        """
+        Reparameterization trick to sample from N(mu, var) from
+        N(0,1).
+        :param mu: (Tensor) Mean of the latent Gaussian [B x D]
+        :param logvar: (Tensor) Standard deviation of the latent Gaussian [B x D]
+        :return: (Tensor) [B x D]
+        """
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+
+        return eps * std + mu
+        
+    def __call__(self, latents: Tensor, labels: LongTensor) -> Tuple[Tensor | LongTensor]:
+        config: VarienceWhiteboxOptimizationConfig = self.config
+        
+        mu = latents.to(config.device)
+        labels = labels.to(config.device)
+        mu.requires_grad_(True)
+        
+        logvar = torch.ones_like(mu, requires_grad=True)
+        
+        optimizer: Optimizer = self.optimizer_class([mu, logvar], **config.optimizer_kwargs)
+        
+        bar = tqdm(range(1, config.iter_times + 1), leave=False)
+        for i in bar:
+            
+            z = self._reparameterize(mu, logvar)
+            
+            fake = self.generator(z, labels=labels)
+                
+            loss = self.image_loss_fn(fake, labels)
+            if isinstance(loss, tuple):
+                loss, metric_dict = loss
+                if metric_dict is not None and len(metric_dict) > 0 and (i == 1 or i % config.show_loss_info_iters == 0):
+                    ls = [f'{k}: {v}' for k, v in metric_dict.items()]
+                    right_str = '  '.join(ls)
+                    description = f'iter {i}: {right_str}'
+                    bar.set_description_str(description)
+                    
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
+        final_fake = []
+        final_labels = []
+        
+        with torch.no_grad():
+            for _ in range(config.generate_num):
+                z = self._reparameterize(mu, logvar)
+                fake = self.generator(z, labels=labels).detach().cpu()
+                final_fake.append(fake)
+                final_labels.append(labels.detach().cpu())
+            final_fake = torch.cat(final_fake, dim=0)
+            final_labels = torch.cat(final_labels, dim=0)
+            
+        
+        return final_fake, final_labels
     
 @dataclass
 class ImageAugmentWhiteBoxOptimizationConfig(SimpleWhiteBoxOptimizationConfig):
@@ -185,7 +248,7 @@ class ImageAugmentWhiteBoxOptimization(SimpleWhiteBoxOptimization):
             
             return loss, OrderedDict([
                 ['loss', loss.item()],
-                ['target acc', acc]
+                ['target acc', acc / total_num]
             ])
             
         

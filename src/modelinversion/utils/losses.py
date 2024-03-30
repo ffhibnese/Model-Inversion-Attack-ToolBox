@@ -2,6 +2,7 @@ import importlib
 from typing import Callable
 
 import torch
+from torch import nn
 from torch.nn import functional as F
 
 def max_margin_loss(out, iden):
@@ -51,7 +52,7 @@ class LabelSmoothingCrossEntropyLoss:
         loss = confidence * nll_loss + ls * smooth_loss
         return torch.mean(loss, dim=0).sum()
 
-class ClassificationLoss:
+class TorchLoss:
     
     def __init__(self, loss_fn: str | Callable, *args, **kwargs) -> None:
         # super().__init__()
@@ -74,3 +75,5 @@ class ClassificationLoss:
             
     def __call__(self, *args, **kwargs):
         return self.fn(*args, **kwargs)
+    # def forward(self, *args, **kwargs):
+    #     return self.fn(*args, **kwargs)

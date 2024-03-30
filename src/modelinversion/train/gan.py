@@ -330,8 +330,9 @@ class KedmiGanTrainer(GanTrainer):
         _, output_fake = self.discriminator(fake)
         
         loss_lab = self._softXEnt(output_label, y_prob)
-        loss_unlab = 0.5 * (torch.mean(F.softplus(torch.logsumexp(output_unlabel))) - torch.mean(
-                torch.log_sum_exp(output_unlabel)) + torch.mean(F.softplus(torch.log_sum_exp(output_fake))))
+        loss_unlab = 0.5 * (torch.mean(F.softplus(torch.logsumexp(output_unlabel, dim=-1))) - torch.mean(
+                torch.logsumexp(output_unlabel, dim=-1)) + torch.mean(F.softplus(torch.logsumexp(output_fake, dim=-1))))
+        # torch.logsumexp()
         loss = loss_lab + loss_unlab
         
         self.dis_optimizer.zero_grad()

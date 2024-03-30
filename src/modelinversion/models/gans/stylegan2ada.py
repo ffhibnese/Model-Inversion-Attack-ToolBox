@@ -30,7 +30,7 @@ class StyleGan2adaMappingWrapper(nn.Module):
 class StyleGAN2adaSynthesisWrapper(BaseIntermediateImageGenerator):
     
     def __init__(self, synthesis, *args, **kwargs) -> None:
-        block_num = int(np.log2(synthesis.img_resolution)) - 2
+        block_num = len(synthesis.block_resolutions)
         super().__init__(synthesis.img_resolution, (synthesis.num_ws, synthesis.w_dim), block_num, *args, **kwargs)
         
         self.synthesis = synthesis

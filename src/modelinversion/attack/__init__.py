@@ -6,5 +6,9 @@ from .optimize import (
     SimpleWhiteBoxOptimization,
     SimpleWhiteBoxOptimizationConfig,
     ImageAugmentWhiteBoxOptimization,
-    ImageAugmentWhiteBoxOptimizationConfig
+    ImageAugmentWhiteBoxOptimizationConfig,
+    VarienceWhiteboxOptimization,
+    VarienceWhiteboxOptimizationConfig
 )
+
+from .losses import ImageAugmentClassificationLoss, ComposeImageLoss, GmiDiscriminatorLoss, KedmiDiscriminatorLoss

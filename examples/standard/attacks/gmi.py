@@ -11,12 +11,15 @@ from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor
 from kornia import augmentation
 
-from modelinversion.models import PlgmiGenerator64, IR152_64, FaceNet112
+from modelinversion.models import SimpleGenerator64, GmiDiscriminator64, IR152_64, FaceNet112
 from modelinversion.sampler import SimpleLatentsSampler
 from modelinversion.utils import unwrapped_parallel_module, augment_images_fn_generator, Logger
 from modelinversion.attack import (
-    ImageAugmentWhiteBoxOptimizationConfig,
-    ImageAugmentWhiteBoxOptimization,
+    SimpleWhiteBoxOptimization,
+    SimpleWhiteBoxOptimizationConfig,
+    GmiDiscriminatorLoss,
+    ImageAugmentClassificationLoss,
+    ComposeImageLoss,
     ImageClassifierAttackConfig,
     ImageClassifierAttacker
 )
@@ -25,18 +28,17 @@ from modelinversion.metrics import ImageClassifierAttackAccuracy, ImageDistanceM
 
 if __name__ == '__main__':
     
-    
-    device_ids_str = '0'
-    
     experiment_dir = '<fill it>'
+    device_ids_str = '3'
+    num_classes = 1000
     generator_ckpt_path = '<fill it>'
+    discriminator_ckpt_path = '<fill it>'
     target_model_ckpt_path = '<fill it>'
     eval_model_ckpt_path = '<fill it>'
     eval_dataset_path = '<fill it>'
-    attack_targets = list(range(50))
+    attack_targets = list(range(100))
     
-    batch_size = 50
-    num_classes = 1000
+    batch_size = 100
     
     # prepare logger
     
@@ -52,25 +54,29 @@ if __name__ == '__main__':
     
     # prepare models
     
-    z_dim = 128
+    z_dim = 100
     
     latents_sampler = SimpleLatentsSampler(z_dim, batch_size)
     
     target_model = IR152_64(num_classes=num_classes)
-    eval_model = FaceNet112(num_classes=num_classes, register_last_feature_hook=True)
-    generator = PlgmiGenerator64(num_classes)
+    eval_model = FaceNet112(num_classes, register_last_feature_hook=True)
+    generator = SimpleGenerator64(in_dim=z_dim)
+    discriminator = GmiDiscriminator64()
     
     target_model.load_state_dict(torch.load(target_model_ckpt_path, map_location='cpu')['state_dict'])
     eval_model.load_state_dict(torch.load(eval_model_ckpt_path, map_location='cpu')['state_dict'])
     generator.load_state_dict(torch.load(generator_ckpt_path, map_location='cpu')['state_dict'])
+    discriminator.load_state_dict(torch.load(discriminator_ckpt_path, map_location='cpu')['state_dict'])
     
-    target_model = nn.parallel.DistributedDataParallel(target_model, device_ids=gpu_devices).to(device)
-    eval_model = nn.parallel.DistributedDataParallel(eval_model, device_ids=gpu_devices).to(device)
-    generator = nn.parallel.DistributedDataParallel(generator, device_ids=gpu_devices).to(device)
+    target_model = nn.DataParallel(target_model, device_ids=gpu_devices).to(device)
+    eval_model = nn.DataParallel(eval_model, device_ids=gpu_devices).to(device)
+    generator = nn.DataParallel(generator, device_ids=gpu_devices).to(device)
+    discriminator = nn.DataParallel(discriminator, device_ids=gpu_devices).to(device)
     
     target_model.eval()
     eval_model.eval()
     generator.eval()
+    discriminator.eval()
     
     # prepare eval dataset
     
@@ -78,27 +84,29 @@ if __name__ == '__main__':
     
     # prepare optimization
     
-    create_aug_images_fn = augment_images_fn_generator(
-        None, add_origin_image=False,
-        augment=augmentation.container.ImageSequential(
-            augmentation.RandomResizedCrop((64, 64), scale=(0.8, 1.0), ratio=(1.0, 1.0)),
-            augmentation.ColorJitter(brightness=0.2, contrast=0.2),
-            augmentation.RandomHorizontalFlip(),
-            augmentation.RandomRotation(5),
-        ),
-        augment_times=2
-    )
-    
-    optimization_config = ImageAugmentWhiteBoxOptimizationConfig(
+
+    optimization_config = SimpleWhiteBoxOptimizationConfig(
         experiment_dir=experiment_dir,
         device=device,
-        optimizer='Adam',
-        optimizer_kwargs={'lr': 0.1},
-        loss_fn='max_margin',
-        create_aug_images_fn= create_aug_images_fn
+        optimizer='SGD',
+        optimizer_kwargs={'lr': 0.02, 'momentum': 0.9},
+        iter_times=1500
     )
     
-    optimization_fn = ImageAugmentWhiteBoxOptimization(optimization_config, generator, target_model)
+    identity_loss_fn = ImageAugmentClassificationLoss(
+        classifier=target_model,
+        loss_fn='ce',
+        create_aug_images_fn=None
+    )
+    
+    discriminator_loss_fn = GmiDiscriminatorLoss(
+        discriminator
+    )
+    
+    loss_fn = ComposeImageLoss([identity_loss_fn, discriminator_loss_fn], weights=[100, 1])
+    
+    
+    optimization_fn = SimpleWhiteBoxOptimization(optimization_config, generator, loss_fn)
     
     # prepare metrics
     

@@ -116,7 +116,7 @@ class ImageDistanceMetric(ImageMetric):
         if HOOK_NAME_FEATURE not in hook_res:
             raise RuntimeError(f'The model has not registered the hook for {HOOK_NAME_FEATURE}')
         feature = hook_res[HOOK_NAME_FEATURE]
-        print(images.shape, feature.shape)
+        # print(images.shape, feature.shape)
         return feature.reshape(len(images), -1).cpu()
         
         

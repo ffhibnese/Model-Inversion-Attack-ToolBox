@@ -123,9 +123,9 @@ class ImageClassifierAttacker(ABC):
         if config.final_num is None:
             config.final_num = config.optimize_num
             
-        if config.final_num > config.optimize_num:
-            warnings.warn('the final number is larger than the optimize number, automatically set the latter to the fronter')
-            config.optimize_num = config.final_num
+        # if config.final_num > config.optimize_num:
+        #     warnings.warn('the final number is larger than the optimize number, automatically set the latter to the fronter')
+        #     config.optimize_num = config.final_num
             
         if config.optimize_num > config.initial_num:
             warnings.warn('the optimize number is larger than the initial number, automatically set the latter to the fronter')

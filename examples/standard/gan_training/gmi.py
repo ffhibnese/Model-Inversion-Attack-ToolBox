@@ -55,8 +55,8 @@ if __name__ == '__main__':
     generator = nn.DataParallel(generator, device_ids=gpu_devices).to(device)
     discriminator = nn.DataParallel(discriminator, device_ids=gpu_devices).to(device)
     
-    gen_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0002, betas=(0.0, 0.9))
-    dis_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.0002, betas=(0.0, 0.9))
+    gen_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+    dis_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
     
     
     # prepare trainer
