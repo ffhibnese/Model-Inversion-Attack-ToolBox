@@ -11,7 +11,7 @@ from torch import Tensor, LongTensor
 from torch.optim import Optimizer, Adam
 from tqdm import tqdm
 
-from ..utils import ClassificationLoss
+from ..utils import ClassificationLoss, BaseConstraint
 from ..models import BaseImageClassifier, BaseImageGenerator
 
 @dataclass
@@ -70,6 +70,9 @@ class SimpleWhiteBoxOptimizationConfig(BaseImageOptimizationConfig):
     optimizer_kwargs: dict = field(default_factory=lambda: {})
     iter_times: int = 600
     show_loss_info_iters: int = 100
+    
+    latent_constraint: Optional[BaseConstraint] = None
+    
 
 class SimpleWhiteBoxOptimization(BaseImageOptimization):
     """Base class for all white-box optimization classes.
@@ -114,27 +117,45 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
         latents.requires_grad_(True)
         optimizer: Optimizer = self.optimizer_class([latents], **config.optimizer_kwargs)
         
+        if config.latent_constraint is not None:
+            config.latent_constraint.register_center(latents)
+        
         bar = tqdm(range(1, config.iter_times + 1), leave=False)
         for i in bar:
             
             fake = self.generator(latents, labels=labels)
+            
+            description = None
                 
             loss = self.image_loss_fn(fake, labels)
             if isinstance(loss, tuple):
                 loss, metric_dict = loss
-                if metric_dict is not None and len(metric_dict) > 0 and (i == 1 or i % config.show_loss_info_iters == 0):
-                    ls = [f'{k}: {v}' for k, v in metric_dict.items()]
-                    right_str = '  '.join(ls)
-                    description = f'iter {i}: {right_str}'
-                    bar.set_description_str(description)
+                if metric_dict is not None and len(metric_dict) > 0:
+                    if i == 1 or i % config.show_loss_info_iters == 0:
+                        ls = [f'{k}: {v}' for k, v in metric_dict.items()]
+                        right_str = '  '.join(ls)
+                        description = f'iter {i}: {right_str}'
+                        bar.set_description_str(description)
+                    if i == config.iter_times:
+                        ls = [f'{k}: {v}' for k, v in metric_dict.items()]
+                        right_str = '  '.join(ls)
+                        description = f'iter {i}: {right_str}'
+                        # print(description)
+                
                     
+            if description is not None:
+                print(description)
+                
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             
+            if config.latent_constraint is not None:
+                latents = config.latent_constraint(latents)
+            
         final_fake = self.generator(latents, labels=labels).cpu()
                 
-        final_labels = labels
+        final_labels = labels.cpu()
         
         return final_fake.detach(), final_labels.detach()
     

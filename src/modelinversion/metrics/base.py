@@ -72,7 +72,7 @@ class ImageClassifierAttackAccuracy(ImageMetric):
         def get_scores(images: Tensor):
             images = images.to(self.device)
             pred, _ = self.model(images)
-            return pred.cpu()
+            return pred.cpu().detach()
         
         scores = batch_apply(get_scores, images, batch_size=self.batch_size, use_tqdm=True)
         _, topk_indices = torch.topk(scores, 5)
@@ -106,7 +106,7 @@ class ImageDistanceMetric(ImageMetric):
         self.device = device
         self.description = description
         self.save_dir = save_individual_res_dir
-        self.hook = unwrapped_parallel_module(model).get_last_feature_hook()
+        # self.hook = unwrapped_parallel_module(model).get_last_feature_hook()
         self.num_workers = num_workers
         
     def _get_feature(self, images: Tensor):
@@ -135,7 +135,7 @@ class ImageDistanceMetric(ImageMetric):
             target_dst_ds = ClassSubset(self.dataset, target)
             target_dst_features = []
             for dst_img, _ in (DataLoader(target_dst_ds, self.batch_size, shuffle=False, num_workers=self.num_workers)):
-                target_dst_features.append(self._get_feature(dst_img))
+                target_dst_features.append(self._get_feature(dst_img).detach())
             target_dst_features = torch.cat(target_dst_features, dim=0)
             
             distance = torch.cdist(target_src_features, target_dst_features) ** 2
@@ -183,6 +183,7 @@ class ImageFidPRDCMetric(ImageMetric):
         self.calc_prdc = prdc
         self.save_dir = save_individual_prdc_dir
         
+    @torch.no_grad()
     def _calculate_activation_statistics(self, dataset):
         dataloader = DataLoader(dataset, self.batch_size, shuffle=False, num_workers=self.num_workers)
         
@@ -192,7 +193,7 @@ class ImageFidPRDCMetric(ImageMetric):
         for image, labels in tqdm(dataloader, leave=False):
             labels_arr.append(labels)
             image = image.to(self.device)
-            pred = self.inception_model(image)[0].squeeze(3).squeeze(2).cpu()
+            pred = self.inception_model(image)[0].squeeze(3).squeeze(2).detach().cpu()
             pred_arr.append(pred)
         pred_arr = torch.cat(pred_arr, dim=0)
         labels_arr = torch.cat(labels_arr, dim=0)

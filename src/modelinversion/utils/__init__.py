@@ -7,6 +7,7 @@ from .losses import TorchLoss, LabelSmoothingCrossEntropyLoss
 from .check import check_shape
 from .batch import batch_apply
 from .hook import BaseHook, OutputHook, InputHook, FirstInputHook
+from .constraint import BaseConstraint, MinMaxConstraint, L1ballConstraint
 
 ClassificationLoss = TorchLoss
 Tee = Logger

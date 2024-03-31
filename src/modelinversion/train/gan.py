@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from ..models import *
 from ..sampler import BaseLatentsSampler
-from ..utils import unwrapped_parallel_module, ClassificationLoss, obj_to_yaml
+from ..utils import unwrapped_parallel_module, ClassificationLoss, obj_to_yaml, freeze, unfreeze
 
 def train_gan(
             max_iters: int, 
@@ -272,7 +272,7 @@ class KedmiGanTrainer(GanTrainer):
         return fake
     
     def _entropy_loss(self, x) :
-        b = - F.softmax(x, dim=-1) * F.log_softmax(x, dim=-1)
+        b = - F.softmax(x, dim=1) * F.log_softmax(x, dim=1)
         return b.sum()
     
     def _get_next_real_images(self, dataloader: Iterator[Tensor | Tuple[Tensor, LongTensor]]):
@@ -282,6 +282,9 @@ class KedmiGanTrainer(GanTrainer):
         return result[0].to(self.device)
     
     def train_gen_step(self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor, LongTensor]]):
+        
+        freeze(self.discriminator)
+        unfreeze(self.generator)
         
         fake = self.sample_images(self.batch_size)
         real = self._get_next_real_images(dataloader)
@@ -294,7 +297,7 @@ class KedmiGanTrainer(GanTrainer):
         
         entropy_loss = self._entropy_loss(output_fake)
         feature_loss = torch.mean((mom_gen - mom_unlabel).abs())
-        loss = feature_loss + 1e-4 * entropy_loss
+        loss = feature_loss # + 1e-4 * entropy_loss
         
         self.gen_optimizer.zero_grad()
         loss.backward()
@@ -317,6 +320,9 @@ class KedmiGanTrainer(GanTrainer):
         
     def train_dis_step(self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor | LongTensor]]):
         
+        freeze(self.generator)
+        unfreeze(self.discriminator)
+        
         fake = self.sample_images(self.batch_size)
         real = self._get_next_real_images(dataloader)
         real_unlabel = self._get_next_real_images(dataloader)
@@ -330,8 +336,8 @@ class KedmiGanTrainer(GanTrainer):
         _, output_fake = self.discriminator(fake)
         
         loss_lab = self._softXEnt(output_label, y_prob)
-        loss_unlab = 0.5 * (torch.mean(F.softplus(torch.logsumexp(output_unlabel, dim=-1))) - torch.mean(
-                torch.logsumexp(output_unlabel, dim=-1)) + torch.mean(F.softplus(torch.logsumexp(output_fake, dim=-1))))
+        loss_unlab = 0.5 * (torch.mean(F.softplus(torch.logsumexp(output_unlabel, dim=1))) - torch.mean(
+                torch.logsumexp(output_unlabel, dim=1)) + torch.mean(F.softplus(torch.logsumexp(output_fake, dim=1))))
         # torch.logsumexp()
         loss = loss_lab + loss_unlab
         

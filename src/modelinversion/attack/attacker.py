@@ -193,9 +193,12 @@ class ImageClassifierAttacker(ABC):
         if final_num == len(images):
             return images, labels
 
+        print('final selection: calculate score')
         scores = batch_apply(image_score_fn, images, labels, batch_size=batch_size, use_tqdm=True)
         
         targets = set(labels.tolist())
+        
+        print('final selection: select by scores')
         
         results = {}
         
