@@ -21,7 +21,9 @@ def copy_or_set_(dest, source):
     if dest.stride() != source.stride():
         return dest.copy_(source)
     else:
-        return dest.set_(source)
+        # return dest.set_(source)
+        dest.data = source.data
+        return dest
 
 
 class BaseConstraint:
@@ -53,7 +55,7 @@ class MinMaxConstraint(BaseConstraint):
     def __call__(self, tensor: Tensor, *args: Any, **kwds: Any) -> Any:
         res = torch.min(tensor, self.max_tensor)
         res = torch.max(tensor, self.min_tensor)
-        return copy_or_set_(tensor, res)
+        return copy_or_set_(tensor, res.detach().requires_grad_(False))
     
 class L1ballConstraint(BaseConstraint):
     
@@ -63,7 +65,7 @@ class L1ballConstraint(BaseConstraint):
         self.bias = bias
         
     def __call__(self, tensor: Tensor, *args: Any, **kwds: Any) -> Any:
-        x = tensor.detach()
+        x = tensor
         eps = self.bias
         original_shape = x.shape
         x = x.view(x.shape[0], -1)
@@ -75,4 +77,4 @@ class L1ballConstraint(BaseConstraint):
         theta = (cumsum[torch.arange(x.shape[0]), rho.cpu() - 1] - eps) / rho
         proj = (torch.abs(x) - theta.unsqueeze(1)).clamp(min=0)
         x = mask * x + (1 - mask) * proj * torch.sign(x)
-        return copy_or_set_(tensor, x.view(original_shape))
+        return copy_or_set_(tensor, x.view(original_shape).detach().requires_grad_(False))

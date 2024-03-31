@@ -8,7 +8,9 @@ from .optimize import (
     ImageAugmentWhiteBoxOptimization,
     ImageAugmentWhiteBoxOptimizationConfig,
     VarienceWhiteboxOptimization,
-    VarienceWhiteboxOptimizationConfig
+    VarienceWhiteboxOptimizationConfig,
+    BrepOptimization,
+    BrepOptimizationConfig
 )
 
 from .losses import ImageAugmentClassificationLoss, ComposeImageLoss, GmiDiscriminatorLoss, KedmiDiscriminatorLoss

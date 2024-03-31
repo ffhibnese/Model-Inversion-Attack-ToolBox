@@ -11,8 +11,15 @@ from torch import Tensor, LongTensor
 from torch.optim import Optimizer, Adam
 from tqdm import tqdm
 
-from ..utils import ClassificationLoss, BaseConstraint
+from ..utils import ClassificationLoss, BaseConstraint, DictAccumulator
 from ..models import BaseImageClassifier, BaseImageGenerator
+from ..scores import BaseLatentScore
+
+def get_info_description(it: int, info: OrderedDict):
+    ls = [f'{k}: {v}' for k, v in info.items()]
+    right_str = '  '.join(ls)
+    description = f'iter {it}: {right_str}'
+    return description
 
 @dataclass
 class BaseImageOptimizationConfig:
@@ -132,14 +139,16 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
                 loss, metric_dict = loss
                 if metric_dict is not None and len(metric_dict) > 0:
                     if i == 1 or i % config.show_loss_info_iters == 0:
-                        ls = [f'{k}: {v}' for k, v in metric_dict.items()]
-                        right_str = '  '.join(ls)
-                        description = f'iter {i}: {right_str}'
+                        # ls = [f'{k}: {v}' for k, v in metric_dict.items()]
+                        # right_str = '  '.join(ls)
+                        # description = f'iter {i}: {right_str}'
+                        description = get_info_description(i, metric_dict)
                         bar.set_description_str(description)
                     if i == config.iter_times:
-                        ls = [f'{k}: {v}' for k, v in metric_dict.items()]
-                        right_str = '  '.join(ls)
-                        description = f'iter {i}: {right_str}'
+                        # ls = [f'{k}: {v}' for k, v in metric_dict.items()]
+                        description = get_info_description(i, metric_dict)
+                        # right_str = '  '.join(ls)
+                        # description = f'iter {i}: {right_str}'
                         # print(description)
                 
                     
@@ -274,3 +283,103 @@ class ImageAugmentWhiteBoxOptimization(SimpleWhiteBoxOptimization):
             
         
         super().__init__(config, generator, _image_loss_fn)
+        
+@dataclass
+class BrepOptimizationConfig(BaseImageOptimizationConfig):
+    
+    iter_times: int = 600
+    
+    init_sphere_radius: float = 2
+    coef_sphere_expand: float = 1.3
+    
+    sphere_points_count: int = 32
+    
+    sphere_expand_score_threshold: int = 0.5
+    
+    step_rate: float = 0.333
+    max_step_size: float = 3
+    
+    show_loss_info_iters: int = 100
+        
+class BrepOptimization(BaseImageOptimization):
+    
+    def __init__(self, config: BrepOptimizationConfig,
+                 generator: BaseImageGenerator,
+                 image_score_fn: Callable[[Tensor, LongTensor], Tensor | Tuple[Tensor, OrderedDict]]
+                 ) -> None:
+        super().__init__(config)
+        
+        self.generator = generator
+        self.image_score_fn = image_score_fn
+        
+    def _generate_points_on_sphere(self, latents: Tensor, num: int, radius: Tensor, eps = 1e-5):
+        # latents: (bs, zdim)
+        # radius: (bs, )
+        # return: (num, bs, zdim)
+        
+        points_shape = (num, ) + latents.shape
+        vectors = torch.randn(points_shape, dtype=latents.dtype, device = latents.dtype)
+        
+        vectors = vectors / ((vectors ** 2).sum(dim=-1, keepdim=True).sqrt() + eps)
+        return latents + vectors * radius.reshape(1, -1, 1), vectors
+        
+    @torch.no_grad()
+    def __call__(self, latents: Tensor, labels: LongTensor) -> Tuple[Tensor, LongTensor]:
+        
+        config: BrepOptimizationConfig = self.config
+        device = config.device
+        
+        bs = len(labels)
+        # (bs, zdim)
+        latents = latents.to(device)
+        labels = labels.to(device)
+        
+        # (bs, )
+        current_radius = torch.ones((bs, ), dtype=latents.dtype, device=device) * config.init_sphere_radius
+        
+        description = None
+        
+        for it in tqdm(1, 1+ config.iter_times, leave=False):
+        
+            step_size = torch.min(current_radius * config.step_rate, config.max_step_size)
+            
+            # (cnt, bs, zdim)
+            sphere_points, sphere_point_directions = self._generate_points_on_sphere(latents, config.sphere_points_count, current_radius)
+            
+            accumulator = DictAccumulator()
+            
+            sphere_points_scores = []
+            for i in range(config.sphere_points_count):
+                # sphere_points_scores.append(config.latent_score_fn(sphere_points[i], labels=labels))
+                batch_images = self.generator(sphere_points[i], labels=labels)
+                scores = self.image_loss_fn(batch_images, labels=labels)
+                if isinstance(scores, tuple):
+                    scores, infos = scores
+                    accumulator.add(infos)
+                sphere_points_scores.append(scores)
+        
+            if len(accumulator) > 0 :
+                if it == 1 or it % config.show_loss_info_iters == 0:
+                    description = get_info_description(i, accumulator.avg())
+                    print(description)
+                elif it == config.show_loss_info_iters:
+                    description = get_info_description(i, accumulator.avg())
+                
+            # (cnt, bs)
+            sphere_points_scores = torch.stack(sphere_points_scores, dim=0)
+            
+            # (bs, zdim)
+            grad_direction = (sphere_points_scores * sphere_point_directions).mean(dim = 0)
+            
+            latents = latents + grad_direction * step_size.reshape(-1, 1)
+            
+            current_radius = torch.where(
+                sphere_points_scores.mean(dim=0) > config.sphere_expand_score_threshold, 
+                current_radius * config.coef_sphere_expand,
+                current_radius    
+            )
+            
+        if description is not None:
+            print(description)
+            
+        return self.generator(latents, labels=labels).detach().cpu(), labels.cpu()
