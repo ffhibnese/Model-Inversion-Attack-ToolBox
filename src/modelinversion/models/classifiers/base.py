@@ -13,6 +13,7 @@ from ...utils import traverse_name_module, FirstInputHook, BaseHook
 
 HOOK_NAME_FEATURE = 'feature'
 HOOK_NAME_HIDDEN = 'hidden'
+HOOK_NAME_DEEPINVERSION_BN = 'deepinversion_bn'
 
 class ModelConstructException(Exception):
     pass

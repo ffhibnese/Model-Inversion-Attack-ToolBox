@@ -8,7 +8,7 @@ sys.path.append('../../../src')
 import torch
 from torch import nn
 from torchvision.datasets import ImageFolder
-from torchvision.transforms import ToTensor
+from torchvision.transforms import ToTensor, Resize, Compose
 from kornia import augmentation
 
 from modelinversion.models import PlgmiGenerator64, IR152_64, FaceNet112
@@ -74,7 +74,10 @@ if __name__ == '__main__':
     
     # prepare eval dataset
     
-    eval_dataset = ImageFolder(eval_dataset_path, transform=ToTensor())
+    eval_dataset = ImageFolder(eval_dataset_path, transform=Compose([
+        Resize((64, 64)),
+        ToTensor()
+    ]))
     
     # prepare optimization
     

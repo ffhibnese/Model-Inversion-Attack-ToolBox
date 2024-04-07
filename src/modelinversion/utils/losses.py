@@ -5,6 +5,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+
 def max_margin_loss(out, iden):
     real = out.gather(1, iden.unsqueeze(1)).squeeze(1)
     tmp1 = torch.argsort(out, dim=1)[:, -2:]
@@ -25,23 +26,24 @@ def poincare_loss(outputs, targets, xi=1e-4):
     v_norm_squared = torch.norm(v, p=2, dim=1) ** 2
     diff_norm_squared = torch.norm(u - v, p=2, dim=1) ** 2
     # Compute delta
-    delta = 2 * diff_norm_squared / ((1 - u_norm_squared) *
-                                     (1 - v_norm_squared))
+    delta = 2 * diff_norm_squared / ((1 - u_norm_squared) * (1 - v_norm_squared))
     # Compute distance
     loss = torch.arccosh(1 + delta)
     return loss.mean()
 
+
 _LOSS_MAPPING = {
     'ce': F.cross_entropy,
     'poincare': poincare_loss,
-    'max_margin': max_margin_loss
+    'max_margin': max_margin_loss,
 }
 
+
 class LabelSmoothingCrossEntropyLoss:
-    
-    def __init__(self, label_smoothing: float = 0.) -> None:
+
+    def __init__(self, label_smoothing: float = 0.0) -> None:
         self.label_smoothing = label_smoothing
-    
+
     def __call__(self, inputs, labels) -> torch.Any:
         ls = self.label_smoothing
         confidence = 1.0 - ls
@@ -52,8 +54,9 @@ class LabelSmoothingCrossEntropyLoss:
         loss = confidence * nll_loss + ls * smooth_loss
         return torch.mean(loss, dim=0).sum()
 
+
 class TorchLoss:
-    
+
     def __init__(self, loss_fn: str | Callable, *args, **kwargs) -> None:
         # super().__init__()
         self.fn = None
@@ -62,18 +65,21 @@ class TorchLoss:
                 self.fn = _LOSS_MAPPING[loss_fn.lower()]
             else:
                 module = importlib.import_module('torch.nn.functional')
-                self.fn = getattr(module, loss_fn, None)
-                if self.fn is None:
+                fn = getattr(module, loss_fn, None)
+                if fn is not None:
+                    self.fn = lambda *arg, **kwd: fn(*arg, *args, **kwd, **kwargs)
+                else:
                     module = importlib.import_module('torch.nn')
                     t = getattr(module, loss_fn, None)
                     if t is not None:
-                        self.fn = t()
+                        self.fn = t(*args, **kwargs)
                 if self.fn is None:
                     raise RuntimeError(f'loss_fn {loss_fn} not found.')
         else:
             self.fn = loss_fn
-            
+
     def __call__(self, *args, **kwargs):
         return self.fn(*args, **kwargs)
+
     # def forward(self, *args, **kwargs):
     #     return self.fn(*args, **kwargs)

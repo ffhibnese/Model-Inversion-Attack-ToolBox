@@ -1,3 +1,13 @@
-from .imgscore import BaseImageClassificationScore, ImageClassificationAugmentConfidence, ImageClassificationAugmentLabelOnlyScore
+from .imgscore import (
+    BaseImageClassificationScore,
+    ImageClassificationAugmentConfidence,
+    ImageClassificationAugmentLabelOnlyScore,
+    ImageClassificationAugmentLossScore,
+)
 from .latentscore import BaseLatentScore, LatentClassificationAugmentConfidence
-from .funtional import cross_image_augment_scores, specific_image_augment_scores
+from .funtional import (
+    cross_image_augment_scores,
+    specific_image_augment_scores,
+    specific_image_augment_loss_score,
+    specific_image_augment_scores_label_only,
+)

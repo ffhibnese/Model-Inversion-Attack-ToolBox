@@ -30,6 +30,9 @@ class Accumulator:
     def __getitem__(self, idx):
         return self.data[idx]
     
+    def __len__(self):
+        return len(self.data)
+    
     def avg(self, idx = None):
         """Calculate average of the data specified by `idx`. If idx is None, it will calculate average of all data.
 
@@ -69,6 +72,9 @@ class DictAccumulator:
         
     def __getitem__(self, key):
         return self.data[key]
+    
+    def __len__(self):
+        return len(self.data)
     
     def avg(self, key = None):
         num = 1 if self.num == 0 else self.num

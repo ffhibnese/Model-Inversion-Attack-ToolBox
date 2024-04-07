@@ -1,5 +1,5 @@
 from torch import Tensor
-from ...utils import BaseHook
+from ...utils import BaseHook, FirstInputHook, DeepInversionBNFeatureHook
 from .base import *
 
 class TorchvisionClassifierModel(BaseImageClassifier):
@@ -102,3 +102,33 @@ class BiDOWrapper(BaseImageClassifier):
         forward_res, addition_info = self.module(image, *args, **kwargs)
         addition_info[HOOK_NAME_HIDDEN] = [h.get_feature() for h in self.hidden_hooks]
         return forward_res, addition_info
+    
+def get_default_deepinversion_bn_hook_fn(num: int = 3):
+    
+    def _fn(model: BaseImageClassifier):
+        bn_modules = []
+        for m in model.modules():
+            if isinstance(m, nn.BatchNorm2d):
+                bn_modules.append(m)
+        return [DeepInversionBNFeatureHook(l) for l in bn_modules]
+    return _fn
+    
+class DeepInversionWrapper(BaseImageClassifier):
+    
+    def __init__(self, module: BaseImageClassifier, register_last_feature_hook=False, create_bn_hook_fn: Optional[Callable] = None, *args, **kwargs) -> None:
+        super().__init__(module.resolution, module.feature_dim, module.num_classes, register_last_feature_hook, *args, **kwargs)
+        
+        self.module = module
+        
+        create_bn_hook_fn = create_bn_hook_fn if create_bn_hook_fn is not None else get_default_deepinversion_bn_hook_fn()
+        
+        self.bn_hooks = create_bn_hook_fn(module)
+        
+    def get_last_feature_hook(self) -> BaseHook:
+        return self.module.get_last_feature_hook()
+    
+    def _forward_impl(self, image: Tensor, *args, **kwargs):
+        forward_res, addition_info = self.module(image, *args, **kwargs)
+        addition_info[HOOK_NAME_DEEPINVERSION_BN] = [h.get_feature() for h in self.bn_hooks]
+        return forward_res, addition_info
+    

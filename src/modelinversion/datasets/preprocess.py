@@ -47,7 +47,7 @@ def preprocess_facescrub(src_path, dst_path, mode = COPY, split_seed=42):
     files = []
     
     for i, folder in enumerate(tqdm(folders, leave=False)):
-        classname = classes[i]
+        # classname = classes[i]
         filenames = sorted([name for name in os.listdir(folder) if name.endswith(IMG_EXTENSIONS)])
         for fname in filenames:
             files.append([i, folder, fname])
@@ -110,7 +110,7 @@ def split(raw_img_dir, split_file_path, dst_dir, trans):
             trans.trans(src_path, dst_path)
             
         
-def preprocess_celeba(src_path, dst_path, split_files_path):
+def preprocess_celeba64(src_path, dst_path, split_files_path):
     
     trans = _CelebaTransform()
     
@@ -133,7 +133,7 @@ def preprocess_celeba(src_path, dst_path, split_files_path):
     for dst_dir, split_file_dir in zip(dst_dirs, split_files):
         split(src_path, split_file_dir, dst_dir, trans=trans)
         
-def preprocess_hdceleba(src_path, dst_path, split_files_path, mode=COPY):
+def preprocess_celeba224(src_path, dst_path, split_files_path, mode=COPY):
     
     trans = lambda src, dst: file_transfer(src, dst, mode)
     
@@ -155,6 +155,27 @@ def preprocess_hdceleba(src_path, dst_path, split_files_path, mode=COPY):
     
     for dst_dir, split_file_dir in zip(dst_dirs, split_files):
         split(src_path, split_file_dir, dst_dir, trans)
+        
+def preprocess_ffhq64(src_path, dst_path):
+    src_paths = walk_imgs(src_path)
+    
+    dst_dir = os.path.join(dst_path, 'images')
+    os.makedirs(dst_dir, exist_ok=True)
+    
+    def to_dst_path(path):
+        filename = os.path.split(path)[1]
+        return os.path.join(dst_dir, filename)
+    dst_paths = list(map(to_dst_path, src_paths))
+    
+    trans = Compose([
+        Image.open,
+        CenterCrop((88, 88)),
+        Resize((64, 64), antialias=True)
+    ])
+    
+    for src, dst in zip(tqdm(src_paths, leave=False), dst_paths):
+        trans_img: Image.Image = trans(src)
+        trans_img.save(dst)
         
 def preprocess_ffhq256(src_path, dst_path):
     

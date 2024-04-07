@@ -10,7 +10,11 @@ from .optimize import (
     VarienceWhiteboxOptimization,
     VarienceWhiteboxOptimizationConfig,
     BrepOptimization,
-    BrepOptimizationConfig
+    BrepOptimizationConfig,
+    RlbOptimization,
+    RlbOptimizationConfig,
+    GeneticOptimizationConfig,
+    GeneticOptimization
 )
 
 from .losses import ImageAugmentClassificationLoss, ComposeImageLoss, GmiDiscriminatorLoss, KedmiDiscriminatorLoss

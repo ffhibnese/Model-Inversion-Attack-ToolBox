@@ -47,6 +47,8 @@ class LabelOnlySelectLatentsSampler(SimpleLatentsSampler):
                     results[label].append(batch_latents[i])
                     if len(results[label]) == sample_num:
                         res_labels.remove(label)
+            if len(res_labels) == 0:
+                break
         
         unfinish_labels = []
         res_labels = list(res_labels)

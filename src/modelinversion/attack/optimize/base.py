@@ -11,9 +11,9 @@ from torch import Tensor, LongTensor
 from torch.optim import Optimizer, Adam
 from tqdm import tqdm
 
-from ..utils import ClassificationLoss, BaseConstraint, DictAccumulator
-from ..models import BaseImageClassifier, BaseImageGenerator
-from ..scores import BaseLatentScore
+from ...utils import ClassificationLoss, BaseConstraint, DictAccumulator
+from ...models import BaseImageClassifier, BaseImageGenerator
+from ...scores import BaseLatentScore
 
 def get_info_description(it: int, info: OrderedDict):
     ls = [f'{k}: {v}' for k, v in info.items()]
@@ -318,7 +318,7 @@ class BrepOptimization(BaseImageOptimization):
         # return: (num, bs, zdim)
         
         points_shape = (num, ) + latents.shape
-        vectors = torch.randn(points_shape, dtype=latents.dtype, device = latents.dtype)
+        vectors = torch.randn(points_shape, dtype=latents.dtype, device = latents.device)
         
         vectors = vectors / ((vectors ** 2).sum(dim=-1, keepdim=True).sqrt() + eps)
         return latents + vectors * radius.reshape(1, -1, 1), vectors
@@ -339,9 +339,10 @@ class BrepOptimization(BaseImageOptimization):
         
         description = None
         
-        for it in tqdm(1, 1+ config.iter_times, leave=False):
-        
-            step_size = torch.min(current_radius * config.step_rate, config.max_step_size)
+        for it in tqdm(range(1, 1+ config.iter_times), leave=False):
+            
+            step_size = current_radius * config.step_rate
+            step_size = torch.min(step_size, torch.ones_like(step_size) * config.max_step_size)
             
             # (cnt, bs, zdim)
             sphere_points, sphere_point_directions = self._generate_points_on_sphere(latents, config.sphere_points_count, current_radius)
@@ -352,7 +353,7 @@ class BrepOptimization(BaseImageOptimization):
             for i in range(config.sphere_points_count):
                 # sphere_points_scores.append(config.latent_score_fn(sphere_points[i], labels=labels))
                 batch_images = self.generator(sphere_points[i], labels=labels)
-                scores = self.image_loss_fn(batch_images, labels=labels)
+                scores = self.image_score_fn(batch_images, labels=labels)
                 if isinstance(scores, tuple):
                     scores, infos = scores
                     accumulator.add(infos)
@@ -365,11 +366,11 @@ class BrepOptimization(BaseImageOptimization):
                 elif it == config.show_loss_info_iters:
                     description = get_info_description(i, accumulator.avg())
                 
-            # (cnt, bs)
-            sphere_points_scores = torch.stack(sphere_points_scores, dim=0)
+            # (cnt, bs, 1)
+            sphere_points_scores = torch.stack(sphere_points_scores, dim=0).to(sphere_point_directions.device)
             
             # (bs, zdim)
-            grad_direction = (sphere_points_scores * sphere_point_directions).mean(dim = 0)
+            grad_direction = (sphere_points_scores.unsqueeze(dim=-1) * sphere_point_directions).mean(dim = 0)
             
             latents = latents + grad_direction * step_size.reshape(-1, 1)
             

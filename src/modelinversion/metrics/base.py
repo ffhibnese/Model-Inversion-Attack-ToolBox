@@ -1,4 +1,5 @@
 import os
+import warnings
 from abc import abstractmethod, ABC
 from collections import OrderedDict
 from typing import Optional, Callable
@@ -228,15 +229,23 @@ class ImageFidPRDCMetric(ImageMetric):
             
         # PRDC
         if self.calc_prdc:
+            target_list = []
             precision_list = []
             recall_list = []
             density_list = []
             coverage_list = []
+            
+            unfinish_list = []
             for target in tqdm(target_values, leave=False):
                 fake_mask = fake_labels == target
                 real_mask = real_labels == target
                 embedding_fake = fake_feature[fake_mask]
                 embedding_real = real_feature[real_mask]
+                
+                if len(embedding_fake) < self.prdc_k or len(embedding_real) < self.prdc_k:
+                    unfinish_list.append(target)
+                    continue
+                target_list.append(target)
                 
                 pair_dist_real = torch.cdist(embedding_real, embedding_real, p=2)
                 pair_dist_real = torch.sort(pair_dist_real, dim=1, descending=False)[0]
@@ -273,6 +282,9 @@ class ImageFidPRDCMetric(ImageMetric):
             recall = np.array(recall_list)
             density = np.array(density_list)
             coverage = np.array(coverage_list)
+            
+            if len(unfinish_list) != 0:
+                warnings.warn(f'The number of images for those classes are too small, skip the evaluation: {unfinish_list}')
             
             if self.save_dir is not None:
                 df = pd.DataFrame()
