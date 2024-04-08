@@ -83,6 +83,7 @@ class ImageClassifierAttackAccuracy(ImageMetric):
         self.device = device
         self.description = description
 
+    @torch.no_grad()
     def _get_features_impl(self, images: Tensor, labels: LongTensor) -> Tensor:
 
         def get_scores(images: Tensor):
@@ -145,6 +146,7 @@ class ImageDistanceMetric(ImageMetric):
         # self.hook = unwrapped_parallel_module(model).get_last_feature_hook()
         self.num_workers = num_workers
 
+    @torch.no_grad()
     def _get_features_impl(self, images: Tensor, labels: LongTensor):
         images = images.to(self.device)
         # self.hook.clear_feature()
@@ -155,7 +157,7 @@ class ImageDistanceMetric(ImageMetric):
             )
         feature = hook_res[HOOK_NAME_FEATURE]
         # print(images.shape, feature.shape)
-        return feature.reshape(len(images), -1).cpu()
+        return feature.reshape(len(images), -1).detach().cpu()
 
     @torch.no_grad()
     def _call_impl(self, features: Tensor, labels: LongTensor) -> OrderedDict:
