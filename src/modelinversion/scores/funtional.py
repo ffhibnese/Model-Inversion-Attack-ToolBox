@@ -17,7 +17,7 @@ def specific_image_augment_scores(
     images: Tensor,
     labels: LongTensor,
 ):
-    images = images.detach().to(device)
+    images = images.to(device)
     labels = labels.cpu()
 
     if create_aug_images_fn is None:
