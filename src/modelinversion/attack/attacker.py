@@ -370,21 +370,22 @@ class ImageClassifierAttacker(ABC):
             )
 
         # # final selection
-        print('execute final selection')
-        final_res = self.final_selection(
-            config.final_num,
-            optimized_scores,
-            optimized_labels,
-        )
-
-        if config.save_final_images:
-            print('save final images')
-
-            self.save_selection_images(final_res)
-
-        if self.config.eval_final_result:
-            print('evaluate final result')
-            final_features, final_labels = self.get_final_selection_features_labels(
-                final_res, optimized_metric_features
+        if optimized_scores is not None:
+            print('execute final selection')
+            final_res = self.final_selection(
+                config.final_num,
+                optimized_scores,
+                optimized_labels,
             )
-            self._evaluation(final_features, final_labels, 'Final Image Evaluation')
+
+            if config.save_final_images:
+                print('save final images')
+
+                self.save_selection_images(final_res)
+
+            if self.config.eval_final_result:
+                print('evaluate final result')
+                final_features, final_labels = self.get_final_selection_features_labels(
+                    final_res, optimized_metric_features
+                )
+                self._evaluation(final_features, final_labels, 'Final Image Evaluation')
