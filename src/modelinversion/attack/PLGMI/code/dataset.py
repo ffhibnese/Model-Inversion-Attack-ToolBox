@@ -39,12 +39,8 @@ def sample_from_gen(args, device, num_classes, gen):
 
     """
 
-    z = utils.sample_z(
-        args.batch_size, args.gen_dim_z, device, args.gen_distribution
-    )
-    pseudo_y = utils.sample_pseudo_labels(
-        num_classes, args.batch_size, device
-    )
+    z = utils.sample_z(args.batch_size, args.gen_dim_z, device, args.gen_distribution)
+    pseudo_y = utils.sample_pseudo_labels(num_classes, args.batch_size, device)
 
     fake = gen(z, pseudo_y)
     return fake, pseudo_y, z
@@ -58,8 +54,13 @@ class FaceDataset(torch.utils.data.Dataset):
         self.images = []
         self.path = self.root
 
-        num_classes = len([lists for lists in os.listdir(
-            self.path) if os.path.isdir(os.path.join(self.path, lists))])
+        num_classes = len(
+            [
+                lists
+                for lists in os.listdir(self.path)
+                if os.path.isdir(os.path.join(self.path, lists))
+            ]
+        )
 
         for idx in range(num_classes):
             class_path = os.path.join(self.path, str(idx))
@@ -106,4 +107,4 @@ class InfiniteSamplerWrapper(torch.utils.data.sampler.Sampler):
         return iter(InfiniteSampler(self.num_samples))
 
     def __len__(self):
-        return 2 ** 31
+        return 2**31

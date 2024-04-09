@@ -71,24 +71,26 @@ class StyleGAN2Generator(nn.Module):
     (10) fmaps_max: Maximum number of feature maps in each layer. (default: 512)
     """
 
-    def __init__(self,
-                 resolution,
-                 z_space_dim=512,
-                 w_space_dim=512,
-                 label_size=0,
-                 mapping_layers=8,
-                 mapping_fmaps=512,
-                 mapping_lr_mul=0.01,
-                 repeat_w=True,
-                 image_channels=3,
-                 final_tanh=False,
-                 const_input=True,
-                 architecture='skip',
-                 fused_modulate=True,
-                 demodulate=True,
-                 use_wscale=True,
-                 fmaps_base=32 << 10,
-                 fmaps_max=512):
+    def __init__(
+        self,
+        resolution,
+        z_space_dim=512,
+        w_space_dim=512,
+        label_size=0,
+        mapping_layers=8,
+        mapping_fmaps=512,
+        mapping_lr_mul=0.01,
+        repeat_w=True,
+        image_channels=3,
+        final_tanh=False,
+        const_input=True,
+        architecture='skip',
+        fused_modulate=True,
+        demodulate=True,
+        use_wscale=True,
+        fmaps_base=32 << 10,
+        fmaps_max=512,
+    ):
         """Initializes with basic settings.
 
         Raises:
@@ -98,12 +100,16 @@ class StyleGAN2Generator(nn.Module):
         super().__init__()
 
         if resolution not in _RESOLUTIONS_ALLOWED:
-            raise ValueError(f'Invalid resolution: `{resolution}`!\n'
-                             f'Resolutions allowed: {_RESOLUTIONS_ALLOWED}.')
+            raise ValueError(
+                f'Invalid resolution: `{resolution}`!\n'
+                f'Resolutions allowed: {_RESOLUTIONS_ALLOWED}.'
+            )
         if architecture not in _ARCHITECTURES_ALLOWED:
-            raise ValueError(f'Invalid architecture: `{architecture}`!\n'
-                             f'Architectures allowed: '
-                             f'{_ARCHITECTURES_ALLOWED}.')
+            raise ValueError(
+                f'Invalid architecture: `{architecture}`!\n'
+                f'Architectures allowed: '
+                f'{_ARCHITECTURES_ALLOWED}.'
+            )
 
         self.init_res = _INIT_RES
         self.resolution = resolution
@@ -132,30 +138,36 @@ class StyleGAN2Generator(nn.Module):
             self.mapping_space_dim = self.w_space_dim
         else:
             self.mapping_space_dim = self.w_space_dim * self.num_layers
-        self.mapping = MappingModule(input_space_dim=self.z_space_dim,
-                                     hidden_space_dim=self.mapping_fmaps,
-                                     final_space_dim=self.mapping_space_dim,
-                                     label_size=self.label_size,
-                                     num_layers=self.mapping_layers,
-                                     use_wscale=self.use_wscale,
-                                     lr_mul=self.mapping_lr_mul)
+        self.mapping = MappingModule(
+            input_space_dim=self.z_space_dim,
+            hidden_space_dim=self.mapping_fmaps,
+            final_space_dim=self.mapping_space_dim,
+            label_size=self.label_size,
+            num_layers=self.mapping_layers,
+            use_wscale=self.use_wscale,
+            lr_mul=self.mapping_lr_mul,
+        )
 
-        self.truncation = TruncationModule(w_space_dim=self.w_space_dim,
-                                           num_layers=self.num_layers,
-                                           repeat_w=self.repeat_w)
+        self.truncation = TruncationModule(
+            w_space_dim=self.w_space_dim,
+            num_layers=self.num_layers,
+            repeat_w=self.repeat_w,
+        )
 
-        self.synthesis = SynthesisModule(resolution=self.resolution,
-                                         init_resolution=self.init_res,
-                                         w_space_dim=self.w_space_dim,
-                                         image_channels=self.image_channels,
-                                         final_tanh=self.final_tanh,
-                                         const_input=self.const_input,
-                                         architecture=self.architecture,
-                                         fused_modulate=self.fused_modulate,
-                                         demodulate=self.demodulate,
-                                         use_wscale=self.use_wscale,
-                                         fmaps_base=self.fmaps_base,
-                                         fmaps_max=self.fmaps_max)
+        self.synthesis = SynthesisModule(
+            resolution=self.resolution,
+            init_resolution=self.init_res,
+            w_space_dim=self.w_space_dim,
+            image_channels=self.image_channels,
+            final_tanh=self.final_tanh,
+            const_input=self.const_input,
+            architecture=self.architecture,
+            fused_modulate=self.fused_modulate,
+            demodulate=self.demodulate,
+            use_wscale=self.use_wscale,
+            fmaps_base=self.fmaps_base,
+            fmaps_max=self.fmaps_max,
+        )
 
         self.pth_to_tf_var_mapping = {}
         for key, val in self.mapping.pth_to_tf_var_mapping.items():
@@ -165,17 +177,21 @@ class StyleGAN2Generator(nn.Module):
         for key, val in self.synthesis.pth_to_tf_var_mapping.items():
             self.pth_to_tf_var_mapping[f'synthesis.{key}'] = val
 
-    def forward(self,
-                z,
-                label=None,
-                w_moving_decay=0.995,
-                style_mixing_prob=0.9,
-                trunc_psi=None,
-                trunc_layers=None,
-                randomize_noise=False,
-                use_w_space=False,
-                **_unused_kwargs):
-        assert not (use_w_space and self.training), 'Training needs to start from z space'
+    def forward(
+        self,
+        z,
+        label=None,
+        w_moving_decay=0.995,
+        style_mixing_prob=0.9,
+        trunc_psi=None,
+        trunc_layers=None,
+        randomize_noise=False,
+        use_w_space=False,
+        **_unused_kwargs,
+    ):
+        assert not (
+            use_w_space and self.training
+        ), 'Training needs to start from z space'
 
         if not use_w_space:
             mapping_results = self.mapping(z, label)
@@ -186,8 +202,9 @@ class StyleGAN2Generator(nn.Module):
         if self.training and w_moving_decay < 1:
             batch_w_avg = all_gather(w).mean(dim=0)
             self.truncation.w_avg.copy_(
-                self.truncation.w_avg * w_moving_decay +
-                batch_w_avg * (1 - w_moving_decay))
+                self.truncation.w_avg * w_moving_decay
+                + batch_w_avg * (1 - w_moving_decay)
+            )
 
         if self.training and style_mixing_prob > 0:
             new_z = torch.randn_like(z)
@@ -213,15 +230,17 @@ class MappingModule(nn.Module):
     Basically, this module executes several dense layers in sequence.
     """
 
-    def __init__(self,
-                 input_space_dim=512,
-                 hidden_space_dim=512,
-                 final_space_dim=512,
-                 label_size=0,
-                 num_layers=8,
-                 normalize_input=True,
-                 use_wscale=True,
-                 lr_mul=0.01):
+    def __init__(
+        self,
+        input_space_dim=512,
+        hidden_space_dim=512,
+        final_space_dim=512,
+        label_size=0,
+        num_layers=8,
+        normalize_input=True,
+        use_wscale=True,
+        lr_mul=0.01,
+    ):
         super().__init__()
 
         self.input_space_dim = input_space_dim
@@ -238,40 +257,49 @@ class MappingModule(nn.Module):
         self.pth_to_tf_var_mapping = {}
         for i in range(num_layers):
             dim_mul = 2 if label_size else 1
-            in_channels = (input_space_dim * dim_mul if i == 0 else
-                           hidden_space_dim)
-            out_channels = (final_space_dim if i == (num_layers - 1) else
-                            hidden_space_dim)
-            self.add_module(f'dense{i}',
-                            DenseBlock(in_channels=in_channels,
-                                       out_channels=out_channels,
-                                       use_wscale=self.use_wscale,
-                                       lr_mul=self.lr_mul))
+            in_channels = input_space_dim * dim_mul if i == 0 else hidden_space_dim
+            out_channels = (
+                final_space_dim if i == (num_layers - 1) else hidden_space_dim
+            )
+            self.add_module(
+                f'dense{i}',
+                DenseBlock(
+                    in_channels=in_channels,
+                    out_channels=out_channels,
+                    use_wscale=self.use_wscale,
+                    lr_mul=self.lr_mul,
+                ),
+            )
             self.pth_to_tf_var_mapping[f'dense{i}.weight'] = f'Dense{i}/weight'
             self.pth_to_tf_var_mapping[f'dense{i}.bias'] = f'Dense{i}/bias'
         if label_size:
-            self.label_weight = nn.Parameter(
-                torch.randn(label_size, input_space_dim))
+            self.label_weight = nn.Parameter(torch.randn(label_size, input_space_dim))
             self.pth_to_tf_var_mapping[f'label_weight'] = f'LabelConcat/weight'
 
     def forward(self, z, label=None):
         if z.ndim != 2 or z.shape[1] != self.input_space_dim:
-            raise ValueError(f'Input latent code should be with shape '
-                             f'[batch_size, input_dim], where '
-                             f'`input_dim` equals to {self.input_space_dim}!\n'
-                             f'But `{z.shape}` is received!')
+            raise ValueError(
+                f'Input latent code should be with shape '
+                f'[batch_size, input_dim], where '
+                f'`input_dim` equals to {self.input_space_dim}!\n'
+                f'But `{z.shape}` is received!'
+            )
         if self.label_size:
             if label is None:
-                raise ValueError(f'Model requires an additional label '
-                                 f'(with size {self.label_size}) as input, '
-                                 f'but no label is received!')
+                raise ValueError(
+                    f'Model requires an additional label '
+                    f'(with size {self.label_size}) as input, '
+                    f'but no label is received!'
+                )
             if label.ndim != 2 or label.shape != (z.shape[0], self.label_size):
-                raise ValueError(f'Input label should be with shape '
-                                 f'[batch_size, label_size], where '
-                                 f'`batch_size` equals to that of '
-                                 f'latent codes ({z.shape[0]}) and '
-                                 f'`label_size` equals to {self.label_size}!\n'
-                                 f'But `{label.shape}` is received!')
+                raise ValueError(
+                    f'Input label should be with shape '
+                    f'[batch_size, label_size], where '
+                    f'`batch_size` equals to that of '
+                    f'latent codes ({z.shape[0]}) and '
+                    f'`label_size` equals to {self.label_size}!\n'
+                    f'But `{label.shape}` is received!'
+                )
             embedding = torch.matmul(label, self.label_weight)
             z = torch.cat((z, embedding), dim=1)
 
@@ -352,19 +380,21 @@ class SynthesisModule(nn.Module):
     Basically, this module executes several convolutional layers in sequence.
     """
 
-    def __init__(self,
-                 resolution=1024,
-                 init_resolution=4,
-                 w_space_dim=512,
-                 image_channels=3,
-                 final_tanh=False,
-                 const_input=True,
-                 architecture='skip',
-                 fused_modulate=True,
-                 demodulate=True,
-                 use_wscale=True,
-                 fmaps_base=32 << 10,
-                 fmaps_max=512):
+    def __init__(
+        self,
+        resolution=1024,
+        init_resolution=4,
+        w_space_dim=512,
+        image_channels=3,
+        final_tanh=False,
+        const_input=True,
+        architecture='skip',
+        fused_modulate=True,
+        demodulate=True,
+        use_wscale=True,
+        fmaps_base=32 << 10,
+        fmaps_max=512,
+    ):
         super().__init__()
 
         self.init_res = init_resolution
@@ -386,113 +416,150 @@ class SynthesisModule(nn.Module):
 
         self.pth_to_tf_var_mapping = {}
         for res_log2 in range(self.init_res_log2, self.final_res_log2 + 1):
-            res = 2 ** res_log2
+            res = 2**res_log2
             block_idx = res_log2 - self.init_res_log2
 
             # First convolution layer for each resolution.
             if res == self.init_res:
                 if self.const_input:
-                    self.add_module(f'early_layer',
-                                    InputBlock(init_resolution=self.init_res,
-                                               channels=self.get_nf(res)))
+                    self.add_module(
+                        f'early_layer',
+                        InputBlock(
+                            init_resolution=self.init_res, channels=self.get_nf(res)
+                        ),
+                    )
                     self.pth_to_tf_var_mapping[f'early_layer.const'] = (
-                        f'{res}x{res}/Const/const')
+                        f'{res}x{res}/Const/const'
+                    )
                 else:
-                    self.add_module(f'early_layer',
-                                    DenseBlock(in_channels=self.w_space_dim,
-                                               out_channels=self.get_nf(res),
-                                               use_wscale=self.use_wscale))
+                    self.add_module(
+                        f'early_layer',
+                        DenseBlock(
+                            in_channels=self.w_space_dim,
+                            out_channels=self.get_nf(res),
+                            use_wscale=self.use_wscale,
+                        ),
+                    )
                     self.pth_to_tf_var_mapping[f'early_layer.weight'] = (
-                        f'{res}x{res}/Dense/weight')
+                        f'{res}x{res}/Dense/weight'
+                    )
                     self.pth_to_tf_var_mapping[f'early_layer.bias'] = (
-                        f'{res}x{res}/Dense/bias')
+                        f'{res}x{res}/Dense/bias'
+                    )
             else:
                 layer_name = f'layer{2 * block_idx - 1}'
                 self.add_module(
                     layer_name,
-                    ModulateConvBlock(in_channels=self.get_nf(res // 2),
-                                      out_channels=self.get_nf(res),
-                                      resolution=res,
-                                      w_space_dim=self.w_space_dim,
-                                      scale_factor=2,
-                                      fused_modulate=self.fused_modulate,
-                                      demodulate=self.demodulate,
-                                      use_wscale=self.use_wscale))
+                    ModulateConvBlock(
+                        in_channels=self.get_nf(res // 2),
+                        out_channels=self.get_nf(res),
+                        resolution=res,
+                        w_space_dim=self.w_space_dim,
+                        scale_factor=2,
+                        fused_modulate=self.fused_modulate,
+                        demodulate=self.demodulate,
+                        use_wscale=self.use_wscale,
+                    ),
+                )
                 self.pth_to_tf_var_mapping[f'{layer_name}.weight'] = (
-                    f'{res}x{res}/Conv0_up/weight')
+                    f'{res}x{res}/Conv0_up/weight'
+                )
                 self.pth_to_tf_var_mapping[f'{layer_name}.bias'] = (
-                    f'{res}x{res}/Conv0_up/bias')
+                    f'{res}x{res}/Conv0_up/bias'
+                )
                 self.pth_to_tf_var_mapping[f'{layer_name}.style.weight'] = (
-                    f'{res}x{res}/Conv0_up/mod_weight')
+                    f'{res}x{res}/Conv0_up/mod_weight'
+                )
                 self.pth_to_tf_var_mapping[f'{layer_name}.style.bias'] = (
-                    f'{res}x{res}/Conv0_up/mod_bias')
+                    f'{res}x{res}/Conv0_up/mod_bias'
+                )
                 self.pth_to_tf_var_mapping[f'{layer_name}.noise_strength'] = (
-                    f'{res}x{res}/Conv0_up/noise_strength')
+                    f'{res}x{res}/Conv0_up/noise_strength'
+                )
                 self.pth_to_tf_var_mapping[f'{layer_name}.noise'] = (
-                    f'noise{2 * block_idx - 1}')
+                    f'noise{2 * block_idx - 1}'
+                )
 
                 if self.architecture == 'resnet':
                     layer_name = f'layer{2 * block_idx - 1}'
                     self.add_module(
                         layer_name,
-                        ConvBlock(in_channels=self.get_nf(res // 2),
-                                  out_channels=self.get_nf(res),
-                                  kernel_size=1,
-                                  add_bias=False,
-                                  scale_factor=2,
-                                  use_wscale=self.use_wscale,
-                                  activation_type='linear'))
+                        ConvBlock(
+                            in_channels=self.get_nf(res // 2),
+                            out_channels=self.get_nf(res),
+                            kernel_size=1,
+                            add_bias=False,
+                            scale_factor=2,
+                            use_wscale=self.use_wscale,
+                            activation_type='linear',
+                        ),
+                    )
                     self.pth_to_tf_var_mapping[f'{layer_name}.weight'] = (
-                        f'{res}x{res}/Skip/weight')
+                        f'{res}x{res}/Skip/weight'
+                    )
 
             # Second convolution layer for each resolution.
             layer_name = f'layer{2 * block_idx}'
             self.add_module(
                 layer_name,
-                ModulateConvBlock(in_channels=self.get_nf(res),
-                                  out_channels=self.get_nf(res),
-                                  resolution=res,
-                                  w_space_dim=self.w_space_dim,
-                                  fused_modulate=self.fused_modulate,
-                                  demodulate=self.demodulate,
-                                  use_wscale=self.use_wscale))
+                ModulateConvBlock(
+                    in_channels=self.get_nf(res),
+                    out_channels=self.get_nf(res),
+                    resolution=res,
+                    w_space_dim=self.w_space_dim,
+                    fused_modulate=self.fused_modulate,
+                    demodulate=self.demodulate,
+                    use_wscale=self.use_wscale,
+                ),
+            )
             tf_layer_name = 'Conv' if res == self.init_res else 'Conv1'
             self.pth_to_tf_var_mapping[f'{layer_name}.weight'] = (
-                f'{res}x{res}/{tf_layer_name}/weight')
+                f'{res}x{res}/{tf_layer_name}/weight'
+            )
             self.pth_to_tf_var_mapping[f'{layer_name}.bias'] = (
-                f'{res}x{res}/{tf_layer_name}/bias')
+                f'{res}x{res}/{tf_layer_name}/bias'
+            )
             self.pth_to_tf_var_mapping[f'{layer_name}.style.weight'] = (
-                f'{res}x{res}/{tf_layer_name}/mod_weight')
+                f'{res}x{res}/{tf_layer_name}/mod_weight'
+            )
             self.pth_to_tf_var_mapping[f'{layer_name}.style.bias'] = (
-                f'{res}x{res}/{tf_layer_name}/mod_bias')
+                f'{res}x{res}/{tf_layer_name}/mod_bias'
+            )
             self.pth_to_tf_var_mapping[f'{layer_name}.noise_strength'] = (
-                f'{res}x{res}/{tf_layer_name}/noise_strength')
-            self.pth_to_tf_var_mapping[f'{layer_name}.noise'] = (
-                f'noise{2 * block_idx}')
+                f'{res}x{res}/{tf_layer_name}/noise_strength'
+            )
+            self.pth_to_tf_var_mapping[f'{layer_name}.noise'] = f'noise{2 * block_idx}'
 
             # Output convolution layer for each resolution (if needed).
             if res_log2 == self.final_res_log2 or self.architecture == 'skip':
                 layer_name = f'output{block_idx}'
                 self.add_module(
                     layer_name,
-                    ModulateConvBlock(in_channels=self.get_nf(res),
-                                      out_channels=image_channels,
-                                      resolution=res,
-                                      w_space_dim=self.w_space_dim,
-                                      kernel_size=1,
-                                      fused_modulate=self.fused_modulate,
-                                      demodulate=False,
-                                      use_wscale=self.use_wscale,
-                                      add_noise=False,
-                                      activation_type='linear'))
+                    ModulateConvBlock(
+                        in_channels=self.get_nf(res),
+                        out_channels=image_channels,
+                        resolution=res,
+                        w_space_dim=self.w_space_dim,
+                        kernel_size=1,
+                        fused_modulate=self.fused_modulate,
+                        demodulate=False,
+                        use_wscale=self.use_wscale,
+                        add_noise=False,
+                        activation_type='linear',
+                    ),
+                )
                 self.pth_to_tf_var_mapping[f'{layer_name}.weight'] = (
-                    f'{res}x{res}/ToRGB/weight')
+                    f'{res}x{res}/ToRGB/weight'
+                )
                 self.pth_to_tf_var_mapping[f'{layer_name}.bias'] = (
-                    f'{res}x{res}/ToRGB/bias')
+                    f'{res}x{res}/ToRGB/bias'
+                )
                 self.pth_to_tf_var_mapping[f'{layer_name}.style.weight'] = (
-                    f'{res}x{res}/ToRGB/mod_weight')
+                    f'{res}x{res}/ToRGB/mod_weight'
+                )
                 self.pth_to_tf_var_mapping[f'{layer_name}.style.bias'] = (
-                    f'{res}x{res}/ToRGB/mod_bias')
+                    f'{res}x{res}/ToRGB/mod_bias'
+                )
 
         if self.architecture == 'skip':
             self.upsample = UpsamplingLayer()
@@ -504,30 +571,36 @@ class SynthesisModule(nn.Module):
 
     def forward(self, wp, randomize_noise=False):
         if wp.ndim != 3 or wp.shape[1:] != (self.num_layers, self.w_space_dim):
-            raise ValueError(f'Input tensor should be with shape '
-                             f'[batch_size, num_layers, w_space_dim], where '
-                             f'`num_layers` equals to {self.num_layers}, and '
-                             f'`w_space_dim` equals to {self.w_space_dim}!\n'
-                             f'But `{wp.shape}` is received!')
+            raise ValueError(
+                f'Input tensor should be with shape '
+                f'[batch_size, num_layers, w_space_dim], where '
+                f'`num_layers` equals to {self.num_layers}, and '
+                f'`w_space_dim` equals to {self.w_space_dim}!\n'
+                f'But `{wp.shape}` is received!'
+            )
 
         results = {'wp': wp}
         x = self.early_layer(wp[:, 0])
         if self.architecture == 'origin':
             for layer_idx in range(self.num_layers - 1):
                 x, style = self.__getattr__(f'layer{layer_idx}')(
-                    x, wp[:, layer_idx], randomize_noise)
+                    x, wp[:, layer_idx], randomize_noise
+                )
                 results[f'style{layer_idx:02d}'] = style
             image, style = self.__getattr__(f'output{layer_idx // 2}')(
-                x, wp[:, layer_idx + 1])
+                x, wp[:, layer_idx + 1]
+            )
             results[f'output_style{layer_idx // 2}'] = style
         elif self.architecture == 'skip':
             for layer_idx in range(self.num_layers - 1):
                 x, style = self.__getattr__(f'layer{layer_idx}')(
-                    x, wp[:, layer_idx], randomize_noise)
+                    x, wp[:, layer_idx], randomize_noise
+                )
                 results[f'style{layer_idx:02d}'] = style
                 if layer_idx % 2 == 0:
                     temp, style = self.__getattr__(f'output{layer_idx // 2}')(
-                        x, wp[:, layer_idx + 1])
+                        x, wp[:, layer_idx + 1]
+                    )
                     results[f'output_style{layer_idx // 2}'] = style
                     if layer_idx == 0:
                         image = temp
@@ -539,14 +612,17 @@ class SynthesisModule(nn.Module):
             for layer_idx in range(1, self.num_layers - 1, 2):
                 residual = self.__getattr__(f'skip_layer{layer_idx // 2}')(x)
                 x, style = self.__getattr__(f'layer{layer_idx}')(
-                    x, wp[:, layer_idx], randomize_noise)
+                    x, wp[:, layer_idx], randomize_noise
+                )
                 results[f'style{layer_idx:02d}'] = style
                 x, style = self.__getattr__(f'layer{layer_idx + 1}')(
-                    x, wp[:, layer_idx + 1], randomize_noise)
+                    x, wp[:, layer_idx + 1], randomize_noise
+                )
                 results[f'style{layer_idx + 1:02d}'] = style
                 x = (x + residual) / np.sqrt(2.0)
             image, style = self.__getattr__(f'output{layer_idx // 2 + 1}')(
-                x, wp[:, layer_idx + 2])
+                x, wp[:, layer_idx + 2]
+            )
             results[f'output_style{layer_idx // 2}'] = style
         results['image'] = self.final_activate(image)
         return results
@@ -561,8 +637,7 @@ class PixelNormLayer(nn.Module):
         self.eps = epsilon
 
     def forward(self, x):
-        norm = torch.sqrt(
-            torch.mean(x ** 2, dim=self.dim, keepdim=True) + self.eps)
+        norm = torch.sqrt(torch.mean(x**2, dim=self.dim, keepdim=True) + self.eps)
         return x / norm
 
 
@@ -572,11 +647,9 @@ class UpsamplingLayer(nn.Module):
     This layer can also be used as filtering by setting `scale_factor` as 1.
     """
 
-    def __init__(self,
-                 scale_factor=2,
-                 kernel=(1, 3, 3, 1),
-                 extra_padding=0,
-                 kernel_gain=None):
+    def __init__(
+        self, scale_factor=2, kernel=(1, 3, 3, 1), extra_padding=0, kernel_gain=None
+    ):
         super().__init__()
         assert scale_factor >= 1
         self.scale_factor = scale_factor
@@ -592,26 +665,38 @@ class UpsamplingLayer(nn.Module):
         kernel = np.outer(kernel, kernel)
         kernel = kernel / np.sum(kernel)
         if kernel_gain is None:
-            kernel = kernel * (scale_factor ** 2)
+            kernel = kernel * (scale_factor**2)
         else:
             assert kernel_gain > 0
-            kernel = kernel * (kernel_gain ** 2)
+            kernel = kernel * (kernel_gain**2)
         assert kernel.ndim == 2
         assert kernel.shape[0] == kernel.shape[1]
         kernel = kernel[np.newaxis, np.newaxis]
         self.register_buffer('kernel', torch.from_numpy(kernel))
         self.kernel = self.kernel.flip(0, 1)
 
-        self.upsample_padding = (0, scale_factor - 1,  # Width padding.
-                                 0, 0,                 # Width.
-                                 0, scale_factor - 1,  # Height padding.
-                                 0, 0,                 # Height.
-                                 0, 0,                 # Channel.
-                                 0, 0)                 # Batch size.
+        self.upsample_padding = (
+            0,
+            scale_factor - 1,  # Width padding.
+            0,
+            0,  # Width.
+            0,
+            scale_factor - 1,  # Height padding.
+            0,
+            0,  # Height.
+            0,
+            0,  # Channel.
+            0,
+            0,
+        )  # Batch size.
 
         padding = kernel.shape[2] - scale_factor + extra_padding
-        self.padding = ((padding + 1) // 2 + scale_factor - 1, padding // 2,
-                        (padding + 1) // 2 + scale_factor - 1, padding // 2)
+        self.padding = (
+            (padding + 1) // 2 + scale_factor - 1,
+            padding // 2,
+            (padding + 1) // 2 + scale_factor - 1,
+            padding // 2,
+        )
 
     def forward(self, x):
         assert x.ndim == 4
@@ -619,8 +704,12 @@ class UpsamplingLayer(nn.Module):
         if self.scale_factor > 1:
             x = x.view(-1, channels, x.shape[2], 1, x.shape[3], 1)
             x = F.pad(x, self.upsample_padding, mode='constant', value=0)
-            x = x.view(-1, channels, x.shape[2] * self.scale_factor,
-                       x.shape[4] * self.scale_factor)
+            x = x.view(
+                -1,
+                channels,
+                x.shape[2] * self.scale_factor,
+                x.shape[4] * self.scale_factor,
+            )
         x = x.view(-1, 1, x.shape[2], x.shape[3])
         x = F.pad(x, self.padding, mode='constant', value=0)
         x = F.conv2d(x, self.kernel, stride=1)
@@ -638,7 +727,8 @@ class InputBlock(nn.Module):
     def __init__(self, init_resolution, channels):
         super().__init__()
         self.const = nn.Parameter(
-            torch.randn(1, channels, init_resolution, init_resolution))
+            torch.randn(1, channels, init_resolution, init_resolution)
+        )
 
     def forward(self, w):
         x = self.const.repeat(w.shape[0], 1, 1, 1)
@@ -655,17 +745,19 @@ class ConvBlock(nn.Module):
     `resnet` structure.
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 kernel_size=3,
-                 add_bias=True,
-                 scale_factor=1,
-                 filtering_kernel=(1, 3, 3, 1),
-                 use_wscale=True,
-                 wscale_gain=_WSCALE_GAIN,
-                 lr_mul=1.0,
-                 activation_type='lrelu'):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size=3,
+        add_bias=True,
+        scale_factor=1,
+        filtering_kernel=(1, 3, 3, 1),
+        use_wscale=True,
+        wscale_gain=_WSCALE_GAIN,
+        lr_mul=1.0,
+        activation_type='lrelu',
+    ):
         """Initializes with block settings.
 
         Args:
@@ -692,10 +784,12 @@ class ConvBlock(nn.Module):
         if scale_factor > 1:
             self.use_conv2d_transpose = True
             extra_padding = scale_factor - kernel_size
-            self.filter = UpsamplingLayer(scale_factor=1,
-                                          kernel=filtering_kernel,
-                                          extra_padding=extra_padding,
-                                          kernel_gain=scale_factor)
+            self.filter = UpsamplingLayer(
+                scale_factor=1,
+                kernel=filtering_kernel,
+                extra_padding=extra_padding,
+                kernel_gain=scale_factor,
+            )
             self.stride = scale_factor
             self.padding = 0  # Padding is done in `UpsamplingLayer`.
         else:
@@ -711,8 +805,7 @@ class ConvBlock(nn.Module):
             self.weight = nn.Parameter(torch.randn(*weight_shape) / lr_mul)
             self.wscale = wscale * lr_mul
         else:
-            self.weight = nn.Parameter(
-                torch.randn(*weight_shape) * wscale / lr_mul)
+            self.weight = nn.Parameter(torch.randn(*weight_shape) * wscale / lr_mul)
             self.wscale = lr_mul
 
         if add_bias:
@@ -728,26 +821,27 @@ class ConvBlock(nn.Module):
             self.activate = nn.LeakyReLU(negative_slope=0.2, inplace=True)
             self.activate_scale = np.sqrt(2.0)
         else:
-            raise NotImplementedError(f'Not implemented activation function: '
-                                      f'`{activation_type}`!')
+            raise NotImplementedError(
+                f'Not implemented activation function: ' f'`{activation_type}`!'
+            )
 
     def forward(self, x):
         weight = self.weight * self.wscale
         bias = self.bias * self.bscale if self.bias is not None else None
         if self.use_conv2d_transpose:
             weight = weight.permute(1, 0, 2, 3).flip(2, 3)
-            x = F.conv_transpose2d(x,
-                                   weight=weight,
-                                   bias=bias,
-                                   stride=self.scale_factor,
-                                   padding=self.padding)
+            x = F.conv_transpose2d(
+                x,
+                weight=weight,
+                bias=bias,
+                stride=self.scale_factor,
+                padding=self.padding,
+            )
             x = self.filter(x)
         else:
-            x = F.conv2d(x,
-                         weight=weight,
-                         bias=bias,
-                         stride=self.stride,
-                         padding=self.padding)
+            x = F.conv2d(
+                x, weight=weight, bias=bias, stride=self.stride, padding=self.padding
+            )
         x = self.activate(x) * self.activate_scale
         return x
 
@@ -755,23 +849,25 @@ class ConvBlock(nn.Module):
 class ModulateConvBlock(nn.Module):
     """Implements the convolutional block with style modulation."""
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 resolution,
-                 w_space_dim,
-                 kernel_size=3,
-                 add_bias=True,
-                 scale_factor=1,
-                 filtering_kernel=(1, 3, 3, 1),
-                 fused_modulate=True,
-                 demodulate=True,
-                 use_wscale=True,
-                 wscale_gain=_WSCALE_GAIN,
-                 lr_mul=1.0,
-                 add_noise=True,
-                 activation_type='lrelu',
-                 epsilon=1e-8):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        resolution,
+        w_space_dim,
+        kernel_size=3,
+        add_bias=True,
+        scale_factor=1,
+        filtering_kernel=(1, 3, 3, 1),
+        fused_modulate=True,
+        demodulate=True,
+        use_wscale=True,
+        wscale_gain=_WSCALE_GAIN,
+        lr_mul=1.0,
+        add_noise=True,
+        activation_type='lrelu',
+        epsilon=1e-8,
+    ):
         """Initializes with block settings.
 
         Args:
@@ -812,10 +908,12 @@ class ModulateConvBlock(nn.Module):
         if scale_factor > 1:
             self.use_conv2d_transpose = True
             extra_padding = scale_factor - kernel_size
-            self.filter = UpsamplingLayer(scale_factor=1,
-                                          kernel=filtering_kernel,
-                                          extra_padding=extra_padding,
-                                          kernel_gain=scale_factor)
+            self.filter = UpsamplingLayer(
+                scale_factor=1,
+                kernel=filtering_kernel,
+                extra_padding=extra_padding,
+                kernel_gain=scale_factor,
+            )
             self.stride = scale_factor
             self.padding = 0  # Padding is done in `UpsamplingLayer`.
         else:
@@ -831,15 +929,16 @@ class ModulateConvBlock(nn.Module):
             self.weight = nn.Parameter(torch.randn(*weight_shape) / lr_mul)
             self.wscale = wscale * lr_mul
         else:
-            self.weight = nn.Parameter(
-                torch.randn(*weight_shape) * wscale / lr_mul)
+            self.weight = nn.Parameter(torch.randn(*weight_shape) * wscale / lr_mul)
             self.wscale = lr_mul
 
-        self.style = DenseBlock(in_channels=w_space_dim,
-                                out_channels=in_channels,
-                                additional_bias=1.0,
-                                use_wscale=use_wscale,
-                                activation_type='linear')
+        self.style = DenseBlock(
+            in_channels=w_space_dim,
+            out_channels=in_channels,
+            additional_bias=1.0,
+            use_wscale=use_wscale,
+            activation_type='linear',
+        )
 
         self.fused_modulate = fused_modulate
         self.demodulate = demodulate
@@ -857,8 +956,9 @@ class ModulateConvBlock(nn.Module):
             self.activate = nn.LeakyReLU(negative_slope=0.2, inplace=True)
             self.activate_scale = np.sqrt(2.0)
         else:
-            raise NotImplementedError(f'Not implemented activation function: '
-                                      f'`{activation_type}`!')
+            raise NotImplementedError(
+                f'Not implemented activation function: ' f'`{activation_type}`!'
+            )
 
         self.add_noise = add_noise
         if self.add_noise:
@@ -878,14 +978,14 @@ class ModulateConvBlock(nn.Module):
 
         # Style demodulation.
         if self.demodulate:
-            _weight_norm = torch.sqrt(
-                torch.sum(_weight ** 2, dim=[1, 2, 3]) + self.eps)
+            _weight_norm = torch.sqrt(torch.sum(_weight**2, dim=[1, 2, 3]) + self.eps)
             _weight = _weight / _weight_norm.view(batch, 1, 1, 1, self.out_c)
 
         if self.fused_modulate:
             x = x.view(1, batch * self.in_c, x.shape[2], x.shape[3])
             weight = _weight.permute(1, 2, 3, 0, 4).reshape(
-                self.ksize, self.ksize, self.in_c, batch * self.out_c)
+                self.ksize, self.ksize, self.in_c, batch * self.out_c
+            )
         else:
             x = x * style.view(batch, self.in_c, 1, 1)
 
@@ -893,28 +993,34 @@ class ModulateConvBlock(nn.Module):
             weight = weight.flip(0, 1)
             if self.fused_modulate:
                 weight = weight.view(
-                    self.ksize, self.ksize, self.in_c, batch, self.out_c)
+                    self.ksize, self.ksize, self.in_c, batch, self.out_c
+                )
                 weight = weight.permute(0, 1, 4, 3, 2)
                 weight = weight.reshape(
-                    self.ksize, self.ksize, self.out_c, batch * self.in_c)
+                    self.ksize, self.ksize, self.out_c, batch * self.in_c
+                )
                 weight = weight.permute(3, 2, 0, 1)
             else:
                 weight = weight.permute(2, 3, 0, 1)
-            x = F.conv_transpose2d(x,
-                                   weight=weight,
-                                   bias=None,
-                                   stride=self.stride,
-                                   padding=self.padding,
-                                   groups=(batch if self.fused_modulate else 1))
+            x = F.conv_transpose2d(
+                x,
+                weight=weight,
+                bias=None,
+                stride=self.stride,
+                padding=self.padding,
+                groups=(batch if self.fused_modulate else 1),
+            )
             x = self.filter(x)
         else:
             weight = weight.permute(3, 2, 0, 1)
-            x = F.conv2d(x,
-                         weight=weight,
-                         bias=None,
-                         stride=self.stride,
-                         padding=self.padding,
-                         groups=(batch if self.fused_modulate else 1))
+            x = F.conv2d(
+                x,
+                weight=weight,
+                bias=None,
+                stride=self.stride,
+                padding=self.padding,
+                groups=(batch if self.fused_modulate else 1),
+            )
 
         if self.fused_modulate:
             x = x.view(batch, self.out_c, self.res, self.res)
@@ -945,15 +1051,17 @@ class DenseBlock(nn.Module):
     the style code.
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 add_bias=True,
-                 additional_bias=0,
-                 use_wscale=True,
-                 wscale_gain=_WSCALE_GAIN,
-                 lr_mul=1.0,
-                 activation_type='lrelu'):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        add_bias=True,
+        additional_bias=0,
+        use_wscale=True,
+        wscale_gain=_WSCALE_GAIN,
+        lr_mul=1.0,
+        activation_type='lrelu',
+    ):
         """Initializes with block settings.
 
         Args:
@@ -979,8 +1087,7 @@ class DenseBlock(nn.Module):
             self.weight = nn.Parameter(torch.randn(*weight_shape) / lr_mul)
             self.wscale = wscale * lr_mul
         else:
-            self.weight = nn.Parameter(
-                torch.randn(*weight_shape) * wscale / lr_mul)
+            self.weight = nn.Parameter(torch.randn(*weight_shape) * wscale / lr_mul)
             self.wscale = lr_mul
 
         if add_bias:
@@ -997,8 +1104,9 @@ class DenseBlock(nn.Module):
             self.activate = nn.LeakyReLU(negative_slope=0.2, inplace=True)
             self.activate_scale = np.sqrt(2.0)
         else:
-            raise NotImplementedError(f'Not implemented activation function: '
-                                      f'`{activation_type}`!')
+            raise NotImplementedError(
+                f'Not implemented activation function: ' f'`{activation_type}`!'
+            )
 
     def forward(self, x):
         if x.ndim != 2:

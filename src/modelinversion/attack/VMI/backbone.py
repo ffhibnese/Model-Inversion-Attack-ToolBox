@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from torch.nn.utils.weight_norm import WeightNorm
 import copy
 import ipdb
+
 # Basic ResNet model
 
 f_softplus = nn.functional.softplus
@@ -18,8 +19,8 @@ f_softplus = nn.functional.softplus
 def init_layer(L):
     # Initialization using fan-in
     if isinstance(L, nn.Conv2d):
-        n = L.kernel_size[0]*L.kernel_size[1]*L.out_channels
-        L.weight.data.normal_(0, math.sqrt(2.0/float(n)))
+        n = L.kernel_size[0] * L.kernel_size[1] * L.out_channels
+        L.weight.data.normal_(0, math.sqrt(2.0 / float(n)))
     elif isinstance(L, nn.BatchNorm2d):
         L.weight.data.fill_(1)
         L.bias.data.fill_(0)
@@ -41,8 +42,11 @@ class distLinear(nn.Module):
     def forward(self, x):
         x_norm = torch.norm(x, p=2, dim=1).unsqueeze(1).expand_as(x)
         x_normalized = x.div(x_norm + 0.00001)
-        L_norm = torch.norm(self.L.weight.data, p=2, dim=1).unsqueeze(
-            1).expand_as(self.L.weight.data)
+        L_norm = (
+            torch.norm(self.L.weight.data, p=2, dim=1)
+            .unsqueeze(1)
+            .expand_as(self.L.weight.data)
+        )
         self.L.weight.data = self.L.weight.data.div(L_norm + 0.00001)
         cos_dist = self.L(x_normalized)  # matrix product by forward function
         scores = self.scale_factor * (cos_dist)
@@ -79,42 +83,55 @@ class Linear_fw_bbb(nn.Linear):  # used in MAML to forward input with fast weigh
         self.bias.fast = None
         # self.weight_std = copy.deepcopy(self.weight)
         # self.bias_std = copy.deepcopy(self.bias)
-        self.weight_std = nn.Parameter(-10 *
-                                       torch.ones_like(self.weight).to(self.weight.device))
+        self.weight_std = nn.Parameter(
+            -10 * torch.ones_like(self.weight).to(self.weight.device)
+        )
         self.weight_std.fast = None
-        self.bias_std = nn.Parameter(-10 *
-                                     torch.ones_like(self.bias).to(self.weight.device))
+        self.bias_std = nn.Parameter(
+            -10 * torch.ones_like(self.bias).to(self.weight.device)
+        )
         self.bias_std.fast = None
 
     def get_sample_stats(self):
         return (
             [self.sampled_w, self.sampled_b],
             [self.weight, self.bias],
-            [self.weight_std, self.bias_std]
+            [self.weight_std, self.bias_std],
         )
 
     def forward(self, x):
         if self.weight.fast is not None and self.bias.fast is not None:
             # ipdb.set_trace()
-            self.sampled_w.fast = self.weight.fast + \
-                torch.randn_like(self.weight) * \
-                f_softplus(self.weight_std.fast)
-            self.sampled_b.fast = self.bias.fast + \
-                torch.randn_like(self.bias) * f_softplus(self.bias_std.fast)
+            self.sampled_w.fast = self.weight.fast + torch.randn_like(
+                self.weight
+            ) * f_softplus(self.weight_std.fast)
+            self.sampled_b.fast = self.bias.fast + torch.randn_like(
+                self.bias
+            ) * f_softplus(self.bias_std.fast)
             out = F.linear(x, self.sampled_w.fast, self.sampled_b.fast)
         else:
-            self.sampled_w = self.weight + \
-                torch.randn_like(self.weight) * f_softplus(self.weight_std)
-            self.sampled_b = self.bias + \
-                torch.randn_like(self.bias) * f_softplus(self.bias_std)
+            self.sampled_w = self.weight + torch.randn_like(self.weight) * f_softplus(
+                self.weight_std
+            )
+            self.sampled_b = self.bias + torch.randn_like(self.bias) * f_softplus(
+                self.bias_std
+            )
             out = F.linear(x, self.sampled_w, self.sampled_b)
         return out
 
 
 class Conv2d_fw(nn.Conv2d):  # used in MAML to forward input with fast weight
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True):
-        super(Conv2d_fw, self).__init__(in_channels, out_channels,
-                                        kernel_size, stride=stride, padding=padding, bias=bias)
+    def __init__(
+        self, in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True
+    ):
+        super(Conv2d_fw, self).__init__(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride=stride,
+            padding=padding,
+            bias=bias,
+        )
         self.weight.fast = None
         if not self.bias is None:
             self.bias.fast = None
@@ -122,14 +139,20 @@ class Conv2d_fw(nn.Conv2d):  # used in MAML to forward input with fast weight
     def forward(self, x):
         if self.bias is None:
             if self.weight.fast is not None:
-                out = F.conv2d(x, self.weight.fast, None,
-                               stride=self.stride, padding=self.padding)
+                out = F.conv2d(
+                    x, self.weight.fast, None, stride=self.stride, padding=self.padding
+                )
             else:
                 out = super(Conv2d_fw, self).forward(x)
         else:
             if self.weight.fast is not None and self.bias.fast is not None:
-                out = F.conv2d(x, self.weight.fast, self.bias.fast,
-                               stride=self.stride, padding=self.padding)
+                out = F.conv2d(
+                    x,
+                    self.weight.fast,
+                    self.bias.fast,
+                    stride=self.stride,
+                    padding=self.padding,
+                )
             else:
                 out = super(Conv2d_fw, self).forward(x)
 
@@ -137,47 +160,69 @@ class Conv2d_fw(nn.Conv2d):  # used in MAML to forward input with fast weight
 
 
 class Conv2d_fw_bbb(nn.Conv2d):  # used in MAML to forward input with fast weight
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True):
-        super(Conv2d_fw_bbb, self).__init__(in_channels, out_channels,
-                                            kernel_size, stride=stride, padding=padding, bias=bias)
+    def __init__(
+        self, in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True
+    ):
+        super(Conv2d_fw_bbb, self).__init__(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride=stride,
+            padding=padding,
+            bias=bias,
+        )
         assert bias
         self.weight.fast = None
         self.bias.fast = None
         # self.weight_std = copy.deepcopy(self.weight)
         # self.bias_std = copy.deepcopy(self.bias)
-        self.weight_std = nn.Parameter(-10 *
-                                       torch.ones_like(self.weight).to(self.weight.device))
+        self.weight_std = nn.Parameter(
+            -10 * torch.ones_like(self.weight).to(self.weight.device)
+        )
         self.weight_std.fast = None
-        self.bias_std = nn.Parameter(-10 *
-                                     torch.ones_like(self.bias).to(self.weight.device))
+        self.bias_std = nn.Parameter(
+            -10 * torch.ones_like(self.bias).to(self.weight.device)
+        )
         self.bias_std.fast = None
 
     def get_sample_stats(self):
         return (
             [self.sampled_w, self.sampled_b],
             [self.weight, self.bias],
-            [self.weight_std, self.bias_std]
+            [self.weight_std, self.bias_std],
         )
 
     def forward(self, x):
         if self.weight.fast is not None and self.bias.fast is not None:
-            self.sampled_w.fast = self.weight.fast + \
-                torch.randn_like(self.weight.fast) * \
-                f_softplus(self.weight_std.fast)
-            self.sampled_b.fast = self.bias.fast + \
-                torch.randn_like(self.bias.fast) * \
-                f_softplus(self.bias_std.fast)
-            out = F.conv2d(x, self.sampled_w.fast, self.sampled_b.fast,
-                           stride=self.stride, padding=self.padding)
+            self.sampled_w.fast = self.weight.fast + torch.randn_like(
+                self.weight.fast
+            ) * f_softplus(self.weight_std.fast)
+            self.sampled_b.fast = self.bias.fast + torch.randn_like(
+                self.bias.fast
+            ) * f_softplus(self.bias_std.fast)
+            out = F.conv2d(
+                x,
+                self.sampled_w.fast,
+                self.sampled_b.fast,
+                stride=self.stride,
+                padding=self.padding,
+            )
         else:
 
-            self.sampled_w = self.weight + \
-                torch.randn_like(self.weight) * f_softplus(self.weight_std)
+            self.sampled_w = self.weight + torch.randn_like(self.weight) * f_softplus(
+                self.weight_std
+            )
 
-            self.sampled_b = self.bias + \
-                torch.randn_like(self.bias) * f_softplus(self.bias_std)
-            out = F.conv2d(x, self.sampled_w, self.sampled_b,
-                           stride=self.stride, padding=self.padding)
+            self.sampled_b = self.bias + torch.randn_like(self.bias) * f_softplus(
+                self.bias_std
+            )
+            out = F.conv2d(
+                x,
+                self.sampled_w,
+                self.sampled_b,
+                stride=self.stride,
+                padding=self.padding,
+            )
         return out
 
 
@@ -195,19 +240,39 @@ class BatchNorm2d_fw(nn.BatchNorm2d):
         if self.training:
             if self.weight.fast is not None and self.bias.fast is not None:
                 # print("[Learner: ] updating")
-                out = F.batch_norm(x, running_mean, running_var, self.weight.fast,
-                                   self.bias.fast, training=True, momentum=1)
+                out = F.batch_norm(
+                    x,
+                    running_mean,
+                    running_var,
+                    self.weight.fast,
+                    self.bias.fast,
+                    training=True,
+                    momentum=1,
+                )
                 # batch_norm momentum hack: follow hack of Kate Rakelly in pytorch-maml/src/layers.py
             else:
                 # print("[Learner: ] 1st step")
-                out = F.batch_norm(x, running_mean, running_var,
-                                   self.weight, self.bias, training=True, momentum=1)
+                out = F.batch_norm(
+                    x,
+                    running_mean,
+                    running_var,
+                    self.weight,
+                    self.bias,
+                    training=True,
+                    momentum=1,
+                )
             self.running_var = running_var
             self.running_mean = running_mean
         else:  # this basically is used after "inner-loop" is done on the support set, and we're "evaluating" on the support set
             # print("[Learner: ] predicting")
-            out = F.batch_norm(x, self.running_mean, self.running_var,
-                               self.weight.fast, self.bias.fast, training=False)
+            out = F.batch_norm(
+                x,
+                self.running_mean,
+                self.running_var,
+                self.weight.fast,
+                self.bias.fast,
+                training=False,
+            )
         return out
 
 
@@ -240,6 +305,7 @@ class BBBConvBlock(nn.Module):
     def forward(self, x):
         out = self.trunk(x)
         return out
+
 
 # Simple Conv Block
 
@@ -276,6 +342,7 @@ class ConvBlock(nn.Module):
         out = self.trunk(x)
         return out
 
+
 # Simple ResNet Block
 
 
@@ -287,18 +354,28 @@ class SimpleBlock(nn.Module):
         self.indim = indim
         self.outdim = outdim
         if self.maml:
-            self.C1 = Conv2d_fw(indim, outdim, kernel_size=3,
-                                stride=2 if half_res else 1, padding=1, bias=False)
+            self.C1 = Conv2d_fw(
+                indim,
+                outdim,
+                kernel_size=3,
+                stride=2 if half_res else 1,
+                padding=1,
+                bias=False,
+            )
             self.BN1 = BatchNorm2d_fw(outdim)
-            self.C2 = Conv2d_fw(
-                outdim, outdim, kernel_size=3, padding=1, bias=False)
+            self.C2 = Conv2d_fw(outdim, outdim, kernel_size=3, padding=1, bias=False)
             self.BN2 = BatchNorm2d_fw(outdim)
         else:
-            self.C1 = nn.Conv2d(indim, outdim, kernel_size=3,
-                                stride=2 if half_res else 1, padding=1, bias=False)
+            self.C1 = nn.Conv2d(
+                indim,
+                outdim,
+                kernel_size=3,
+                stride=2 if half_res else 1,
+                padding=1,
+                bias=False,
+            )
             self.BN1 = nn.BatchNorm2d(outdim)
-            self.C2 = nn.Conv2d(
-                outdim, outdim, kernel_size=3, padding=1, bias=False)
+            self.C2 = nn.Conv2d(outdim, outdim, kernel_size=3, padding=1, bias=False)
             self.BN2 = nn.BatchNorm2d(outdim)
         self.relu1 = nn.ReLU(inplace=True)
         self.relu2 = nn.ReLU(inplace=True)
@@ -311,11 +388,13 @@ class SimpleBlock(nn.Module):
         if indim != outdim:
             if self.maml:
                 self.shortcut = Conv2d_fw(
-                    indim, outdim, 1, 2 if half_res else 1, bias=False)
+                    indim, outdim, 1, 2 if half_res else 1, bias=False
+                )
                 self.BNshortcut = BatchNorm2d_fw(outdim)
             else:
                 self.shortcut = nn.Conv2d(
-                    indim, outdim, 1, 2 if half_res else 1, bias=False)
+                    indim, outdim, 1, 2 if half_res else 1, bias=False
+                )
                 self.BNshortcut = nn.BatchNorm2d(outdim)
 
             self.parametrized_layers.append(self.shortcut)
@@ -333,8 +412,9 @@ class SimpleBlock(nn.Module):
         out = self.relu1(out)
         out = self.C2(out)
         out = self.BN2(out)
-        short_out = x if self.shortcut_type == 'identity' else self.BNshortcut(
-            self.shortcut(x))
+        short_out = (
+            x if self.shortcut_type == 'identity' else self.BNshortcut(self.shortcut(x))
+        )
         out = out + short_out
         out = self.relu2(out)
         return out
@@ -346,43 +426,57 @@ class BottleneckBlock(nn.Module):
 
     def __init__(self, indim, outdim, half_res):
         super(BottleneckBlock, self).__init__()
-        bottleneckdim = int(outdim/4)
+        bottleneckdim = int(outdim / 4)
         self.indim = indim
         self.outdim = outdim
         if self.maml:
-            self.C1 = Conv2d_fw(indim, bottleneckdim,
-                                kernel_size=1,  bias=False)
+            self.C1 = Conv2d_fw(indim, bottleneckdim, kernel_size=1, bias=False)
             self.BN1 = BatchNorm2d_fw(bottleneckdim)
-            self.C2 = Conv2d_fw(bottleneckdim, bottleneckdim,
-                                kernel_size=3, stride=2 if half_res else 1, padding=1)
+            self.C2 = Conv2d_fw(
+                bottleneckdim,
+                bottleneckdim,
+                kernel_size=3,
+                stride=2 if half_res else 1,
+                padding=1,
+            )
             self.BN2 = BatchNorm2d_fw(bottleneckdim)
-            self.C3 = Conv2d_fw(bottleneckdim, outdim,
-                                kernel_size=1, bias=False)
+            self.C3 = Conv2d_fw(bottleneckdim, outdim, kernel_size=1, bias=False)
             self.BN3 = BatchNorm2d_fw(outdim)
         else:
-            self.C1 = nn.Conv2d(indim, bottleneckdim,
-                                kernel_size=1,  bias=False)
+            self.C1 = nn.Conv2d(indim, bottleneckdim, kernel_size=1, bias=False)
             self.BN1 = nn.BatchNorm2d(bottleneckdim)
-            self.C2 = nn.Conv2d(bottleneckdim, bottleneckdim,
-                                kernel_size=3, stride=2 if half_res else 1, padding=1)
+            self.C2 = nn.Conv2d(
+                bottleneckdim,
+                bottleneckdim,
+                kernel_size=3,
+                stride=2 if half_res else 1,
+                padding=1,
+            )
             self.BN2 = nn.BatchNorm2d(bottleneckdim)
-            self.C3 = nn.Conv2d(bottleneckdim, outdim,
-                                kernel_size=1, bias=False)
+            self.C3 = nn.Conv2d(bottleneckdim, outdim, kernel_size=1, bias=False)
             self.BN3 = nn.BatchNorm2d(outdim)
 
         self.relu = nn.ReLU()
         self.parametrized_layers = [
-            self.C1, self.BN1, self.C2, self.BN2, self.C3, self.BN3]
+            self.C1,
+            self.BN1,
+            self.C2,
+            self.BN2,
+            self.C3,
+            self.BN3,
+        ]
         self.half_res = half_res
 
         # if the input number of channels is not equal to the output, then need a 1x1 convolution
         if indim != outdim:
             if self.maml:
                 self.shortcut = Conv2d_fw(
-                    indim, outdim, 1, stride=2 if half_res else 1, bias=False)
+                    indim, outdim, 1, stride=2 if half_res else 1, bias=False
+                )
             else:
                 self.shortcut = nn.Conv2d(
-                    indim, outdim, 1, stride=2 if half_res else 1, bias=False)
+                    indim, outdim, 1, stride=2 if half_res else 1, bias=False
+                )
 
             self.parametrized_layers.append(self.shortcut)
             self.shortcut_type = '1x1'
@@ -410,8 +504,7 @@ class BottleneckBlock(nn.Module):
 
 
 class ConvNetLL(nn.Module):
-    """ Linear Last layer
-    """
+    """Linear Last layer"""
 
     def __init__(self, depth, flatten=True):
         super(ConvNetLL, self).__init__()
@@ -450,8 +543,7 @@ class WeightedFiLM(nn.Module):
 
         gammas = 1 + gammas.unsqueeze(2).unsqueeze(3).expand_as(x)
         betas = betas.unsqueeze(2).unsqueeze(3).expand_as(x)
-        return (film_w * ((gammas * x) + betas)
-                + (1-film_w) * x)
+        return film_w * ((gammas * x) + betas) + (1 - film_w) * x
 
 
 class Conv4FiLM(nn.Module):
@@ -478,8 +570,8 @@ class Conv4FiLM(nn.Module):
             g1, g2, g3, g4 = gammas
             b1, b2, b3, b4 = betas
         else:
-            g1, g2, g3, g4 = [gammas]*4
-            b1, b2, b3, b4 = [betas]*4
+            g1, g2, g3, g4 = [gammas] * 4
+            b1, b2, b3, b4 = [betas] * 4
         x = self.conv1(x)
         x = self.film1(x, g1, b1, film_w)
         x = self.conv2(x)
@@ -584,8 +676,9 @@ class ConvNetNopool(nn.Module):
         for i in range(depth):
             indim = 3 if i == 0 else 64
             outdim = 64
-            B = ConvBlock(indim, outdim, pool=(i in [0, 1]), padding=0 if i in [
-                          0, 1] else 1)  # only first two layer has pooling and no padding
+            B = ConvBlock(
+                indim, outdim, pool=(i in [0, 1]), padding=0 if i in [0, 1] else 1
+            )  # only first two layer has pooling and no padding
             trunk.append(B)
 
         self.trunk = nn.Sequential(*trunk)
@@ -627,8 +720,9 @@ class ConvNetSNopool(nn.Module):
         for i in range(depth):
             indim = 1 if i == 0 else 64
             outdim = 64
-            B = ConvBlock(indim, outdim, pool=(i in [0, 1]), padding=0 if i in [
-                          0, 1] else 1)  # only first two layer has pooling and no padding
+            B = ConvBlock(
+                indim, outdim, pool=(i in [0, 1]), padding=0 if i in [0, 1] else 1
+            )  # only first two layer has pooling and no padding
             trunk.append(B)
 
         self.trunk = nn.Sequential(*trunk)
@@ -643,18 +737,24 @@ class ConvNetSNopool(nn.Module):
 class ResNet(nn.Module):
     maml = False  # Default
 
-    def __init__(self, nc, block, list_of_num_layers, list_of_out_dims, flatten=True, final_fmap_size=7):
+    def __init__(
+        self,
+        nc,
+        block,
+        list_of_num_layers,
+        list_of_out_dims,
+        flatten=True,
+        final_fmap_size=7,
+    ):
         # list_of_num_layers specifies number of layers in each stage
         # list_of_out_dims specifies number of output channel for each stage
         super(ResNet, self).__init__()
         assert len(list_of_num_layers) == 4, 'Can have only four stages'
         if self.maml:
-            conv1 = Conv2d_fw(nc, 64, kernel_size=7, stride=2, padding=3,
-                              bias=False)
+            conv1 = Conv2d_fw(nc, 64, kernel_size=7, stride=2, padding=3, bias=False)
             bn1 = BatchNorm2d_fw(64)
         else:
-            conv1 = nn.Conv2d(nc, 64, kernel_size=7, stride=2, padding=3,
-                              bias=False)
+            conv1 = nn.Conv2d(nc, 64, kernel_size=7, stride=2, padding=3, bias=False)
             bn1 = nn.BatchNorm2d(64)
 
         relu = nn.ReLU()
@@ -731,7 +831,9 @@ def Conv4SNP():
 
 
 def ResNet10(nc=3, flatten=True):
-    return ResNet(nc, SimpleBlock, [1, 1, 1, 1], [64, 128, 256, 512], flatten, final_fmap_size=1)
+    return ResNet(
+        nc, SimpleBlock, [1, 1, 1, 1], [64, 128, 256, 512], flatten, final_fmap_size=1
+    )
 
 
 def ResNet10_64(nc=3, flatten=True):
@@ -751,14 +853,32 @@ def ResNetL_I(L, imgSize, nc, flatten=True):
         raise
 
     if L == 10:
-        net = ResNet(nc, SimpleBlock, [1, 1, 1, 1], [
-                     64, 128, 256, 512], flatten, final_fmap_size=ffs)
+        net = ResNet(
+            nc,
+            SimpleBlock,
+            [1, 1, 1, 1],
+            [64, 128, 256, 512],
+            flatten,
+            final_fmap_size=ffs,
+        )
     elif L == 34:
-        net = ResNet(nc, SimpleBlock, [3, 4, 6, 3], [
-                     64, 128, 256, 512], flatten, final_fmap_size=ffs)
+        net = ResNet(
+            nc,
+            SimpleBlock,
+            [3, 4, 6, 3],
+            [64, 128, 256, 512],
+            flatten,
+            final_fmap_size=ffs,
+        )
     elif L == 50:
-        net = ResNet(nc, BottleneckBlock, [3, 4, 6, 3], [
-                     256, 512, 1024, 2048], flatten, final_fmap_size=ffs)
+        net = ResNet(
+            nc,
+            BottleneckBlock,
+            [3, 4, 6, 3],
+            [256, 512, 1024, 2048],
+            flatten,
+            final_fmap_size=ffs,
+        )
     return net
 
 

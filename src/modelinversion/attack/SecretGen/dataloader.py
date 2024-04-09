@@ -8,22 +8,35 @@ import torch
 
 
 class ResizedCrop(torch.nn.Module):
-    def __init__(self, size=64, ratio=(1, 1.2), interpolation=InterpolationMode.BILINEAR):
+    def __init__(
+        self, size=64, ratio=(1, 1.2), interpolation=InterpolationMode.BILINEAR
+    ):
         super().__init__()
 
-        self.transform_ = transforms.Compose([
-            transforms.Resize((int(size*ratio[0]), int(size*ratio[1])), interpolation=interpolation),
-            transforms.CenterCrop((size, size))
-        ])
+        self.transform_ = transforms.Compose(
+            [
+                transforms.Resize(
+                    (int(size * ratio[0]), int(size * ratio[1])),
+                    interpolation=interpolation,
+                ),
+                transforms.CenterCrop((size, size)),
+            ]
+        )
 
     def forward(self, img):
         out = self.transform_(img)
         return out
 
 
-
 class CelebA(data.Dataset):
-    def __init__(self, split, img_path='~/CelebA/celeba/img_align_celeba/', identity_file='~/CelebA/celeba/identity_CelebA.txt', num_ids=1000, trans=False):
+    def __init__(
+        self,
+        split,
+        img_path='~/CelebA/celeba/img_align_celeba/',
+        identity_file='~/CelebA/celeba/identity_CelebA.txt',
+        num_ids=1000,
+        trans=False,
+    ):
         self.num_ids = num_ids
         self.trans = trans
         self.img_path = osp.expanduser(img_path)
@@ -106,7 +119,7 @@ class CelebA(data.Dataset):
                 i += 1
         elif split == 'pri-':
             i = 0
-            for key in sorted(id2file_cleaned.keys())[2000:2000+num_ids]:
+            for key in sorted(id2file_cleaned.keys())[2000 : 2000 + num_ids]:
                 for file in id2file_cleaned[key][:20]:
                     self.name_list.append(file)
                     self.label_list.append(i)
@@ -123,13 +136,16 @@ class CelebA(data.Dataset):
 
         self.processor = self.get_processor()
 
-    
     def get_processor(self):
         crop_size = 108
         re_size = 64
         offset_height = (218 - crop_size) // 2
         offset_width = (178 - crop_size) // 2
-        crop = lambda x: x[:, offset_height:offset_height + crop_size, offset_width:offset_width + crop_size]
+        crop = lambda x: x[
+            :,
+            offset_height : offset_height + crop_size,
+            offset_width : offset_width + crop_size,
+        ]
 
         proc = []
         proc.append(transforms.ToTensor())
@@ -143,9 +159,8 @@ class CelebA(data.Dataset):
             proc.append(transforms.RandomHorizontalFlip(p=0.2))
             # proc.append(transforms.RandomApply([transforms.ColorJitter()], p=0.2))
             proc.append(transforms.RandomGrayscale(p=0.2))
-                    
-        return transforms.Compose(proc)
 
+        return transforms.Compose(proc)
 
     def __getitem__(self, index):
         path = self.img_path + "/" + self.name_list[index]
@@ -157,10 +172,8 @@ class CelebA(data.Dataset):
         one_hot[label] = 1
         return img, one_hot, label
 
-
     def __len__(self):
         return len(self.name_list)
-
 
 
 class CelebAVirtual(data.Dataset):
@@ -170,7 +183,6 @@ class CelebAVirtual(data.Dataset):
         identity_file = osp.join(path, 'identity.txt')
         with open(osp.expanduser(identity_file)) as f:
             lines = f.readlines()
-
 
         id2file = {}
         file2id = {}
@@ -188,12 +200,12 @@ class CelebAVirtual(data.Dataset):
 
         if split == 'train':
             for key in sorted(id2file.keys()):
-                for file in id2file[key][:int(0.8*len(id2file[key]))]:
+                for file in id2file[key][: int(0.8 * len(id2file[key]))]:
                     self.name_list.append(file)
                     self.label_list.append(file2id[file])
         elif split == 'dev':
             for key in sorted(id2file.keys()):
-                for file in id2file[key][int(0.8*len(id2file[key])):]:
+                for file in id2file[key][int(0.8 * len(id2file[key])) :]:
                     self.name_list.append(file)
                     self.label_list.append(file2id[file])
         elif split == 'all':
@@ -204,17 +216,15 @@ class CelebAVirtual(data.Dataset):
 
         self.processor = self.get_processor()
 
-    
     def get_processor(self):
         proc = []
         proc.append(transforms.ToTensor())
-                    
-        return transforms.Compose(proc)
 
+        return transforms.Compose(proc)
 
     def __getitem__(self, index):
         path = self.name_list[index]
-        path = osp.join(self.path, path[path.index('img'):])
+        path = osp.join(self.path, path[path.index('img') :])
         img = PIL.Image.open(path).convert('RGB')
         img = self.processor(img)
         label = self.label_list[index]
@@ -224,7 +234,6 @@ class CelebAVirtual(data.Dataset):
 
     def __len__(self):
         return len(self.name_list)
-
 
 
 if __name__ == '__main__':

@@ -10,6 +10,7 @@ import os
 import sys
 import pickle
 import warnings
+
 warnings.filterwarnings('ignore', category=FutureWarning)
 
 # pylint: disable=wrong-import-position
@@ -17,11 +18,13 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 import torch
+
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 from models import build_model
 from utils.visualizer import HtmlPageVisualizer
 from utils.visualizer import postprocess_image
+
 # pylint: enable=wrong-import-position
 
 __all__ = ['convert_stylegan2_weight']
@@ -36,11 +39,9 @@ TRUNC_LAYERS = 18
 RANDOMIZE_NOISE = False
 
 
-def convert_stylegan2_weight(tf_weight_path,
-                             pth_weight_path,
-                             test_num=10,
-                             save_test_image=False,
-                             verbose=False):
+def convert_stylegan2_weight(
+    tf_weight_path, pth_weight_path, test_num=10, save_test_image=False, verbose=False
+):
     """Converts the pre-trained StyleGAN2 weights.
 
     Args:
@@ -72,14 +73,16 @@ def convert_stylegan2_weight(tf_weight_path,
     G_vars = dict(G.__getstate__()['variables'])
     G_vars.update(dict(G.components.mapping.__getstate__()['variables']))
     G_vars.update(dict(G.components.synthesis.__getstate__()['variables']))
-    G_pth = build_model(gan_type=GAN_TPYE,
-                        module='generator',
-                        resolution=resolution,
-                        z_space_dim=z_space_dim,
-                        w_space_dim=w_space_dim,
-                        label_size=label_size,
-                        repeat_w=repeat_w,
-                        image_channels=image_channels)
+    G_pth = build_model(
+        gan_type=GAN_TPYE,
+        module='generator',
+        resolution=resolution,
+        z_space_dim=z_space_dim,
+        w_space_dim=w_space_dim,
+        label_size=label_size,
+        repeat_w=repeat_w,
+        image_channels=image_channels,
+    )
     G_state_dict = G_pth.state_dict()
     for pth_var_name, tf_var_name in G_pth.pth_to_tf_var_mapping.items():
         assert tf_var_name in G_vars
@@ -104,14 +107,16 @@ def convert_stylegan2_weight(tf_weight_path,
     Gs_vars = dict(Gs.__getstate__()['variables'])
     Gs_vars.update(dict(Gs.components.mapping.__getstate__()['variables']))
     Gs_vars.update(dict(Gs.components.synthesis.__getstate__()['variables']))
-    Gs_pth = build_model(gan_type=GAN_TPYE,
-                         module='generator',
-                         resolution=resolution,
-                         z_space_dim=z_space_dim,
-                         w_space_dim=w_space_dim,
-                         label_size=label_size,
-                         repeat_w=True,
-                         image_channels=image_channels)
+    Gs_pth = build_model(
+        gan_type=GAN_TPYE,
+        module='generator',
+        resolution=resolution,
+        z_space_dim=z_space_dim,
+        w_space_dim=w_space_dim,
+        label_size=label_size,
+        repeat_w=True,
+        image_channels=image_channels,
+    )
     Gs_state_dict = Gs_pth.state_dict()
     for pth_var_name, tf_var_name in Gs_pth.pth_to_tf_var_mapping.items():
         assert tf_var_name in Gs_vars
@@ -134,11 +139,13 @@ def convert_stylegan2_weight(tf_weight_path,
 
     print(f'Converting TensorFlow weights (D) to PyTorch version ...')
     D_vars = dict(D.__getstate__()['variables'])
-    D_pth = build_model(gan_type=GAN_TPYE,
-                        module='discriminator',
-                        resolution=resolution,
-                        label_size=label_size,
-                        image_channels=image_channels)
+    D_pth = build_model(
+        gan_type=GAN_TPYE,
+        module='discriminator',
+        resolution=resolution,
+        label_size=label_size,
+        image_channels=image_channels,
+    )
     D_state_dict = D_pth.state_dict()
     for pth_var_name, tf_var_name in D_pth.pth_to_tf_var_mapping.items():
         assert tf_var_name in D_vars
@@ -202,16 +209,20 @@ def convert_stylegan2_weight(tf_weight_path,
             label_id = 0
             label = None
             pth_label = None
-        tf_output = Gs.run(code,
-                           label,
-                           truncation_psi=TRUNC_PSI,
-                           truncation_cutoff=TRUNC_LAYERS,
-                           randomize_noise=RANDOMIZE_NOISE)
-        pth_output = Gs_pth(pth_code,
-                            label=pth_label,
-                            trunc_psi=TRUNC_PSI,
-                            trunc_layers=TRUNC_LAYERS,
-                            randomize_noise=RANDOMIZE_NOISE)['image']
+        tf_output = Gs.run(
+            code,
+            label,
+            truncation_psi=TRUNC_PSI,
+            truncation_cutoff=TRUNC_LAYERS,
+            randomize_noise=RANDOMIZE_NOISE,
+        )
+        pth_output = Gs_pth(
+            pth_code,
+            label=pth_label,
+            trunc_psi=TRUNC_PSI,
+            trunc_layers=TRUNC_LAYERS,
+            randomize_noise=RANDOMIZE_NOISE,
+        )['image']
         pth_output = pth_output.detach().cpu().numpy()
         distance = np.average(np.abs(tf_output - pth_output))
         if verbose:
@@ -234,17 +245,21 @@ def convert_stylegan2_weight(tf_weight_path,
             label_id = 0
             label = None
             pth_label = None
-        tf_image = G.run(code,
-                         label,
-                         truncation_psi=TRUNC_PSI,
-                         truncation_cutoff=TRUNC_LAYERS,
-                         randomize_noise=RANDOMIZE_NOISE)
+        tf_image = G.run(
+            code,
+            label,
+            truncation_psi=TRUNC_PSI,
+            truncation_cutoff=TRUNC_LAYERS,
+            randomize_noise=RANDOMIZE_NOISE,
+        )
         tf_output = D.run(tf_image, label)
-        pth_image = G_pth(pth_code,
-                          label=pth_label,
-                          trunc_psi=TRUNC_PSI,
-                          trunc_layers=TRUNC_LAYERS,
-                          randomize_noise=RANDOMIZE_NOISE)['image']
+        pth_image = G_pth(
+            pth_code,
+            label=pth_label,
+            trunc_psi=TRUNC_PSI,
+            trunc_layers=TRUNC_LAYERS,
+            randomize_noise=RANDOMIZE_NOISE,
+        )['image']
         pth_output = D_pth(pth_image, pth_label)
         pth_output = pth_output.detach().cpu().numpy()
         distance = np.average(np.abs(tf_output - pth_output))

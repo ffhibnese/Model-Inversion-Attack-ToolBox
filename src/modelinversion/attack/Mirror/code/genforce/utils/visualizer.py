@@ -8,10 +8,19 @@ import numpy as np
 from bs4 import BeautifulSoup
 
 __all__ = [
-    'get_grid_shape', 'get_blank_image', 'load_image', 'save_image',
-    'resize_image', 'postprocess_image', 'add_text_to_image',
-    'parse_image_size', 'fuse_images', 'HtmlPageVisualizer', 'HtmlPageReader',
-    'VideoReader', 'VideoWriter'
+    'get_grid_shape',
+    'get_blank_image',
+    'load_image',
+    'save_image',
+    'resize_image',
+    'postprocess_image',
+    'add_text_to_image',
+    'parse_image_size',
+    'fuse_images',
+    'HtmlPageVisualizer',
+    'HtmlPageReader',
+    'VideoReader',
+    'VideoWriter',
 ]
 
 
@@ -177,14 +186,16 @@ def postprocess_image(image, min_val=-1.0, max_val=1.0, data_format='NCHW'):
     raise NotImplementedError(f'Data format `{data_format}` is not supported!')
 
 
-def add_text_to_image(image,
-                      text='',
-                      position=None,
-                      font=cv2.FONT_HERSHEY_TRIPLEX,
-                      font_size=1.0,
-                      line_type=cv2.LINE_8,
-                      line_width=1,
-                      color=(255, 255, 255)):
+def add_text_to_image(
+    image,
+    text='',
+    position=None,
+    font=cv2.FONT_HERSHEY_TRIPLEX,
+    font_size=1.0,
+    line_type=cv2.LINE_8,
+    line_width=1,
+    color=(255, 255, 255),
+):
     """Overlays text on given image.
 
     NOTE: The input image is assumed to be with `RGB` channel order.
@@ -207,15 +218,17 @@ def add_text_to_image(image,
     if image is None or not text:
         return image
 
-    cv2.putText(img=image,
-                text=text,
-                org=position,
-                fontFace=font,
-                fontScale=font_size,
-                color=color,
-                thickness=line_width,
-                lineType=line_type,
-                bottomLeftOrigin=False)
+    cv2.putText(
+        img=image,
+        text=text,
+        org=position,
+        fontFace=font,
+        fontScale=font_size,
+        color=color,
+        thickness=line_width,
+        lineType=line_type,
+        bottomLeftOrigin=False,
+    )
 
     return image
 
@@ -265,19 +278,21 @@ def parse_image_size(obj):
     return (max(0, width), max(0, height))
 
 
-def fuse_images(images,
-                image_size=None,
-                row=0,
-                col=0,
-                is_row_major=True,
-                is_portrait=False,
-                row_spacing=0,
-                col_spacing=0,
-                border_left=0,
-                border_right=0,
-                border_top=0,
-                border_bottom=0,
-                black_background=True):
+def fuse_images(
+    images,
+    image_size=None,
+    row=0,
+    col=0,
+    is_row_major=True,
+    is_portrait=False,
+    row_spacing=0,
+    col_spacing=0,
+    border_left=0,
+    border_right=0,
+    border_top=0,
+    border_bottom=0,
+    black_background=True,
+):
     """Fuses a collection of images into an entire image.
 
     Args:
@@ -313,20 +328,21 @@ def fuse_images(images,
         return images
 
     if images.ndim != 4:
-        raise ValueError(f'Input `images` should be with shape [num, height, '
-                         f'width, channels], but {images.shape} is received!')
+        raise ValueError(
+            f'Input `images` should be with shape [num, height, '
+            f'width, channels], but {images.shape} is received!'
+        )
 
     num, image_height, image_width, channels = images.shape
     width, height = parse_image_size(image_size)
     height = height or image_height
     width = width or image_width
     row, col = get_grid_shape(num, row=row, col=col, is_portrait=is_portrait)
-    fused_height = (
-        height * row + row_spacing * (row - 1) + border_top + border_bottom)
-    fused_width = (
-        width * col + col_spacing * (col - 1) + border_left + border_right)
+    fused_height = height * row + row_spacing * (row - 1) + border_top + border_bottom
+    fused_width = width * col + col_spacing * (col - 1) + border_left + border_right
     fused_image = get_blank_image(
-        fused_height, fused_width, channels=channels, is_black=black_background)
+        fused_height, fused_width, channels=channels, is_black=black_background
+    )
     images = images.reshape(row, col, image_height, image_width, channels)
     if not is_row_major:
         images = images.transpose(1, 0, 2, 3, 4)
@@ -339,7 +355,7 @@ def fuse_images(images,
                 image = cv2.resize(images[i, j], (width, height))
             else:
                 image = images[i, j]
-            fused_image[y:y + height, x:x + width] = image
+            fused_image[y : y + height, x : x + width] = image
 
     return fused_image
 
@@ -367,57 +383,60 @@ def get_sortable_html_header(column_name_list, sort_by_ascending=False):
     Returns:
         A string, which represents for the header for a sortable html page.
     """
-    header = '\n'.join([
-        '<script type="text/javascript">',
-        'var column_idx;',
-        'var sort_by_ascending = ' + str(sort_by_ascending).lower() + ';',
-        '',
-        'function sorting(tbody, column_idx){',
-        '    this.column_idx = column_idx;',
-        '    Array.from(tbody.rows)',
-        '             .sort(compareCells)',
-        '             .forEach(function(row) { tbody.appendChild(row); })',
-        '    sort_by_ascending = !sort_by_ascending;',
-        '}',
-        '',
-        'function compareCells(row_a, row_b) {',
-        '    var val_a = row_a.cells[column_idx].innerText;',
-        '    var val_b = row_b.cells[column_idx].innerText;',
-        '    var flag = sort_by_ascending ? 1 : -1;',
-        '    return flag * (val_a > val_b ? 1 : -1);',
-        '}',
-        '</script>',
-        '',
-        '<html>',
-        '',
-        '<head>',
-        '<style>',
-        '    table {',
-        '        border-spacing: 0;',
-        '        border: 1px solid black;',
-        '    }',
-        '    th {',
-        '        cursor: pointer;',
-        '    }',
-        '    th, td {',
-        '        text-align: left;',
-        '        vertical-align: middle;',
-        '        border-collapse: collapse;',
-        '        border: 0.5px solid black;',
-        '        padding: 8px;',
-        '    }',
-        '    tr:nth-child(even) {',
-        '        background-color: #d2d2d2;',
-        '    }',
-        '</style>',
-        '</head>',
-        '',
-        '<body>',
-        '',
-        '<table>',
-        '<thead>',
-        '<tr>',
-        ''])
+    header = '\n'.join(
+        [
+            '<script type="text/javascript">',
+            'var column_idx;',
+            'var sort_by_ascending = ' + str(sort_by_ascending).lower() + ';',
+            '',
+            'function sorting(tbody, column_idx){',
+            '    this.column_idx = column_idx;',
+            '    Array.from(tbody.rows)',
+            '             .sort(compareCells)',
+            '             .forEach(function(row) { tbody.appendChild(row); })',
+            '    sort_by_ascending = !sort_by_ascending;',
+            '}',
+            '',
+            'function compareCells(row_a, row_b) {',
+            '    var val_a = row_a.cells[column_idx].innerText;',
+            '    var val_b = row_b.cells[column_idx].innerText;',
+            '    var flag = sort_by_ascending ? 1 : -1;',
+            '    return flag * (val_a > val_b ? 1 : -1);',
+            '}',
+            '</script>',
+            '',
+            '<html>',
+            '',
+            '<head>',
+            '<style>',
+            '    table {',
+            '        border-spacing: 0;',
+            '        border: 1px solid black;',
+            '    }',
+            '    th {',
+            '        cursor: pointer;',
+            '    }',
+            '    th, td {',
+            '        text-align: left;',
+            '        vertical-align: middle;',
+            '        border-collapse: collapse;',
+            '        border: 0.5px solid black;',
+            '        padding: 8px;',
+            '    }',
+            '    tr:nth-child(even) {',
+            '        background-color: #d2d2d2;',
+            '    }',
+            '</style>',
+            '</head>',
+            '',
+            '<body>',
+            '',
+            '<table>',
+            '<thead>',
+            '<tr>',
+            '',
+        ]
+    )
     for idx, name in enumerate(column_name_list):
         header += f'    <th onclick="sorting(tbody, {idx})">{name}</th>\n'
     header += '</tr>\n'
@@ -527,26 +546,30 @@ class HtmlPageVisualizer(object):
     html.save('visualize.html')
     """
 
-    def __init__(self,
-                 num_rows=0,
-                 num_cols=0,
-                 grid_size=0,
-                 is_portrait=True,
-                 viz_size=None):
+    def __init__(
+        self, num_rows=0, num_cols=0, grid_size=0, is_portrait=True, viz_size=None
+    ):
         if grid_size > 0:
             num_rows, num_cols = get_grid_shape(
-                grid_size, row=num_rows, col=num_cols, is_portrait=is_portrait)
+                grid_size, row=num_rows, col=num_cols, is_portrait=is_portrait
+            )
         assert num_rows > 0 and num_cols > 0
 
         self.num_rows = num_rows
         self.num_cols = num_cols
         self.viz_size = parse_image_size(viz_size)
         self.headers = ['' for _ in range(self.num_cols)]
-        self.cells = [[{
-            'text': '',
-            'image': '',
-            'highlight': False,
-        } for _ in range(self.num_cols)] for _ in range(self.num_rows)]
+        self.cells = [
+            [
+                {
+                    'text': '',
+                    'image': '',
+                    'highlight': False,
+                }
+                for _ in range(self.num_cols)
+            ]
+            for _ in range(self.num_rows)
+        ]
 
     def set_header(self, col_idx, content):
         """Sets the content of a particular header by column index."""
@@ -577,7 +600,8 @@ class HtmlPageVisualizer(object):
         """
         self.cells[row_idx][col_idx]['text'] = text
         self.cells[row_idx][col_idx]['image'] = encode_image_to_html_str(
-            image, self.viz_size)
+            image, self.viz_size
+        )
         self.cells[row_idx][col_idx]['highlight'] = bool(highlight)
 
     def save(self, save_path):
@@ -621,6 +645,7 @@ class HtmlPageReader(object):
             text = html.get_text(i, j)
             image = html.get_image(i, j, image_size=None)
     """
+
     def __init__(self, html_path):
         """Initializes by loading the content from file."""
         self.html_path = html_path
@@ -647,10 +672,12 @@ class HtmlPageReader(object):
             cells = row.findAll('td')
             self.cells.append([])
             for cell in cells:
-                self.cells[-1].append({
-                    'text': cell.text,
-                    'image': cell.find('img')['src'],
-                })
+                self.cells[-1].append(
+                    {
+                        'text': cell.text,
+                        'image': cell.find('img')['src'],
+                    }
+                )
             assert len(self.cells[-1]) == self.num_cols
         self.num_rows = len(self.cells)
 
@@ -729,10 +756,12 @@ class VideoWriter(object):
         self.fps = fps
         self.codec = codec
 
-        self.video = cv2.VideoWriter(filename=path,
-                                     fourcc=cv2.VideoWriter_fourcc(*codec),
-                                     fps=fps,
-                                     frameSize=(frame_width, frame_height))
+        self.video = cv2.VideoWriter(
+            filename=path,
+            fourcc=cv2.VideoWriter_fourcc(*codec),
+            fps=fps,
+            frameSize=(frame_width, frame_height),
+        )
 
     def __del__(self):
         """Releases the opened video."""

@@ -6,8 +6,14 @@ from torch.nn import init
 class ConditionalBatchNorm2d(nn.BatchNorm2d):
     """Conditional Batch Normalization"""
 
-    def __init__(self, num_features, eps=1e-05, momentum=0.1,
-                 affine=False, track_running_stats=True):
+    def __init__(
+        self,
+        num_features,
+        eps=1e-05,
+        momentum=0.1,
+        affine=False,
+        track_running_stats=True,
+    ):
         super(ConditionalBatchNorm2d, self).__init__(
             num_features, eps, momentum, affine, track_running_stats
         )
@@ -24,10 +30,16 @@ class ConditionalBatchNorm2d(nn.BatchNorm2d):
             else:  # use exponential moving average
                 exponential_average_factor = self.momentum
 
-        output = F.batch_norm(input, self.running_mean, self.running_var,
-                              self.weight, self.bias,
-                              self.training or not self.track_running_stats,
-                              exponential_average_factor, self.eps)
+        output = F.batch_norm(
+            input,
+            self.running_mean,
+            self.running_var,
+            self.weight,
+            self.bias,
+            self.training or not self.track_running_stats,
+            exponential_average_factor,
+            self.eps,
+        )
         if weight.dim() == 1:
             weight = weight.unsqueeze(0)
         if bias.dim() == 1:
@@ -40,8 +52,15 @@ class ConditionalBatchNorm2d(nn.BatchNorm2d):
 
 class CategoricalConditionalBatchNorm2d(ConditionalBatchNorm2d):
 
-    def __init__(self, num_classes, num_features, eps=1e-5, momentum=0.1,
-                 affine=False, track_running_stats=True):
+    def __init__(
+        self,
+        num_classes,
+        num_features,
+        eps=1e-5,
+        momentum=0.1,
+        affine=False,
+        track_running_stats=True,
+    ):
         super(CategoricalConditionalBatchNorm2d, self).__init__(
             num_features, eps, momentum, affine, track_running_stats
         )
@@ -58,7 +77,9 @@ class CategoricalConditionalBatchNorm2d(ConditionalBatchNorm2d):
         weight = self.weights(c)
         bias = self.biases(c)
 
-        return super(CategoricalConditionalBatchNorm2d, self).forward(input, weight, bias)
+        return super(CategoricalConditionalBatchNorm2d, self).forward(
+            input, weight, bias
+        )
 
 
 if __name__ == '__main__':
@@ -90,8 +111,16 @@ if __name__ == '__main__':
 
     try:
         with torch.no_grad():
-            output = F.batch_norm(input, running_mean, running_var,
-                                  weights, naive_bn.bias, False, 0.0, 1e-05)
+            output = F.batch_norm(
+                input,
+                running_mean,
+                running_var,
+                weights,
+                naive_bn.bias,
+                False,
+                0.0,
+                1e-05,
+            )
     except Exception as e:
         print("\tFailed to use given weights")
         print('# Error msg:', e)
@@ -101,8 +130,16 @@ if __name__ == '__main__':
 
     print('\n# Batch norm before use given weights')
     with torch.no_grad():
-        tmp_out = F.batch_norm(input, running_mean, running_var,
-                               naive_bn_W, naive_bn.bias, False, .0, 1e-05)
+        tmp_out = F.batch_norm(
+            input,
+            running_mean,
+            running_var,
+            naive_bn_W,
+            naive_bn.bias,
+            False,
+            0.0,
+            1e-05,
+        )
     weights_cast = weights.unsqueeze(-1).unsqueeze(-1)
     weights_cast = weights_cast.expand(tmp_out.size())
     try:

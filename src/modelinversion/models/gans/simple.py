@@ -1,31 +1,34 @@
-
 from typing import Union, Optional
 
 import torch
 import torch.nn as nn
 from .base import BaseIntermediateImageGenerator, LambdaModule
 
+
 class SimpleGenerator64(BaseIntermediateImageGenerator):
     def __init__(self, in_dim=100):
         super(SimpleGenerator64, self).__init__(64, in_dim, 5)
-        
-        dim=64
-        
+
+        dim = 64
+
         def _reshape4x4():
             return LambdaModule(lambda x: x.view(len(x), -1, 4, 4))
 
         def dconv_bn_relu(in_dim, out_dim):
             return nn.Sequential(
-                nn.ConvTranspose2d(in_dim, out_dim, 5, 2,
-                                   padding=2, output_padding=1, bias=False),
+                nn.ConvTranspose2d(
+                    in_dim, out_dim, 5, 2, padding=2, output_padding=1, bias=False
+                ),
                 nn.BatchNorm2d(out_dim),
-                nn.ReLU())
+                nn.ReLU(),
+            )
 
         l1 = nn.Sequential(
             nn.Linear(in_dim, dim * 8 * 4 * 4, bias=False),
             nn.BatchNorm1d(dim * 8 * 4 * 4),
             nn.ReLU(),
-            _reshape4x4())
+            _reshape4x4(),
+        )
         self.l2_5 = nn.Sequential(
             l1,
             dconv_bn_relu(dim * 8, dim * 4),
@@ -33,39 +36,48 @@ class SimpleGenerator64(BaseIntermediateImageGenerator):
             dconv_bn_relu(dim * 2, dim),
             nn.Sequential(
                 nn.ConvTranspose2d(dim, 3, 5, 2, padding=2, output_padding=1),
-                nn.Sigmoid()
-            )
+                nn.Sigmoid(),
+            ),
         )
-        
-        
-        
-    def _forward_impl(self, *inputs, labels: torch.LongTensor | None = None, start_block: int = None, end_block: int = None, **kwargs):
+
+    def _forward_impl(
+        self,
+        *inputs,
+        labels: torch.LongTensor | None = None,
+        start_block: int = None,
+        end_block: int = None,
+        **kwargs
+    ):
         x = inputs[0]
         blocks = self.l2_5[start_block:end_block]
         return blocks(x)
+
 
 class SimpleGenerator256(BaseIntermediateImageGenerator):
     def __init__(self, in_dim=100):
-        
+
         super(SimpleGenerator64, self).__init__(256, in_dim, 7)
-        
-        dim=64
-        
+
+        dim = 64
+
         def _reshape4x4():
             return LambdaModule(lambda x: x.view(len(x), -1, 4, 4))
 
         def dconv_bn_relu(in_dim, out_dim):
             return nn.Sequential(
-                nn.ConvTranspose2d(in_dim, out_dim, 5, 2,
-                                   padding=2, output_padding=1, bias=False),
+                nn.ConvTranspose2d(
+                    in_dim, out_dim, 5, 2, padding=2, output_padding=1, bias=False
+                ),
                 nn.BatchNorm2d(out_dim),
-                nn.ReLU())
+                nn.ReLU(),
+            )
 
         l1 = nn.Sequential(
             nn.Linear(in_dim, dim * 8 * 4 * 4, bias=False),
             nn.BatchNorm1d(dim * 8 * 4 * 4),
             nn.ReLU(),
-            _reshape4x4())
+            _reshape4x4(),
+        )
         self.l2_5 = nn.Sequential(
             l1,
             dconv_bn_relu(dim * 8, dim * 4),
@@ -75,23 +87,29 @@ class SimpleGenerator256(BaseIntermediateImageGenerator):
             dconv_bn_relu(dim, dim),
             nn.Sequential(
                 nn.ConvTranspose2d(dim, 3, 5, 2, padding=2, output_padding=1),
-                nn.Sigmoid()
-            )
+                nn.Sigmoid(),
+            ),
         )
-        
-        
-        
-    def _forward_impl(self, *inputs, labels: torch.LongTensor | None = None, start_block: int = None, end_block: int = None, **kwargs):
+
+    def _forward_impl(
+        self,
+        *inputs,
+        labels: torch.LongTensor | None = None,
+        start_block: int = None,
+        end_block: int = None,
+        **kwargs
+    ):
         x = inputs[0]
         blocks = self.l2_5[start_block:end_block]
         return blocks(x)
-    
+
+
 class GmiDiscriminator64(nn.Module):
     def __init__(self):
         super(GmiDiscriminator64, self).__init__()
-        
-        in_dim=3
-        dim=64
+
+        in_dim = 3
+        dim = 64
 
         def conv_ln_lrelu(in_dim, out_dim):
             return nn.Sequential(
@@ -99,26 +117,30 @@ class GmiDiscriminator64(nn.Module):
                 # Since there is no effective implementation of LayerNorm,
                 # we use InstanceNorm2d instead of LayerNorm here.
                 nn.InstanceNorm2d(out_dim, affine=True),
-                nn.LeakyReLU(0.2))
+                nn.LeakyReLU(0.2),
+            )
 
         self.ls = nn.Sequential(
-            nn.Conv2d(in_dim, dim, 5, 2, 2), nn.LeakyReLU(0.2),
+            nn.Conv2d(in_dim, dim, 5, 2, 2),
+            nn.LeakyReLU(0.2),
             conv_ln_lrelu(dim, dim * 2),
             conv_ln_lrelu(dim * 2, dim * 4),
             conv_ln_lrelu(dim * 4, dim * 8),
-            nn.Conv2d(dim * 8, 1, 4))
+            nn.Conv2d(dim * 8, 1, 4),
+        )
 
     def forward(self, x):
         y = self.ls(x)
         y = y.view(-1)
         return y
-    
+
+
 class GmiDiscriminator256(nn.Module):
     def __init__(self):
         super(GmiDiscriminator256, self).__init__()
-        
-        in_dim=3
-        dim=64
+
+        in_dim = 3
+        dim = 64
 
         def conv_ln_lrelu(in_dim, out_dim):
             return nn.Sequential(
@@ -126,22 +148,26 @@ class GmiDiscriminator256(nn.Module):
                 # Since there is no effective implementation of LayerNorm,
                 # we use InstanceNorm2d instead of LayerNorm here.
                 nn.InstanceNorm2d(out_dim, affine=True),
-                nn.LeakyReLU(0.2))
+                nn.LeakyReLU(0.2),
+            )
 
         self.ls = nn.Sequential(
-            nn.Conv2d(in_dim, dim, 5, 2, 2), nn.LeakyReLU(0.2),
+            nn.Conv2d(in_dim, dim, 5, 2, 2),
+            nn.LeakyReLU(0.2),
             conv_ln_lrelu(dim, dim * 2),
             conv_ln_lrelu(dim * 2, dim * 4),
             conv_ln_lrelu(dim * 4, dim * 8),
             conv_ln_lrelu(dim * 8, dim * 8),
             conv_ln_lrelu(dim * 8, dim * 8),
-            nn.Conv2d(dim * 8, 1, 4))
+            nn.Conv2d(dim * 8, 1, 4),
+        )
 
     def forward(self, x):
         y = self.ls(x)
         y = y.view(-1)
         return y
-    
+
+
 class _MinibatchDiscrimination(nn.Module):
     def __init__(self, in_features, out_features, kernel_dims, mean=False):
         super().__init__()
@@ -162,19 +188,20 @@ class _MinibatchDiscrimination(nn.Module):
         M_T = M.permute(1, 0, 2, 3)  # Nx1xBxC
         norm = torch.abs(M - M_T).sum(3)  # NxNxB
         expnorm = torch.exp(-norm)
-        o_b = (expnorm.sum(0) - 1)  # NxB, subtract self distance
+        o_b = expnorm.sum(0) - 1  # NxB, subtract self distance
         if self.mean:
             o_b /= x.size(0) - 1
 
         x = torch.cat([x, o_b], 1)
         return x
-    
+
+
 class KedmiDiscriminator64(nn.Module):
     def __init__(self, num_classes):
         super(KedmiDiscriminator64, self).__init__()
-        
-        in_dim=3
-        dim=64
+
+        in_dim = 3
+        dim = 64
         self.n_classes = num_classes
 
         def conv_ln_lrelu(in_dim, out_dim, k, s, p):
@@ -183,7 +210,8 @@ class KedmiDiscriminator64(nn.Module):
                 # Since there is no effective implementation of LayerNorm,
                 # we use InstanceNorm2d instead of LayerNorm here.
                 nn.InstanceNorm2d(out_dim, affine=True),
-                nn.LeakyReLU(0.2))
+                nn.LeakyReLU(0.2),
+            )
 
         self.layer1 = conv_ln_lrelu(in_dim, dim, 5, 2, 2)
         self.layer2 = conv_ln_lrelu(dim, dim * 2, 5, 2, 2)
@@ -209,13 +237,14 @@ class KedmiDiscriminator64(nn.Module):
         y = self.fc_layer(mb_out)
 
         return feat, y
-    
+
+
 class KedmiDiscriminator256(nn.Module):
     def __init__(self, num_classes):
         super(KedmiDiscriminator256, self).__init__()
-        
-        in_dim=3
-        dim=64
+
+        in_dim = 3
+        dim = 64
         self.n_classes = num_classes
 
         def conv_ln_lrelu(in_dim, out_dim, k, s, p):
@@ -224,7 +253,8 @@ class KedmiDiscriminator256(nn.Module):
                 # Since there is no effective implementation of LayerNorm,
                 # we use InstanceNorm2d instead of LayerNorm here.
                 nn.InstanceNorm2d(out_dim, affine=True),
-                nn.LeakyReLU(0.2))
+                nn.LeakyReLU(0.2),
+            )
 
         self.layer1 = conv_ln_lrelu(in_dim, dim, 5, 2, 2)
         self.layer2 = conv_ln_lrelu(dim, dim * 2, 5, 2, 2)

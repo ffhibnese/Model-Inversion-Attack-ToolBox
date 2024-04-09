@@ -19,10 +19,17 @@ from typing import Any, List, Tuple, Union
 #     def flush(self):
 #         self.file.flush()
 
+
 class Logger(object):
     """Redirect stderr to stdout, optionally print stdout to a file, and optionally force flushing on both stdout and the file."""
 
-    def __init__(self, file_dir: str = None, file_name: str = None, file_mode: str = "w", should_flush: bool = True):
+    def __init__(
+        self,
+        file_dir: str = None,
+        file_name: str = None,
+        file_mode: str = "w",
+        should_flush: bool = True,
+    ):
         self.file = None
 
         if file_name is not None:
@@ -48,7 +55,9 @@ class Logger(object):
         """Write text to stdout (and a file) and optionally flush."""
         if isinstance(text, bytes):
             text = text.decode()
-        if len(text) == 0: # workaround for a bug in VSCode debugger: sys.stdout.write(''); sys.stdout.flush() => crash
+        if (
+            len(text) == 0
+        ):  # workaround for a bug in VSCode debugger: sys.stdout.write(''); sys.stdout.flush() => crash
             return
 
         if self.file is not None:
@@ -79,4 +88,3 @@ class Logger(object):
         if self.file is not None:
             self.file.close()
             self.file = None
-            

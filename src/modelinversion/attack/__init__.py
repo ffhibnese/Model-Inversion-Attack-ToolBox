@@ -14,7 +14,12 @@ from .optimize import (
     RlbOptimization,
     RlbOptimizationConfig,
     GeneticOptimizationConfig,
-    GeneticOptimization
+    GeneticOptimization,
 )
 
-from .losses import ImageAugmentClassificationLoss, ComposeImageLoss, GmiDiscriminatorLoss, KedmiDiscriminatorLoss
+from .losses import (
+    ImageAugmentClassificationLoss,
+    ComposeImageLoss,
+    GmiDiscriminatorLoss,
+    KedmiDiscriminatorLoss,
+)

@@ -12,24 +12,90 @@ import tensorflow as tf
 from .. import custom_ops
 from ...util import EasyDict
 
+
 def _get_plugin():
     return custom_ops.get_plugin(os.path.splitext(__file__)[0] + '.cu')
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
 
 activation_funcs = {
-    'linear':   EasyDict(func=lambda x, **_:        x,                          def_alpha=None, def_gain=1.0,           cuda_idx=1, ref='y', zero_2nd_grad=True),
-    'relu':     EasyDict(func=lambda x, **_:        tf.nn.relu(x),              def_alpha=None, def_gain=np.sqrt(2),    cuda_idx=2, ref='y', zero_2nd_grad=True),
-    'lrelu':    EasyDict(func=lambda x, alpha, **_: tf.nn.leaky_relu(x, alpha), def_alpha=0.2,  def_gain=np.sqrt(2),    cuda_idx=3, ref='y', zero_2nd_grad=True),
-    'tanh':     EasyDict(func=lambda x, **_:        tf.nn.tanh(x),              def_alpha=None, def_gain=1.0,           cuda_idx=4, ref='y', zero_2nd_grad=False),
-    'sigmoid':  EasyDict(func=lambda x, **_:        tf.nn.sigmoid(x),           def_alpha=None, def_gain=1.0,           cuda_idx=5, ref='y', zero_2nd_grad=False),
-    'elu':      EasyDict(func=lambda x, **_:        tf.nn.elu(x),               def_alpha=None, def_gain=1.0,           cuda_idx=6, ref='y', zero_2nd_grad=False),
-    'selu':     EasyDict(func=lambda x, **_:        tf.nn.selu(x),              def_alpha=None, def_gain=1.0,           cuda_idx=7, ref='y', zero_2nd_grad=False),
-    'softplus': EasyDict(func=lambda x, **_:        tf.nn.softplus(x),          def_alpha=None, def_gain=1.0,           cuda_idx=8, ref='y', zero_2nd_grad=False),
-    'swish':    EasyDict(func=lambda x, **_:        tf.nn.sigmoid(x) * x,       def_alpha=None, def_gain=np.sqrt(2),    cuda_idx=9, ref='x', zero_2nd_grad=False),
+    'linear': EasyDict(
+        func=lambda x, **_: x,
+        def_alpha=None,
+        def_gain=1.0,
+        cuda_idx=1,
+        ref='y',
+        zero_2nd_grad=True,
+    ),
+    'relu': EasyDict(
+        func=lambda x, **_: tf.nn.relu(x),
+        def_alpha=None,
+        def_gain=np.sqrt(2),
+        cuda_idx=2,
+        ref='y',
+        zero_2nd_grad=True,
+    ),
+    'lrelu': EasyDict(
+        func=lambda x, alpha, **_: tf.nn.leaky_relu(x, alpha),
+        def_alpha=0.2,
+        def_gain=np.sqrt(2),
+        cuda_idx=3,
+        ref='y',
+        zero_2nd_grad=True,
+    ),
+    'tanh': EasyDict(
+        func=lambda x, **_: tf.nn.tanh(x),
+        def_alpha=None,
+        def_gain=1.0,
+        cuda_idx=4,
+        ref='y',
+        zero_2nd_grad=False,
+    ),
+    'sigmoid': EasyDict(
+        func=lambda x, **_: tf.nn.sigmoid(x),
+        def_alpha=None,
+        def_gain=1.0,
+        cuda_idx=5,
+        ref='y',
+        zero_2nd_grad=False,
+    ),
+    'elu': EasyDict(
+        func=lambda x, **_: tf.nn.elu(x),
+        def_alpha=None,
+        def_gain=1.0,
+        cuda_idx=6,
+        ref='y',
+        zero_2nd_grad=False,
+    ),
+    'selu': EasyDict(
+        func=lambda x, **_: tf.nn.selu(x),
+        def_alpha=None,
+        def_gain=1.0,
+        cuda_idx=7,
+        ref='y',
+        zero_2nd_grad=False,
+    ),
+    'softplus': EasyDict(
+        func=lambda x, **_: tf.nn.softplus(x),
+        def_alpha=None,
+        def_gain=1.0,
+        cuda_idx=8,
+        ref='y',
+        zero_2nd_grad=False,
+    ),
+    'swish': EasyDict(
+        func=lambda x, **_: tf.nn.sigmoid(x) * x,
+        def_alpha=None,
+        def_gain=np.sqrt(2),
+        cuda_idx=9,
+        ref='x',
+        zero_2nd_grad=False,
+    ),
 }
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+
 
 def fused_bias_act(x, b=None, axis=1, act='linear', alpha=None, gain=None, impl='ref'):
     r"""Fused bias and activation function.
@@ -62,12 +128,14 @@ def fused_bias_act(x, b=None, axis=1, act='linear', alpha=None, gain=None, impl=
     """
 
     impl_dict = {
-        'ref':  _fused_bias_act_ref,
+        'ref': _fused_bias_act_ref,
         'cuda': _fused_bias_act_cuda,
     }
     return impl_dict[impl](x=x, b=b, axis=axis, act=act, alpha=alpha, gain=gain)
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+
 
 def _fused_bias_act_ref(x, b, axis, act, alpha, gain):
     """Slow reference implementation of `fused_bias_act()` using standard TensorFlow ops."""
@@ -95,7 +163,9 @@ def _fused_bias_act_ref(x, b, axis, act, alpha, gain):
         x *= gain
     return x
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+
 
 def _fused_bias_act_cuda(x, b, axis, act, alpha, gain):
     """Fast CUDA implementation of `fused_bias_act()` using custom ops."""
@@ -134,6 +204,7 @@ def _fused_bias_act_cuda(x, b, axis, act, alpha, gain):
         dx = cuda_kernel(x=dy, b=empty_tensor, ref=ref, grad=1, **cuda_kwargs)
         dx.set_shape(x.shape)
         return dx
+
     def grad_db(dx):
         if b.shape[0] == 0:
             return empty_tensor
@@ -151,6 +222,7 @@ def _fused_bias_act_cuda(x, b, axis, act, alpha, gain):
         d_dy = cuda_kernel(x=d_dx, b=d_db, ref=ref, grad=1, **cuda_kwargs)
         d_dy.set_shape(x.shape)
         return d_dy
+
     def grad2_d_x(d_dx, d_db, x, y):
         ref = {'x': x, 'y': y}[act_spec.ref]
         d_x = cuda_kernel(x=d_dx, b=d_db, ref=ref, grad=2, **cuda_kwargs)
@@ -161,31 +233,40 @@ def _fused_bias_act_cuda(x, b, axis, act, alpha, gain):
     @tf.custom_gradient
     def func_zero_2nd_grad(x, b):
         y = func_y(x, b)
+
         @tf.custom_gradient
         def grad(dy):
             dx = grad_dx(dy, x, y)
             db = grad_db(dx)
+
             def grad2(d_dx, d_db):
                 d_dy = grad2_d_dy(d_dx, d_db, x, y)
                 return d_dy
+
             return (dx, db), grad2
+
         return y, grad
 
     # Slow version for general activation funcs.
     @tf.custom_gradient
     def func_nonzero_2nd_grad(x, b):
         y = func_y(x, b)
+
         def grad_wrap(dy):
             @tf.custom_gradient
             def grad_impl(dy, x):
                 dx = grad_dx(dy, x, y)
                 db = grad_db(dx)
+
                 def grad2(d_dx, d_db):
                     d_dy = grad2_d_dy(d_dx, d_db, x, y)
                     d_x = grad2_d_x(d_dx, d_db, x, y)
                     return d_dy, d_x
+
                 return (dx, db), grad2
+
             return grad_impl(dy, x)
+
         return y, grad_wrap
 
     # Which version to use?
@@ -193,4 +274,5 @@ def _fused_bias_act_cuda(x, b, axis, act, alpha, gain):
         return func_zero_2nd_grad(x, b)
     return func_nonzero_2nd_grad(x, b)
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------

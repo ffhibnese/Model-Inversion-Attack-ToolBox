@@ -24,14 +24,23 @@ import torchvision.utils as vutils
 from PIL import Image
 import numpy as np
 from ....foldermanager import FolderManager
-from .utils.utils import lr_cosine_policy, lr_policy, beta_policy, mom_cosine_policy, clip, denormalize, create_folder
+from .utils.utils import (
+    lr_cosine_policy,
+    lr_policy,
+    beta_policy,
+    mom_cosine_policy,
+    clip,
+    denormalize,
+    create_folder,
+)
 
 
-class DeepInversionFeatureHook():
+class DeepInversionFeatureHook:
     '''
     Implementation of the forward hook to track feature statistics and compute a loss on them.
     Will compute mean and variance, and will use l2 as a loss
     '''
+
     def __init__(self, module):
         self.hook = module.register_forward_hook(self.hook_fn)
 
@@ -39,12 +48,19 @@ class DeepInversionFeatureHook():
         # hook co compute deepinversion's feature distribution regularization
         nch = input[0].shape[1]
         mean = input[0].mean([0, 2, 3])
-        var = input[0].permute(1, 0, 2, 3).contiguous().view([nch, -1]).var(1, unbiased=False)
+        var = (
+            input[0]
+            .permute(1, 0, 2, 3)
+            .contiguous()
+            .view([nch, -1])
+            .var(1, unbiased=False)
+        )
 
-        #forcing mean and variance to match between two distributions
-        #other ways might work better, i.g. KL divergence
+        # forcing mean and variance to match between two distributions
+        # other ways might work better, i.g. KL divergence
         r_feature = torch.norm(module.running_var.data - var, 2) + torch.norm(
-            module.running_mean.data - mean, 2)
+            module.running_mean.data - mean, 2
+        )
 
         self.r_feature = r_feature
         # must have no output
@@ -60,25 +76,35 @@ def get_image_prior_losses(inputs_jit):
     diff3 = inputs_jit[:, :, 1:, :-1] - inputs_jit[:, :, :-1, 1:]
     diff4 = inputs_jit[:, :, :-1, :-1] - inputs_jit[:, :, 1:, 1:]
 
-    loss_var_l2 = torch.norm(diff1) + torch.norm(diff2) + torch.norm(diff3) + torch.norm(diff4)
-    loss_var_l1 = (diff1.abs() / 255.0).mean() + (diff2.abs() / 255.0).mean() + (
-            diff3.abs() / 255.0).mean() + (diff4.abs() / 255.0).mean()
+    loss_var_l2 = (
+        torch.norm(diff1) + torch.norm(diff2) + torch.norm(diff3) + torch.norm(diff4)
+    )
+    loss_var_l1 = (
+        (diff1.abs() / 255.0).mean()
+        + (diff2.abs() / 255.0).mean()
+        + (diff3.abs() / 255.0).mean()
+        + (diff4.abs() / 255.0).mean()
+    )
     loss_var_l1 = loss_var_l1 * 255.0
     return loss_var_l1, loss_var_l2
 
 
 class DeepInversionClass(object):
-    def __init__(self, target_labels, bs,
-                 
-                 net_teacher, folder_manager: FolderManager,
-                 parameters=dict(),
-                 setting_id=0,
-                 jitter=30,
-                 criterion=None,
-                 coefficients=dict(),
-                 network_output_function=lambda x: x,
-                 hook_for_display = None,
-                 device='cpu'):
+    def __init__(
+        self,
+        target_labels,
+        bs,
+        net_teacher,
+        folder_manager: FolderManager,
+        parameters=dict(),
+        setting_id=0,
+        jitter=30,
+        criterion=None,
+        coefficients=dict(),
+        network_output_function=lambda x: x,
+        hook_for_display=None,
+        device='cpu',
+    ):
         '''
         :param bs: batch size per GPU for image generation
         :param use_fp16: use FP16 (or APEX AMP) for model inversion, uses less memory and is faster for GPUs with Tensor Cores
@@ -111,13 +137,13 @@ class DeepInversionClass(object):
         print("Deep inversion class generation")
         # for reproducibility
         # torch.manual_seed(torch.cuda.current_device())
-        
+
         self.device = device
         self.folder_manager = folder_manager
-        
+
         self.target_labels = []
         self.bs = bs
-        
+
         while len(self.target_labels) < bs:
             for label in target_labels:
                 self.target_labels.append(label)
@@ -172,9 +198,9 @@ class DeepInversionClass(object):
         # create_folder(prefix)
         # create_folder(prefix + "/best_images/")
         # create_folder(self.final_data_path)
-            # save images to folders
-            # for m in range(1000):
-            #     create_folder(self.final_data_path + "/s{:03d}".format(m))
+        # save images to folders
+        # for m in range(1000):
+        #     create_folder(self.final_data_path + "/s{:03d}".format(m))
 
         ## Create hooks for feature statistics
         self.loss_r_feature_layers = []
@@ -210,46 +236,51 @@ class DeepInversionClass(object):
         #                    967, 574, 487]
 
         #         targets = torch.LongTensor(targets * (int(self.bs / len(targets)))).to('cuda')
-        
+
         targets = self.target_labels
 
         img_original = self.image_resolution
 
-        inputs = torch.randn((self.bs, 3, img_original, img_original), requires_grad=True, device=self.device)
+        inputs = torch.randn(
+            (self.bs, 3, img_original, img_original),
+            requires_grad=True,
+            device=self.device,
+        )
         pooling_function = nn.modules.pooling.AvgPool2d(kernel_size=2)
 
-        if self.setting_id==0:
+        if self.setting_id == 0:
             skipfirst = False
         else:
             skipfirst = True
 
         iteration = 0
         for lr_it, lower_res in enumerate([2, 1]):
-            if lr_it==0:
+            if lr_it == 0:
                 iterations_per_layer = 2000
             else:
                 iterations_per_layer = 1000 if not skipfirst else 2000
                 if self.setting_id == 2:
                     iterations_per_layer = 20000
 
-            if lr_it==0 and skipfirst:
+            if lr_it == 0 and skipfirst:
                 continue
 
             lim_0, lim_1 = self.jitter // lower_res, self.jitter // lower_res
 
             if self.setting_id == 0:
-                #multi resolution, 2k iterations with low resolution, 1k at normal, ResNet50v1.5 works the best, ResNet50 is ok
-                optimizer = optim.Adam([inputs], lr=self.lr, betas=[0.5, 0.9], eps = 1e-8)
+                # multi resolution, 2k iterations with low resolution, 1k at normal, ResNet50v1.5 works the best, ResNet50 is ok
+                optimizer = optim.Adam([inputs], lr=self.lr, betas=[0.5, 0.9], eps=1e-8)
                 do_clip = True
             elif self.setting_id == 1:
-                #2k normal resolultion, for ResNet50v1.5; Resnet50 works as well
-                optimizer = optim.Adam([inputs], lr=self.lr, betas=[0.5, 0.9], eps = 1e-8)
+                # 2k normal resolultion, for ResNet50v1.5; Resnet50 works as well
+                optimizer = optim.Adam([inputs], lr=self.lr, betas=[0.5, 0.9], eps=1e-8)
                 do_clip = True
             elif self.setting_id == 2:
-                #20k normal resolution the closes to the paper experiments for ResNet50
-                optimizer = optim.Adam([inputs], lr=self.lr, betas=[0.9, 0.999], eps = 1e-8)
+                # 20k normal resolution the closes to the paper experiments for ResNet50
+                optimizer = optim.Adam(
+                    [inputs], lr=self.lr, betas=[0.9, 0.999], eps=1e-8
+                )
                 do_clip = False
-
 
             lr_scheduler = lr_cosine_policy(self.lr, 100, iterations_per_layer)
 
@@ -259,7 +290,7 @@ class DeepInversionClass(object):
                 lr_scheduler(optimizer, iteration_loc, iteration_loc)
 
                 # perform downsampling if needed
-                if lower_res!=1:
+                if lower_res != 1:
                     inputs_jit = pooling_function(inputs)
                 else:
                     inputs_jit = inputs
@@ -288,12 +319,19 @@ class DeepInversionClass(object):
                 loss_var_l1, loss_var_l2 = get_image_prior_losses(inputs_jit)
 
                 # R_feature loss
-                rescale = [self.first_bn_multiplier] + [1. for _ in range(len(self.loss_r_feature_layers)-1)]
-                loss_r_feature = sum([mod.r_feature * rescale[idx] for (idx, mod) in enumerate(self.loss_r_feature_layers)])
+                rescale = [self.first_bn_multiplier] + [
+                    1.0 for _ in range(len(self.loss_r_feature_layers) - 1)
+                ]
+                loss_r_feature = sum(
+                    [
+                        mod.r_feature * rescale[idx]
+                        for (idx, mod) in enumerate(self.loss_r_feature_layers)
+                    ]
+                )
 
                 # R_ADI
                 loss_verifier_cig = torch.zeros(1)
-                if self.adi_scale!=0.0:
+                if self.adi_scale != 0.0:
                     if self.detach_student:
                         outputs_student = net_student(inputs_jit).detach()
                     else:
@@ -312,30 +350,36 @@ class DeepInversionClass(object):
                         Q = torch.clamp(Q, 0.01, 0.99)
                         M = torch.clamp(M, 0.01, 0.99)
                         eps = 0.0
-                        loss_verifier_cig = 0.5 * kl_loss(torch.log(P + eps), M) + 0.5 * kl_loss(torch.log(Q + eps), M)
-                         # JS criteria - 0 means full correlation, 1 - means completely different
-                        loss_verifier_cig = 1.0 - torch.clamp(loss_verifier_cig, 0.0, 1.0)
+                        loss_verifier_cig = 0.5 * kl_loss(
+                            torch.log(P + eps), M
+                        ) + 0.5 * kl_loss(torch.log(Q + eps), M)
+                        # JS criteria - 0 means full correlation, 1 - means completely different
+                        loss_verifier_cig = 1.0 - torch.clamp(
+                            loss_verifier_cig, 0.0, 1.0
+                        )
 
                     # if local_rank==0:
-                    if iteration % save_every==0:
+                    if iteration % save_every == 0:
                         print('loss_verifier_cig', loss_verifier_cig.item())
 
                 # l2 loss on images
                 loss_l2 = torch.norm(inputs_jit.view(self.bs, -1), dim=1).mean()
 
                 # combining losses
-                loss_aux = self.var_scale_l2 * loss_var_l2 + \
-                           self.var_scale_l1 * loss_var_l1 + \
-                           self.bn_reg_scale * loss_r_feature + \
-                           self.l2_scale * loss_l2
+                loss_aux = (
+                    self.var_scale_l2 * loss_var_l2
+                    + self.var_scale_l1 * loss_var_l1
+                    + self.bn_reg_scale * loss_r_feature
+                    + self.l2_scale * loss_l2
+                )
 
-                if self.adi_scale!=0.0:
+                if self.adi_scale != 0.0:
                     loss_aux += self.adi_scale * loss_verifier_cig
 
                 loss = self.main_loss_multiplier * loss + loss_aux
 
                 # if local_rank==0:
-                if iteration % save_every==0:
+                if iteration % save_every == 0:
                     print("------------iteration {}----------".format(iteration))
                     print("total loss", loss.item())
                     print("loss_r_feature", loss_r_feature.item())
@@ -387,7 +431,7 @@ class DeepInversionClass(object):
     #         #     place_to_store = '{}/img_s{:03d}_{:05d}_id{:03d}_gpu_{}_2.jpg'.format(self.final_data_path, class_id,
     #         #                                                                               self.num_generations, id,
     #         #                                                                               local_rank)
-            
+
     #         save_dir = os.path.join(self.final_data_path, f'{class_id}')
     #         os.makedirs(save_dir, exist_ok=True)
     #         place_to_store = os.path.join(save_dir, f'{id}.jpg')

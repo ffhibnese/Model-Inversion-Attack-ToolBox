@@ -12,9 +12,7 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-__all__ = [
-    'init_dist', 'bool_parser', 'DictAction', 'parse_config', 'update_config'
-]
+__all__ = ['init_dist', 'bool_parser', 'DictAction', 'parse_config', 'update_config']
 
 
 def init_dist(launcher, backend='nccl', **kwargs):
@@ -32,8 +30,7 @@ def init_dist(launcher, backend='nccl', **kwargs):
         node_list = os.environ['SLURM_NODELIST']
         num_gpus = torch.cuda.device_count()
         torch.cuda.set_device(proc_id % num_gpus)
-        addr = subprocess.getoutput(
-            f'scontrol show hostname {node_list} | head -n1')
+        addr = subprocess.getoutput(f'scontrol show hostname {node_list} | head -n1')
         port = os.environ.get('PORT', 29500)
         os.environ['MASTER_PORT'] = str(port)
         os.environ['MASTER_ADDR'] = addr
@@ -41,8 +38,8 @@ def init_dist(launcher, backend='nccl', **kwargs):
         os.environ['RANK'] = str(proc_id)
         dist.init_process_group(backend=backend)
     else:
-        raise NotImplementedError(f'Not implemented launcher type: '
-                                  f'`{launcher}`!')
+        raise NotImplementedError(f'Not implemented launcher type: ' f'`{launcher}`!')
+
 
 def bool_parser(arg):
     """Parses an argument to boolean."""

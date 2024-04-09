@@ -5,6 +5,7 @@ import os
 import json
 
 import warnings
+
 warnings.filterwarnings('ignore', category=FutureWarning)  # Ignore TF warning.
 
 # pylint: disable=wrong-import-position
@@ -13,6 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from ..misc import format_time
 from .base_controller import BaseController
+
 # pylint: enable=wrong-import-position
 
 __all__ = ['RunningLogger']
@@ -49,8 +51,7 @@ class RunningLogger(BaseController):
         if self._text_format:
             runner.running_stats.log_order = self._log_order
         if self._json_format:
-            self._json_logpath = os.path.join(
-                runner.work_dir, self._json_filename)
+            self._json_logpath = os.path.join(runner.work_dir, self._json_filename)
         if self._tensorboard_format:
             event_dir = os.path.join(runner.work_dir, 'events')
             os.makedirs(event_dir, exist_ok=True)
@@ -62,13 +63,15 @@ class RunningLogger(BaseController):
 
     def execute_after_iteration(self, runner):
         # Prepare log data.
-        log_data = {name: stats.get_log_value()
-                    for name, stats in runner.running_stats.stats_pool.items()}
+        log_data = {
+            name: stats.get_log_value()
+            for name, stats in runner.running_stats.stats_pool.items()
+        }
 
         # Save in text format.
         msg = f'Iter {runner.iter:6d}/{runner.total_iters:6d}'
         msg += f', {runner.running_stats}'
-        memory = torch.cuda.max_memory_allocated() / (1024 ** 3)
+        memory = torch.cuda.max_memory_allocated() / (1024**3)
         msg += f' (memory: {memory:.1f}G)'
         if 'iter_time' in log_data:
             eta = log_data['iter_time'] * (runner.total_iters - runner.iter)
@@ -88,10 +91,12 @@ class RunningLogger(BaseController):
                     continue
                 if name.startswith('loss_'):
                     self.tensorboard_writer.add_scalar(
-                        name.replace('loss_', 'loss/'), value, runner.iter)
+                        name.replace('loss_', 'loss/'), value, runner.iter
+                    )
                 elif name.startswith('lr_'):
                     self.tensorboard_writer.add_scalar(
-                        name.replace('lr_', 'learning_rate/'), value, runner.iter)
+                        name.replace('lr_', 'learning_rate/'), value, runner.iter
+                    )
                 else:
                     self.tensorboard_writer.add_scalar(name, value, runner.iter)
 

@@ -41,19 +41,25 @@ def _parse_controller_priority(priority):
     """
     if isinstance(priority, int):
         if not 0 <= priority <= 100:
-            raise ValueError(f'Controller priority should lie in range '
-                             f'[0, 100], but `{priority}` is received!')
+            raise ValueError(
+                f'Controller priority should lie in range '
+                f'[0, 100], but `{priority}` is received!'
+            )
         return priority
     if isinstance(priority, str):
         try:
             return _CONTROLLER_PRIORITY_ALIASES[priority.upper()]
         except KeyError:
-            raise ValueError(f'Unknown alias `{priority}` for controller '
-                             f'priority!\n'
-                             f'Please choose from: '
-                             f'{list(_CONTROLLER_PRIORITY_ALIASES)}.')
-    raise TypeError(f'Input `priority` should be with type `int` or `str`, '
-                    f'but `{type(priority)}` is received!')
+            raise ValueError(
+                f'Unknown alias `{priority}` for controller '
+                f'priority!\n'
+                f'Please choose from: '
+                f'{list(_CONTROLLER_PRIORITY_ALIASES)}.'
+            )
+    raise TypeError(
+        f'Input `priority` should be with type `int` or `str`, '
+        f'but `{type(priority)}` is received!'
+    )
 
 
 class BaseController(object):

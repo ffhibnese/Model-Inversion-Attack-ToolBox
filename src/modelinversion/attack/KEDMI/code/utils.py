@@ -327,7 +327,9 @@ def low2high(img, device):
     img_tensor = img.detach().cpu().float()
     img = torch.zeros(bs, 3, 112, 112)
     for i in range(bs):
-        img_i = transforms.ToPILImage()(img_tensor[i, :, :, :]).convert('RGB')  # Tensor 2 PIL
+        img_i = transforms.ToPILImage()(img_tensor[i, :, :, :]).convert(
+            'RGB'
+        )  # Tensor 2 PIL
         img_i = proc(img_i)  # PIL 2 Tensor
         img[i, :, :, :] = img_i[:, :, :]
 

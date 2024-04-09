@@ -5,14 +5,17 @@ from tqdm import tqdm
 from copy import deepcopy
 
 # InsightFace model
-INSIGHTFACE_ROOT='../InsightFace_Pytorch'
+INSIGHTFACE_ROOT = '../InsightFace_Pytorch'
 sys.path.append(INSIGHTFACE_ROOT)
 from config import get_config
+
 # from Learner import face_learner
 from model import Backbone
+
 # from data.data_pipe import get_val_pair
 import torchvision.utils as vutils
 import torch
+
 # import bcolz
 from torchvision import transforms as trans
 from celeba import get_celeba_dataset
@@ -33,7 +36,9 @@ def euclidean_dist(x, y):
     m = y.size(0)
     d = x.size(1)
     assert d == y.size(1)
-    return torch.pow(x.unsqueeze(1).expand(n, m, d) - y.unsqueeze(0).expand(n, m, d), 2).sum(2)
+    return torch.pow(
+        x.unsqueeze(1).expand(n, m, d) - y.unsqueeze(0).expand(n, m, d), 2
+    ).sum(2)
 
 
 def l2_norm(input, axis=1):
@@ -43,16 +48,18 @@ def l2_norm(input, axis=1):
 
 
 def de_preprocess(tensor):
-    return tensor*0.5 + 0.5
+    return tensor * 0.5 + 0.5
 
 
-hflip = trans.Compose([
-    de_preprocess,
-    trans.ToPILImage(),
-    trans.functional.hflip,
-    trans.ToTensor(),
-    trans.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-])
+hflip = trans.Compose(
+    [
+        de_preprocess,
+        trans.ToPILImage(),
+        trans.functional.hflip,
+        trans.ToTensor(),
+        trans.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+    ]
+)
 
 
 def hflip_batch(imgs_tensor):
@@ -62,13 +69,15 @@ def hflip_batch(imgs_tensor):
     return hfliped_imgs
 
 
-rs112 = trans.Compose([
-    de_preprocess,
-    trans.ToPILImage(),
-    trans.Resize(112),
-    trans.ToTensor(),
-    trans.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-])
+rs112 = trans.Compose(
+    [
+        de_preprocess,
+        trans.ToPILImage(),
+        trans.Resize(112),
+        trans.ToTensor(),
+        trans.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+    ]
+)
 
 
 def resize112_batch(imgs_tensor):
@@ -81,8 +90,7 @@ def resize112_batch(imgs_tensor):
 
 def padto112_batch(imgs_tensor):
     assert imgs_tensor.shape[-1] == 64
-    padded_imgs = torch.zeros(len(imgs_tensor), 3, 112,
-                              112).to(imgs_tensor.device)
+    padded_imgs = torch.zeros(len(imgs_tensor), 3, 112, 112).to(imgs_tensor.device)
     padded_imgs[:, :, 24:-24, 24:-24] = imgs_tensor
     return padded_imgs
 
@@ -100,12 +108,13 @@ def embedding_dist(embeddings1, embeddings2):
     return dist
 
 
-def insightface_fpass(x, device, model, embedding_size, tta=True, batch_size=1000, pad=False):
-    embeddings = torch.from_numpy(
-        np.zeros([len(x), embedding_size])).to(device)
+def insightface_fpass(
+    x, device, model, embedding_size, tta=True, batch_size=1000, pad=False
+):
+    embeddings = torch.from_numpy(np.zeros([len(x), embedding_size])).to(device)
     with torch.no_grad():
         for idx in tqdm(range(0, len(x), batch_size), desc=f'insightface_fpass '):
-            batch = torch.tensor(x[idx:idx + batch_size])
+            batch = torch.tensor(x[idx : idx + batch_size])
             if pad:
                 batch = padto112_batch(batch)
             else:
@@ -113,22 +122,27 @@ def insightface_fpass(x, device, model, embedding_size, tta=True, batch_size=100
             if tta:
                 fliped = hflip_batch(batch)
                 emb_batch = model(batch.to(device)) + model(fliped.to(device))
-                embeddings[idx:idx + batch_size] = l2_norm(emb_batch)
+                embeddings[idx : idx + batch_size] = l2_norm(emb_batch)
             else:
-                embeddings[idx:idx +
-                           batch_size] = model(batch.to(device)).cpu()
+                embeddings[idx : idx + batch_size] = model(batch.to(device)).cpu()
     return embeddings
 
 
 class PretrainedInsightFaceClassifier2:
     def __init__(self, device, tta=True, db=False):
-        self.prototype_cache_path = f'insighface2_celeba_prototype_cache_tta{tta}_db{db}.pt'
+        self.prototype_cache_path = (
+            f'insighface2_celeba_prototype_cache_tta{tta}_db{db}.pt'
+        )
 
         conf = get_config(training=False)
-        self.model = Backbone(
-            conf.net_depth, conf.drop_ratio, conf.net_mode).to(device)
-        self.model.load_state_dict(torch.load(os.path.join(
-            INSIGHTFACE_ROOT, conf.save_path/'model_{}'.format('ir_se50.pth'))))
+        self.model = Backbone(conf.net_depth, conf.drop_ratio, conf.net_mode).to(device)
+        self.model.load_state_dict(
+            torch.load(
+                os.path.join(
+                    INSIGHTFACE_ROOT, conf.save_path / 'model_{}'.format('ir_se50.pth')
+                )
+            )
+        )
         self.model.eval()
         self.embedding_size = conf.embedding_size
         self.device = device
@@ -141,11 +155,12 @@ class PretrainedInsightFaceClassifier2:
             # import ipdb; ipdb.set_trace()
             # Get Celeb-A data
             train_x, train_y, _, _ = get_celeba_dataset(
-                'target' if not db else 'db', False)
+                'target' if not db else 'db', False
+            )
             bs = 500
             embeddings = []
             for start in range(0, len(train_x), bs):
-                batch = train_x[start: start + bs]
+                batch = train_x[start : start + bs]
                 with torch.no_grad():
                     e = self.embed(batch)
                 embeddings.append(e)
@@ -192,10 +207,14 @@ class PretrainedInsightFaceClassifier:
         self.prototype_cache_path = f'insighface_celeba_prototype_cache_pad{pad}.pt'
 
         conf = get_config(training=False)
-        self.model = Backbone(
-            conf.net_depth, conf.drop_ratio, conf.net_mode).to(device)
-        self.model.load_state_dict(torch.load(os.path.join(
-            INSIGHTFACE_ROOT, conf.save_path/'model_{}'.format('ir_se50.pth'))))
+        self.model = Backbone(conf.net_depth, conf.drop_ratio, conf.net_mode).to(device)
+        self.model.load_state_dict(
+            torch.load(
+                os.path.join(
+                    INSIGHTFACE_ROOT, conf.save_path / 'model_{}'.format('ir_se50.pth')
+                )
+            )
+        )
         self.model.eval()
         self.embedding_size = conf.embedding_size
         self.device = device
@@ -210,7 +229,8 @@ class PretrainedInsightFaceClassifier:
             # Reverse RGB
             train_x = train_x[:, [2, 1, 0]]
             train_embeddings = insightface_fpass(
-                train_x, device, self.model, self.embedding_size, pad=self.pad)
+                train_x, device, self.model, self.embedding_size, pad=self.pad
+            )
             prototypes = torch.zeros(1000, train_embeddings.size(1))
             for c in range(1000):
                 prototypes[c] = train_embeddings[train_y == c].mean(0)
@@ -218,13 +238,19 @@ class PretrainedInsightFaceClassifier:
             torch.save(self.prototypes.cpu(), self.prototype_cache_path)
 
     def embed(self, x):
-        return insightface_fpass(x.cpu(), self.device, self.model, self.embedding_size, pad=self.pad)
+        return insightface_fpass(
+            x.cpu(), self.device, self.model, self.embedding_size, pad=self.pad
+        )
 
     def z_to_logits(self, z):
         dists = []
         for start in tqdm(range(0, len(z), 100), desc='comparing to prototypes'):
-            dists.append(euclidean_dist(
-                z[start:start+100].cuda().float(), self.prototypes.cuda().float()))
+            dists.append(
+                euclidean_dist(
+                    z[start : start + 100].cuda().float(),
+                    self.prototypes.cuda().float(),
+                )
+            )
         dists = torch.cat(dists)
         return -dists
 
@@ -241,15 +267,21 @@ class PretrainedInsightFaceClassifier:
 
 
 class FinetunednsightFaceClassifier(nn.Module):
-    def __init__(self, device, L=3, eval_mode=False, pad=False, normalize_embedding=True):
+    def __init__(
+        self, device, L=3, eval_mode=False, pad=False, normalize_embedding=True
+    ):
         assert L > 0
         super(FinetunednsightFaceClassifier, self).__init__()
 
         conf = get_config(training=False)
-        self.model = Backbone(
-            conf.net_depth, conf.drop_ratio, conf.net_mode).to(device)
-        self.model.load_state_dict(torch.load(os.path.join(
-            INSIGHTFACE_ROOT, conf.save_path/'model_{}'.format('ir_se50.pth'))))
+        self.model = Backbone(conf.net_depth, conf.drop_ratio, conf.net_mode).to(device)
+        self.model.load_state_dict(
+            torch.load(
+                os.path.join(
+                    INSIGHTFACE_ROOT, conf.save_path / 'model_{}'.format('ir_se50.pth')
+                )
+            )
+        )
         self.embedding_size = conf.embedding_size
         self.device = device
         self.normalize_embedding = normalize_embedding
@@ -264,7 +296,7 @@ class FinetunednsightFaceClassifier(nn.Module):
         for l in range(L):
             layers.append(nn.BatchNorm1d(H))
             layers.append(nn.ReLU(inplace=True))
-            layers.append(nn.Linear(H, 1000 if l == L-1 else H))
+            layers.append(nn.Linear(H, 1000 if l == L - 1 else H))
         self.decoder = nn.Sequential(*layers)
 
         self.eval_mode = eval_mode
@@ -282,13 +314,16 @@ class FinetunednsightFaceClassifier(nn.Module):
                 if not self.normalize_embedding:
                     if self.model_unnorm is None:
                         self.model_unnorm = deepcopy(self.model)
-                        self.model_unnorm.output_layer = self.model_unnorm.output_layer[:-1]
+                        self.model_unnorm.output_layer = self.model_unnorm.output_layer[
+                            :-1
+                        ]
                         self.model_unnorm.normalize_output = False
                     model = self.model_unnorm
                 else:
                     model = self.model
-                x = torch.cat([model(x[start:start+100])
-                               for start in range(0, len(x), 100)])
+                x = torch.cat(
+                    [model(x[start : start + 100]) for start in range(0, len(x), 100)]
+                )
                 return x
 
     def embed_img(self, x):
@@ -338,7 +373,7 @@ def main_use_class2():
     logits = []
     for start in range(0, len(test_x), bs):
         with torch.no_grad():
-            logits_ = model.logits(test_x[start: start + bs])
+            logits_ = model.logits(test_x[start : start + bs])
         logits.append(logits_)
     logits = torch.cat(logits)
     preds = torch.max(logits, 1)[1]
@@ -346,11 +381,13 @@ def main_use_class2():
     print(acc.item())
 
 
-def train(args, model, device, train_loader, optimizers, epoch, iteration_logger, trim=False):
+def train(
+    args, model, device, train_loader, optimizers, epoch, iteration_logger, trim=False
+):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
-        data = DiffAugment(data / 2 + .5, args.augment).clamp(0, 1) * 2 - 1
+        data = DiffAugment(data / 2 + 0.5, args.augment).clamp(0, 1) * 2 - 1
         if trim:
             data = trim_batch(data)
         for _, optimizer in optimizers.items():
@@ -367,22 +404,33 @@ def train(args, model, device, train_loader, optimizers, epoch, iteration_logger
 
         # Log
         if batch_idx % 50 == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.item()))
+            print(
+                'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    epoch,
+                    batch_idx * len(data),
+                    len(train_loader.dataset),
+                    100.0 * batch_idx / len(train_loader),
+                    loss.item(),
+                )
+            )
 
-            iteration_logger.writerow({
-                'global_iteration': batch_idx + len(train_loader) * epoch,
-                'train_acc': acc,
-                'train_loss': loss.item(),
-            })
-            plot_csv(iteration_logger.filename, os.path.join(
-                args.output_dir, 'iteration_plots.jpeg'))
+            iteration_logger.writerow(
+                {
+                    'global_iteration': batch_idx + len(train_loader) * epoch,
+                    'train_acc': acc,
+                    'train_loss': loss.item(),
+                }
+            )
+            plot_csv(
+                iteration_logger.filename,
+                os.path.join(args.output_dir, 'iteration_plots.jpeg'),
+            )
 
     # Sanity check: vis data
     if epoch == 1:
-        vutils.save_image(data[:64], '%s/train_batch.jpeg' %
-                          (args.output_dir), normalize=True, nrow=8)
+        vutils.save_image(
+            data[:64], '%s/train_batch.jpeg' % (args.output_dir), normalize=True, nrow=8
+        )
 
 
 def test(args, model, device, test_loader, epoch=-1, trim=False):
@@ -404,15 +452,21 @@ def test(args, model, device, test_loader, epoch=-1, trim=False):
 
     # Sanity check: vis data
     if epoch == 1:
-        vutils.save_image(data[:64], '%s/test_batch.jpeg' %
-                          (args.output_dir), normalize=True, nrow=8)
+        vutils.save_image(
+            data[:64], '%s/test_batch.jpeg' % (args.output_dir), normalize=True, nrow=8
+        )
 
     test_loss /= len(test_loader.dataset)
 
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
-    return 100. * correct / len(test_loader.dataset)
+    print(
+        '\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+            test_loss,
+            correct,
+            len(test_loader.dataset),
+            100.0 * correct / len(test_loader.dataset),
+        )
+    )
+    return 100.0 * correct / len(test_loader.dataset)
 
 
 def main_finetune(args):
@@ -420,14 +474,18 @@ def main_finetune(args):
     batch_size = args.batch_size
     # Logging
     epoch_fieldnames = ['global_iteration', 'test_acc']
-    epoch_logger = CSVLogger(every=1,
-                             fieldnames=epoch_fieldnames,
-                             filename=os.path.join(args.output_dir, 'epoch_log.csv'))
+    epoch_logger = CSVLogger(
+        every=1,
+        fieldnames=epoch_fieldnames,
+        filename=os.path.join(args.output_dir, 'epoch_log.csv'),
+    )
 
     iteration_fieldnames = ['global_iteration', 'train_acc', 'train_loss']
-    iteration_logger = CSVLogger(every=1,
-                                 fieldnames=iteration_fieldnames,
-                                 filename=os.path.join(args.output_dir, 'iteration_log.csv'))
+    iteration_logger = CSVLogger(
+        every=1,
+        fieldnames=iteration_fieldnames,
+        filename=os.path.join(args.output_dir, 'iteration_log.csv'),
+    )
 
     # Get Celeb-A data
     train_x, train_y, test_x, test_y = get_celeba_dataset('target')
@@ -441,35 +499,58 @@ def main_finetune(args):
     test_x = resize112_batch(test_x)
     test_x = torch.cat([hflip_batch(test_x), test_x])
     test_y = torch.cat([test_y, test_y])
-    train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(
-        train_x, train_y), batch_size=batch_size, shuffle=True, num_workers=2)
-    test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(
-        test_x, test_y), batch_size=batch_size, shuffle=False, num_workers=2)
+    train_loader = torch.utils.data.DataLoader(
+        torch.utils.data.TensorDataset(train_x, train_y),
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=2,
+    )
+    test_loader = torch.utils.data.DataLoader(
+        torch.utils.data.TensorDataset(test_x, test_y),
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=2,
+    )
 
     # Get model
     model = FinetunednsightFaceClassifier('cuda:0', args.decoder_layers)
     model.to(device)
     optimizers = {
-        'backbone': torch.optim.SGD(list(model.model.parameters()), lr=args.lr if not args.ttlr else args.lr * 0.1, momentum=0.9, weight_decay=5e-4, nesterov=True),
-        'decoder': torch.optim.SGD(list(model.decoder.parameters()), lr=args.lr, momentum=0.9, weight_decay=5e-4, nesterov=True),
+        'backbone': torch.optim.SGD(
+            list(model.model.parameters()),
+            lr=args.lr if not args.ttlr else args.lr * 0.1,
+            momentum=0.9,
+            weight_decay=5e-4,
+            nesterov=True,
+        ),
+        'decoder': torch.optim.SGD(
+            list(model.decoder.parameters()),
+            lr=args.lr,
+            momentum=0.9,
+            weight_decay=5e-4,
+            nesterov=True,
+        ),
     }
 
     for epoch in range(1, args.epochs + 1):
-        train(args, model, device, train_loader,
-              optimizers, epoch, iteration_logger)
+        train(args, model, device, train_loader, optimizers, epoch, iteration_logger)
         test_acc = test(args, model, device, test_loader, epoch=epoch)
 
-        epoch_logger.writerow({
-            'global_iteration': epoch,
-            'test_acc': test_acc,
-        })
-        plot_csv(epoch_logger.filename, os.path.join(
-            args.output_dir, 'epoch_plots.jpeg'))
+        epoch_logger.writerow(
+            {
+                'global_iteration': epoch,
+                'test_acc': test_acc,
+            }
+        )
+        plot_csv(
+            epoch_logger.filename, os.path.join(args.output_dir, 'epoch_plots.jpeg')
+        )
 
-        torch.save(model.state_dict(), os.path.join(
-            args.output_dir, "ckpt.pt"))
+        torch.save(model.state_dict(), os.path.join(args.output_dir, "ckpt.pt"))
         if epoch in [1, 2, 5, 10, 20, 50]:
-            torch.save(model.state_dict(), os.path.join(args.output_dir, f"ckpt_e{epoch}.pt"))
+            torch.save(
+                model.state_dict(), os.path.join(args.output_dir, f"ckpt_e{epoch}.pt")
+            )
 
 
 def main_finetune_crop(args):
@@ -477,14 +558,18 @@ def main_finetune_crop(args):
     batch_size = args.batch_size
     # Logging
     epoch_fieldnames = ['global_iteration', 'test_acc']
-    epoch_logger = CSVLogger(every=1,
-                             fieldnames=epoch_fieldnames,
-                             filename=os.path.join(args.output_dir, 'epoch_log.csv'))
+    epoch_logger = CSVLogger(
+        every=1,
+        fieldnames=epoch_fieldnames,
+        filename=os.path.join(args.output_dir, 'epoch_log.csv'),
+    )
 
     iteration_fieldnames = ['global_iteration', 'train_acc', 'train_loss']
-    iteration_logger = CSVLogger(every=1,
-                                 fieldnames=iteration_fieldnames,
-                                 filename=os.path.join(args.output_dir, 'iteration_log.csv'))
+    iteration_logger = CSVLogger(
+        every=1,
+        fieldnames=iteration_fieldnames,
+        filename=os.path.join(args.output_dir, 'iteration_log.csv'),
+    )
 
     # Get Celeb-A data
     train_x, train_y, test_x, test_y = get_celeba_dataset('target', crop=False)
@@ -494,56 +579,125 @@ def main_finetune_crop(args):
     # Preprocess data
     train_x = resize112_batch(train_x)
     test_x = resize112_batch(test_x)
-    train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(
-        train_x, train_y), batch_size=batch_size, shuffle=True, num_workers=2)
-    test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(
-        test_x, test_y), batch_size=batch_size, shuffle=False, num_workers=2)
+    train_loader = torch.utils.data.DataLoader(
+        torch.utils.data.TensorDataset(train_x, train_y),
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=2,
+    )
+    test_loader = torch.utils.data.DataLoader(
+        torch.utils.data.TensorDataset(test_x, test_y),
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=2,
+    )
 
     # Visualize Data
     x, y = iter(train_loader).next()
-    vutils.save_image(x[:64], '%s/train_x.jpeg' %
-                      (args.output_dir), normalize=True, nrow=8)
-    vutils.save_image(trim_batch(DiffAugment(x[:64] / 2 + .5, 'color')[:, [
-                      2, 1, 0]] * 2 - 1), '%s/train_x.jpeg' % (args.output_dir), normalize=True, nrow=8)
-    vutils.save_image(trim_batch(DiffAugment(x[:64] / 2 + .5, 'translation')[:, [
-                      2, 1, 0]] * 2 - 1), '%s/train_x-t.jpeg' % (args.output_dir), normalize=True, nrow=8)
-    vutils.save_image(trim_batch(DiffAugment(x[:64] / 2 + .5, 'color')[:, [2, 1, 0]].clamp(
-        0, 1) * 2 - 1), '%s/train_x-c.jpeg' % (args.output_dir), normalize=True, nrow=8)
-    vutils.save_image(trim_batch(DiffAugment(x[:64] / 2 + .5, 'cutout')[:, [
-                      2, 1, 0]] * 2 - 1), '%s/train_x-o.jpeg' % (args.output_dir), normalize=True, nrow=8)
-    vutils.save_image(trim_batch(DiffAugment(x[:64] / 2 + .5, 'cutout4')[:, [
-                      2, 1, 0]] * 2 - 1), '%s/train_x-o4.jpeg' % (args.output_dir), normalize=True, nrow=8)
-    vutils.save_image(trim_batch(DiffAugment(x[:64] / 2 + .5, 'cutout4,cutout4')[:, [
-                      2, 1, 0]] * 2 - 1), '%s/train_x-o4o4.jpeg' % (args.output_dir), normalize=True, nrow=8)
-    vutils.save_image(trim_batch(DiffAugment(x[:64] / 2 + .5, 'translation,color,cutout4,cutout4')[
-                      :, [2, 1, 0]] * 2 - 1), '%s/train_x-tco4o4.jpeg' % (args.output_dir), normalize=True, nrow=8)
+    vutils.save_image(
+        x[:64], '%s/train_x.jpeg' % (args.output_dir), normalize=True, nrow=8
+    )
+    vutils.save_image(
+        trim_batch(DiffAugment(x[:64] / 2 + 0.5, 'color')[:, [2, 1, 0]] * 2 - 1),
+        '%s/train_x.jpeg' % (args.output_dir),
+        normalize=True,
+        nrow=8,
+    )
+    vutils.save_image(
+        trim_batch(DiffAugment(x[:64] / 2 + 0.5, 'translation')[:, [2, 1, 0]] * 2 - 1),
+        '%s/train_x-t.jpeg' % (args.output_dir),
+        normalize=True,
+        nrow=8,
+    )
+    vutils.save_image(
+        trim_batch(
+            DiffAugment(x[:64] / 2 + 0.5, 'color')[:, [2, 1, 0]].clamp(0, 1) * 2 - 1
+        ),
+        '%s/train_x-c.jpeg' % (args.output_dir),
+        normalize=True,
+        nrow=8,
+    )
+    vutils.save_image(
+        trim_batch(DiffAugment(x[:64] / 2 + 0.5, 'cutout')[:, [2, 1, 0]] * 2 - 1),
+        '%s/train_x-o.jpeg' % (args.output_dir),
+        normalize=True,
+        nrow=8,
+    )
+    vutils.save_image(
+        trim_batch(DiffAugment(x[:64] / 2 + 0.5, 'cutout4')[:, [2, 1, 0]] * 2 - 1),
+        '%s/train_x-o4.jpeg' % (args.output_dir),
+        normalize=True,
+        nrow=8,
+    )
+    vutils.save_image(
+        trim_batch(
+            DiffAugment(x[:64] / 2 + 0.5, 'cutout4,cutout4')[:, [2, 1, 0]] * 2 - 1
+        ),
+        '%s/train_x-o4o4.jpeg' % (args.output_dir),
+        normalize=True,
+        nrow=8,
+    )
+    vutils.save_image(
+        trim_batch(
+            DiffAugment(x[:64] / 2 + 0.5, 'translation,color,cutout4,cutout4')[
+                :, [2, 1, 0]
+            ]
+            * 2
+            - 1
+        ),
+        '%s/train_x-tco4o4.jpeg' % (args.output_dir),
+        normalize=True,
+        nrow=8,
+    )
 
     # Get model
-    model = FinetunednsightFaceClassifier(
-        'cuda:0', args.decoder_layers, pad=True)
+    model = FinetunednsightFaceClassifier('cuda:0', args.decoder_layers, pad=True)
     model.to(device)
     optimizers = {
-        'backbone': torch.optim.SGD(list(model.model.parameters()), lr=args.lr if not args.ttlr else args.lr * 0.1, momentum=0.9, weight_decay=5e-4, nesterov=True),
-        'decoder': torch.optim.SGD(list(model.decoder.parameters()), lr=args.lr, momentum=0.9, weight_decay=5e-4, nesterov=True),
+        'backbone': torch.optim.SGD(
+            list(model.model.parameters()),
+            lr=args.lr if not args.ttlr else args.lr * 0.1,
+            momentum=0.9,
+            weight_decay=5e-4,
+            nesterov=True,
+        ),
+        'decoder': torch.optim.SGD(
+            list(model.decoder.parameters()),
+            lr=args.lr,
+            momentum=0.9,
+            weight_decay=5e-4,
+            nesterov=True,
+        ),
     }
 
     for epoch in range(1, args.epochs + 1):
-        train(args, model, device, train_loader, optimizers,
-              epoch, iteration_logger, trim=True)
-        test_acc = test(args, model, device, test_loader,
-                        epoch=epoch, trim=True)
+        train(
+            args,
+            model,
+            device,
+            train_loader,
+            optimizers,
+            epoch,
+            iteration_logger,
+            trim=True,
+        )
+        test_acc = test(args, model, device, test_loader, epoch=epoch, trim=True)
 
-        epoch_logger.writerow({
-            'global_iteration': epoch,
-            'test_acc': test_acc,
-        })
-        plot_csv(epoch_logger.filename, os.path.join(
-            args.output_dir, 'epoch_plots.jpeg'))
+        epoch_logger.writerow(
+            {
+                'global_iteration': epoch,
+                'test_acc': test_acc,
+            }
+        )
+        plot_csv(
+            epoch_logger.filename, os.path.join(args.output_dir, 'epoch_plots.jpeg')
+        )
 
-        torch.save(model.state_dict(), os.path.join(
-            args.output_dir, "ckpt.pt"))
+        torch.save(model.state_dict(), os.path.join(args.output_dir, "ckpt.pt"))
         if epoch in [1, 2, 5, 10, 20, 50]:
-            torch.save(model.state_dict(), os.path.join(args.output_dir, f"ckpt_e{epoch}.pt"))
+            torch.save(
+                model.state_dict(), os.path.join(args.output_dir, f"ckpt_e{epoch}.pt")
+            )
 
 
 if __name__ == '__main__':
@@ -561,15 +715,32 @@ if __name__ == '__main__':
     # main()
     # main_use_class()
     import ipdb
+
     ipdb.set_trace()
     import argparse
+
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--batch_size', type=int, default=64, metavar='N',
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--epochs', type=int, default=14, metavar='N',
-                        help='number of epochs to train (default: 14)')
-    parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
-                        help='learning rate (default: 1.0)')
+    parser.add_argument(
+        '--batch_size',
+        type=int,
+        default=64,
+        metavar='N',
+        help='input batch size for training (default: 64)',
+    )
+    parser.add_argument(
+        '--epochs',
+        type=int,
+        default=14,
+        metavar='N',
+        help='number of epochs to train (default: 14)',
+    )
+    parser.add_argument(
+        '--lr',
+        type=float,
+        default=1.0,
+        metavar='LR',
+        help='learning rate (default: 1.0)',
+    )
     parser.add_argument('--output_dir', required=True, help='')
     parser.add_argument('--eval', type=int, default=0)
     parser.add_argument('--augment', nargs='?', const='', type=str, default='')

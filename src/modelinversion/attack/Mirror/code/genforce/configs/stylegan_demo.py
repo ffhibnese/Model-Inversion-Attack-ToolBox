@@ -17,17 +17,20 @@ total_img = 100_000
 data = dict(
     num_workers=4,
     repeat=500,
-    train=dict(root_dir='data/demo.zip', data_format='zip',
-               resolution=resolution, mirror=0.5),
-    val=dict(root_dir='data/demo.zip', data_format='zip',
-             resolution=resolution),
+    train=dict(
+        root_dir='data/demo.zip', data_format='zip', resolution=resolution, mirror=0.5
+    ),
+    val=dict(root_dir='data/demo.zip', data_format='zip', resolution=resolution),
 )
 
 controllers = dict(
     RunningLogger=dict(every_n_iters=10),
     ProgressScheduler=dict(
-        every_n_iters=1, init_res=8, minibatch_repeats=4,
-        lod_training_img=5_000, lod_transition_img=5_000,
+        every_n_iters=1,
+        init_res=8,
+        minibatch_repeats=4,
+        lod_training_img=5_000,
+        lod_transition_img=5_000,
         batch_size_schedule=dict(res4=64, res8=32, res16=16, res32=8),
     ),
     Snapshoter=dict(every_n_iters=500, first_iter=True, num=200),
@@ -47,11 +50,16 @@ modules = dict(
         model=dict(gan_type=gan_type, resolution=resolution),
         lr=dict(lr_type='FIXED'),
         opt=dict(opt_type='Adam', base_lr=1e-3, betas=(0.0, 0.99)),
-        kwargs_train=dict(w_moving_decay=0.995, style_mixing_prob=0.9,
-                          trunc_psi=1.0, trunc_layers=0, randomize_noise=True),
+        kwargs_train=dict(
+            w_moving_decay=0.995,
+            style_mixing_prob=0.9,
+            trunc_psi=1.0,
+            trunc_layers=0,
+            randomize_noise=True,
+        ),
         kwargs_val=dict(trunc_psi=1.0, trunc_layers=0, randomize_noise=False),
         g_smooth_img=10000,
-    )
+    ),
 )
 
 loss = dict(

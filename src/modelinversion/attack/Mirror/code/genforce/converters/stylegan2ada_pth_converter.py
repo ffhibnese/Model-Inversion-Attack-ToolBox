@@ -35,108 +35,60 @@ NOISE_MODE = 'random' if RANDOMIZE_NOISE else 'const'
 # The following two dictionary of mapping patterns are modified from
 # https://github.com/NVlabs/stylegan2-ada-pytorch/blob/main/legacy.py
 G_PTH_TO_TF_VAR_MAPPING_PATTERN = {
-    r'mapping\.w_avg':
-        lambda:   f'dlatent_avg',
-    r'mapping\.embed\.weight':
-        lambda:   f'LabelEmbed/weight',
-    r'mapping\.embed\.bias':
-        lambda:   f'LabelEmbed/bias',
-    r'mapping\.fc(\d+)\.weight':
-        lambda i: f'Dense{i}/weight',
-    r'mapping\.fc(\d+)\.bias':
-        lambda i: f'Dense{i}/bias',
-    r'synthesis\.b4\.const':
-        lambda:   f'4x4/Const/const',
-    r'synthesis\.b4\.conv1\.weight':
-        lambda:   f'4x4/Conv/weight',
-    r'synthesis\.b4\.conv1\.bias':
-        lambda:   f'4x4/Conv/bias',
-    r'synthesis\.b4\.conv1\.noise_const':
-        lambda:   f'noise0',
-    r'synthesis\.b4\.conv1\.noise_strength':
-        lambda:   f'4x4/Conv/noise_strength',
-    r'synthesis\.b4\.conv1\.affine\.weight':
-        lambda:   f'4x4/Conv/mod_weight',
-    r'synthesis\.b4\.conv1\.affine\.bias':
-        lambda:   f'4x4/Conv/mod_bias',
-    r'synthesis\.b(\d+)\.conv0\.weight':
-        lambda r: f'{r}x{r}/Conv0_up/weight',
-    r'synthesis\.b(\d+)\.conv0\.bias':
-        lambda r: f'{r}x{r}/Conv0_up/bias',
-    r'synthesis\.b(\d+)\.conv0\.noise_const':
-        lambda r: f'noise{int(np.log2(int(r)))*2-5}',
-    r'synthesis\.b(\d+)\.conv0\.noise_strength':
-        lambda r: f'{r}x{r}/Conv0_up/noise_strength',
-    r'synthesis\.b(\d+)\.conv0\.affine\.weight':
-        lambda r: f'{r}x{r}/Conv0_up/mod_weight',
-    r'synthesis\.b(\d+)\.conv0\.affine\.bias':
-        lambda r: f'{r}x{r}/Conv0_up/mod_bias',
-    r'synthesis\.b(\d+)\.conv1\.weight':
-        lambda r: f'{r}x{r}/Conv1/weight',
-    r'synthesis\.b(\d+)\.conv1\.bias':
-        lambda r: f'{r}x{r}/Conv1/bias',
-    r'synthesis\.b(\d+)\.conv1\.noise_const':
-        lambda r: f'noise{int(np.log2(int(r)))*2-4}',
-    r'synthesis\.b(\d+)\.conv1\.noise_strength':
-        lambda r: f'{r}x{r}/Conv1/noise_strength',
-    r'synthesis\.b(\d+)\.conv1\.affine\.weight':
-        lambda r: f'{r}x{r}/Conv1/mod_weight',
-    r'synthesis\.b(\d+)\.conv1\.affine\.bias':
-        lambda r: f'{r}x{r}/Conv1/mod_bias',
-    r'synthesis\.b(\d+)\.torgb\.weight':
-        lambda r: f'{r}x{r}/ToRGB/weight',
-    r'synthesis\.b(\d+)\.torgb\.bias':
-        lambda r: f'{r}x{r}/ToRGB/bias',
-    r'synthesis\.b(\d+)\.torgb\.affine\.weight':
-        lambda r: f'{r}x{r}/ToRGB/mod_weight',
-    r'synthesis\.b(\d+)\.torgb\.affine\.bias':
-        lambda r: f'{r}x{r}/ToRGB/mod_bias',
-    r'synthesis\.b(\d+)\.skip\.weight':
-        lambda r: f'{r}x{r}/Skip/weight',
-    r'.*\.resample_filter':
-        None,
+    r'mapping\.w_avg': lambda: f'dlatent_avg',
+    r'mapping\.embed\.weight': lambda: f'LabelEmbed/weight',
+    r'mapping\.embed\.bias': lambda: f'LabelEmbed/bias',
+    r'mapping\.fc(\d+)\.weight': lambda i: f'Dense{i}/weight',
+    r'mapping\.fc(\d+)\.bias': lambda i: f'Dense{i}/bias',
+    r'synthesis\.b4\.const': lambda: f'4x4/Const/const',
+    r'synthesis\.b4\.conv1\.weight': lambda: f'4x4/Conv/weight',
+    r'synthesis\.b4\.conv1\.bias': lambda: f'4x4/Conv/bias',
+    r'synthesis\.b4\.conv1\.noise_const': lambda: f'noise0',
+    r'synthesis\.b4\.conv1\.noise_strength': lambda: f'4x4/Conv/noise_strength',
+    r'synthesis\.b4\.conv1\.affine\.weight': lambda: f'4x4/Conv/mod_weight',
+    r'synthesis\.b4\.conv1\.affine\.bias': lambda: f'4x4/Conv/mod_bias',
+    r'synthesis\.b(\d+)\.conv0\.weight': lambda r: f'{r}x{r}/Conv0_up/weight',
+    r'synthesis\.b(\d+)\.conv0\.bias': lambda r: f'{r}x{r}/Conv0_up/bias',
+    r'synthesis\.b(\d+)\.conv0\.noise_const': lambda r: f'noise{int(np.log2(int(r)))*2-5}',
+    r'synthesis\.b(\d+)\.conv0\.noise_strength': lambda r: f'{r}x{r}/Conv0_up/noise_strength',
+    r'synthesis\.b(\d+)\.conv0\.affine\.weight': lambda r: f'{r}x{r}/Conv0_up/mod_weight',
+    r'synthesis\.b(\d+)\.conv0\.affine\.bias': lambda r: f'{r}x{r}/Conv0_up/mod_bias',
+    r'synthesis\.b(\d+)\.conv1\.weight': lambda r: f'{r}x{r}/Conv1/weight',
+    r'synthesis\.b(\d+)\.conv1\.bias': lambda r: f'{r}x{r}/Conv1/bias',
+    r'synthesis\.b(\d+)\.conv1\.noise_const': lambda r: f'noise{int(np.log2(int(r)))*2-4}',
+    r'synthesis\.b(\d+)\.conv1\.noise_strength': lambda r: f'{r}x{r}/Conv1/noise_strength',
+    r'synthesis\.b(\d+)\.conv1\.affine\.weight': lambda r: f'{r}x{r}/Conv1/mod_weight',
+    r'synthesis\.b(\d+)\.conv1\.affine\.bias': lambda r: f'{r}x{r}/Conv1/mod_bias',
+    r'synthesis\.b(\d+)\.torgb\.weight': lambda r: f'{r}x{r}/ToRGB/weight',
+    r'synthesis\.b(\d+)\.torgb\.bias': lambda r: f'{r}x{r}/ToRGB/bias',
+    r'synthesis\.b(\d+)\.torgb\.affine\.weight': lambda r: f'{r}x{r}/ToRGB/mod_weight',
+    r'synthesis\.b(\d+)\.torgb\.affine\.bias': lambda r: f'{r}x{r}/ToRGB/mod_bias',
+    r'synthesis\.b(\d+)\.skip\.weight': lambda r: f'{r}x{r}/Skip/weight',
+    r'.*\.resample_filter': None,
 }
 D_PTH_TO_TF_VAR_MAPPING_PATTERN = {
-    r'b(\d+)\.fromrgb\.weight':
-        lambda r:    f'{r}x{r}/FromRGB/weight',
-    r'b(\d+)\.fromrgb\.bias':
-        lambda r:    f'{r}x{r}/FromRGB/bias',
-    r'b(\d+)\.conv(\d+)\.weight':
-        lambda r, i: f'{r}x{r}/Conv{i}{["","_down"][int(i)]}/weight',
-    r'b(\d+)\.conv(\d+)\.bias':
-        lambda r, i: f'{r}x{r}/Conv{i}{["","_down"][int(i)]}/bias',
-    r'b(\d+)\.skip\.weight':
-        lambda r:    f'{r}x{r}/Skip/weight',
-    r'mapping\.embed\.weight':
-        lambda:      f'LabelEmbed/weight',
-    r'mapping\.embed\.bias':
-        lambda:      f'LabelEmbed/bias',
-    r'mapping\.fc(\d+)\.weight':
-        lambda i:    f'Mapping{i}/weight',
-    r'mapping\.fc(\d+)\.bias':
-        lambda i:    f'Mapping{i}/bias',
-    r'b4\.conv\.weight':
-        lambda:      f'4x4/Conv/weight',
-    r'b4\.conv\.bias':
-        lambda:      f'4x4/Conv/bias',
-    r'b4\.fc\.weight':
-        lambda:      f'4x4/Dense0/weight',
-    r'b4\.fc\.bias':
-        lambda:      f'4x4/Dense0/bias',
-    r'b4\.out\.weight':
-        lambda:      f'Output/weight',
-    r'b4\.out\.bias':
-        lambda:      f'Output/bias',
-    r'.*\.resample_filter':
-        None,
+    r'b(\d+)\.fromrgb\.weight': lambda r: f'{r}x{r}/FromRGB/weight',
+    r'b(\d+)\.fromrgb\.bias': lambda r: f'{r}x{r}/FromRGB/bias',
+    r'b(\d+)\.conv(\d+)\.weight': lambda r, i: f'{r}x{r}/Conv{i}{["","_down"][int(i)]}/weight',
+    r'b(\d+)\.conv(\d+)\.bias': lambda r, i: f'{r}x{r}/Conv{i}{["","_down"][int(i)]}/bias',
+    r'b(\d+)\.skip\.weight': lambda r: f'{r}x{r}/Skip/weight',
+    r'mapping\.embed\.weight': lambda: f'LabelEmbed/weight',
+    r'mapping\.embed\.bias': lambda: f'LabelEmbed/bias',
+    r'mapping\.fc(\d+)\.weight': lambda i: f'Mapping{i}/weight',
+    r'mapping\.fc(\d+)\.bias': lambda i: f'Mapping{i}/bias',
+    r'b4\.conv\.weight': lambda: f'4x4/Conv/weight',
+    r'b4\.conv\.bias': lambda: f'4x4/Conv/bias',
+    r'b4\.fc\.weight': lambda: f'4x4/Dense0/weight',
+    r'b4\.fc\.bias': lambda: f'4x4/Dense0/bias',
+    r'b4\.out\.weight': lambda: f'Output/weight',
+    r'b4\.out\.bias': lambda: f'Output/bias',
+    r'.*\.resample_filter': None,
 }
 
 
-def convert_stylegan2ada_pth_weight(src_weight_path,
-                                    dst_weight_path,
-                                    test_num=10,
-                                    save_test_image=False,
-                                    verbose=False):
+def convert_stylegan2ada_pth_weight(
+    src_weight_path, dst_weight_path, test_num=10, save_test_image=False, verbose=False
+):
     """Converts the pre-trained StyleGAN2-ADA-PyTorch weights.
 
     Args:
@@ -166,14 +118,16 @@ def convert_stylegan2ada_pth_weight(src_weight_path,
     print(f'Converting source weights (G) to target ...')
     G_vars = dict(model['G'].named_parameters())
     G_vars.update(dict(model['G'].named_buffers()))
-    G = build_model(gan_type=GAN_TPYE,
-                    module='generator',
-                    resolution=resolution,
-                    z_space_dim=z_space_dim,
-                    w_space_dim=w_space_dim,
-                    label_size=label_size,
-                    repeat_w=repeat_w,
-                    image_channels=image_channels)
+    G = build_model(
+        gan_type=GAN_TPYE,
+        module='generator',
+        resolution=resolution,
+        z_space_dim=z_space_dim,
+        w_space_dim=w_space_dim,
+        label_size=label_size,
+        repeat_w=repeat_w,
+        image_channels=image_channels,
+    )
     G_state_dict = G.state_dict()
     official_tf_to_pth_var_mapping = {}
     for name in G_vars.keys():
@@ -210,14 +164,16 @@ def convert_stylegan2ada_pth_weight(src_weight_path,
     print(f'Converting source weights (Gs) to target ...')
     Gs_vars = dict(model['G_ema'].named_parameters())
     Gs_vars.update(dict(model['G_ema'].named_buffers()))
-    Gs = build_model(gan_type=GAN_TPYE,
-                     module='generator',
-                     resolution=resolution,
-                     z_space_dim=z_space_dim,
-                     w_space_dim=w_space_dim,
-                     label_size=label_size,
-                     repeat_w=repeat_w,
-                     image_channels=image_channels)
+    Gs = build_model(
+        gan_type=GAN_TPYE,
+        module='generator',
+        resolution=resolution,
+        z_space_dim=z_space_dim,
+        w_space_dim=w_space_dim,
+        label_size=label_size,
+        repeat_w=repeat_w,
+        image_channels=image_channels,
+    )
     Gs_state_dict = Gs.state_dict()
     official_tf_to_pth_var_mapping = {}
     for name in Gs_vars.keys():
@@ -254,11 +210,13 @@ def convert_stylegan2ada_pth_weight(src_weight_path,
     print(f'Converting source weights (D) to target ...')
     D_vars = dict(model['D'].named_parameters())
     D_vars.update(dict(model['D'].named_buffers()))
-    D = build_model(gan_type=GAN_TPYE,
-                    module='discriminator',
-                    resolution=resolution,
-                    label_size=label_size,
-                    image_channels=image_channels)
+    D = build_model(
+        gan_type=GAN_TPYE,
+        module='discriminator',
+        resolution=resolution,
+        label_size=label_size,
+        image_channels=image_channels,
+    )
     D_state_dict = D.state_dict()
     official_tf_to_pth_var_mapping = {}
     for name in D_vars.keys():
@@ -327,17 +285,21 @@ def convert_stylegan2ada_pth_weight(src_weight_path,
             label_id = 0
             label = None
 
-        src_output = model['G_ema'](code,
-                                    label,
-                                    truncation_psi=TRUNC_PSI,
-                                    truncation_cutoff=TRUNC_LAYERS,
-                                    noise_mode=NOISE_MODE)
+        src_output = model['G_ema'](
+            code,
+            label,
+            truncation_psi=TRUNC_PSI,
+            truncation_cutoff=TRUNC_LAYERS,
+            noise_mode=NOISE_MODE,
+        )
         src_output = src_output.detach().cpu().numpy()
-        dst_output = Gs(code,
-                        label=label,
-                        trunc_psi=TRUNC_PSI,
-                        trunc_layers=TRUNC_LAYERS,
-                        randomize_noise=RANDOMIZE_NOISE)['image']
+        dst_output = Gs(
+            code,
+            label=label,
+            trunc_psi=TRUNC_PSI,
+            trunc_layers=TRUNC_LAYERS,
+            randomize_noise=RANDOMIZE_NOISE,
+        )['image']
         dst_output = dst_output.detach().cpu().numpy()
         distance = np.average(np.abs(src_output - dst_output))
         if verbose:
@@ -359,18 +321,22 @@ def convert_stylegan2ada_pth_weight(src_weight_path,
         else:
             label_id = 0
             label = None
-        src_image = model['G'](code,
-                               label,
-                               truncation_psi=TRUNC_PSI,
-                               truncation_cutoff=TRUNC_LAYERS,
-                               noise_mode=NOISE_MODE)
+        src_image = model['G'](
+            code,
+            label,
+            truncation_psi=TRUNC_PSI,
+            truncation_cutoff=TRUNC_LAYERS,
+            noise_mode=NOISE_MODE,
+        )
         src_output = model['D'](src_image, label)
         src_output = src_output.detach().cpu().numpy()
-        dst_image = G(code,
-                      label=label,
-                      trunc_psi=TRUNC_PSI,
-                      trunc_layers=TRUNC_LAYERS,
-                      randomize_noise=RANDOMIZE_NOISE)['image']
+        dst_image = G(
+            code,
+            label=label,
+            trunc_psi=TRUNC_PSI,
+            trunc_layers=TRUNC_LAYERS,
+            randomize_noise=RANDOMIZE_NOISE,
+        )['image']
         dst_output = D(dst_image, label)
         dst_output = dst_output.detach().cpu().numpy()
         distance = np.average(np.abs(src_output - dst_output))

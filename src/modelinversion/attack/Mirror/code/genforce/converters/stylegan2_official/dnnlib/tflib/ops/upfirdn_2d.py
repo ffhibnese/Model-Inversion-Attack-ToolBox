@@ -11,12 +11,17 @@ import numpy as np
 import tensorflow as tf
 from .. import custom_ops
 
+
 def _get_plugin():
     return custom_ops.get_plugin(os.path.splitext(__file__)[0] + '.cu')
 
-#----------------------------------------------------------------------------
 
-def upfirdn_2d(x, k, upx=1, upy=1, downx=1, downy=1, padx0=0, padx1=0, pady0=0, pady1=0, impl='ref'):
+# ----------------------------------------------------------------------------
+
+
+def upfirdn_2d(
+    x, k, upx=1, upy=1, downx=1, downy=1, padx0=0, padx1=0, pady0=0, pady1=0, impl='ref'
+):
     r"""Pad, upsample, FIR filter, and downsample a batch of 2D images.
 
     Accepts a batch of 2D images of the shape `[majorDim, inH, inW, minorDim]`
@@ -56,12 +61,25 @@ def upfirdn_2d(x, k, upx=1, upy=1, downx=1, downy=1, padx0=0, padx1=0, pady0=0, 
     """
 
     impl_dict = {
-        'ref':  _upfirdn_2d_ref,
+        'ref': _upfirdn_2d_ref,
         'cuda': _upfirdn_2d_cuda,
     }
-    return impl_dict[impl](x=x, k=k, upx=upx, upy=upy, downx=downx, downy=downy, padx0=padx0, padx1=padx1, pady0=pady0, pady1=pady1)
+    return impl_dict[impl](
+        x=x,
+        k=k,
+        upx=upx,
+        upy=upy,
+        downx=downx,
+        downy=downy,
+        padx0=padx0,
+        padx1=padx1,
+        pady0=pady0,
+        pady1=pady1,
+    )
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+
 
 def _upfirdn_2d_ref(x, k, upx, upy, downx, downy, padx0, padx1, pady0, pady1):
     """Slow reference implementation of `upfirdn_2d()` using standard TensorFlow ops."""
@@ -86,21 +104,44 @@ def _upfirdn_2d_ref(x, k, upx, upy, downx, downy, padx0, padx1, pady0, pady1):
     x = tf.reshape(x, [-1, inH * upy, inW * upx, minorDim])
 
     # Pad (crop if negative).
-    x = tf.pad(x, [[0, 0], [max(pady0, 0), max(pady1, 0)], [max(padx0, 0), max(padx1, 0)], [0, 0]])
-    x = x[:, max(-pady0, 0) : x.shape[1].value - max(-pady1, 0), max(-padx0, 0) : x.shape[2].value - max(-padx1, 0), :]
+    x = tf.pad(
+        x,
+        [
+            [0, 0],
+            [max(pady0, 0), max(pady1, 0)],
+            [max(padx0, 0), max(padx1, 0)],
+            [0, 0],
+        ],
+    )
+    x = x[
+        :,
+        max(-pady0, 0) : x.shape[1].value - max(-pady1, 0),
+        max(-padx0, 0) : x.shape[2].value - max(-padx1, 0),
+        :,
+    ]
 
     # Convolve with filter.
     x = tf.transpose(x, [0, 3, 1, 2])
     x = tf.reshape(x, [-1, 1, inH * upy + pady0 + pady1, inW * upx + padx0 + padx1])
     w = tf.constant(k[::-1, ::-1, np.newaxis, np.newaxis], dtype=x.dtype)
-    x = tf.nn.conv2d(x, w, strides=[1,1,1,1], padding='VALID', data_format='NCHW')
-    x = tf.reshape(x, [-1, minorDim, inH * upy + pady0 + pady1 - kernelH + 1, inW * upx + padx0 + padx1 - kernelW + 1])
+    x = tf.nn.conv2d(x, w, strides=[1, 1, 1, 1], padding='VALID', data_format='NCHW')
+    x = tf.reshape(
+        x,
+        [
+            -1,
+            minorDim,
+            inH * upy + pady0 + pady1 - kernelH + 1,
+            inW * upx + padx0 + padx1 - kernelW + 1,
+        ],
+    )
     x = tf.transpose(x, [0, 2, 3, 1])
 
     # Downsample (throw away pixels).
     return x[:, ::downy, ::downx, :]
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+
 
 def _upfirdn_2d_cuda(x, k, upx, upy, downx, downy, padx0, padx1, pady0, pady1):
     """Fast CUDA implementation of `upfirdn_2d()` using custom ops."""
@@ -129,17 +170,44 @@ def _upfirdn_2d_cuda(x, k, upx, upy, downx, downy, padx0, padx1, pady0, pady1):
 
     @tf.custom_gradient
     def func(x):
-        y = _get_plugin().up_fir_dn2d(x=x, k=kc, upx=upx, upy=upy, downx=downx, downy=downy, padx0=padx0, padx1=padx1, pady0=pady0, pady1=pady1)
+        y = _get_plugin().up_fir_dn2d(
+            x=x,
+            k=kc,
+            upx=upx,
+            upy=upy,
+            downx=downx,
+            downy=downy,
+            padx0=padx0,
+            padx1=padx1,
+            pady0=pady0,
+            pady1=pady1,
+        )
         y.set_shape([majorDim, outH, outW, minorDim])
+
         @tf.custom_gradient
         def grad(dy):
-            dx = _get_plugin().up_fir_dn2d(x=dy, k=gkc, upx=downx, upy=downy, downx=upx, downy=upy, padx0=gpadx0, padx1=gpadx1, pady0=gpady0, pady1=gpady1)
+            dx = _get_plugin().up_fir_dn2d(
+                x=dy,
+                k=gkc,
+                upx=downx,
+                upy=downy,
+                downx=upx,
+                downy=upy,
+                padx0=gpadx0,
+                padx1=gpadx1,
+                pady0=gpady0,
+                pady1=gpady1,
+            )
             dx.set_shape([majorDim, inH, inW, minorDim])
             return dx, func
+
         return y, grad
+
     return func(x)
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+
 
 def filter_2d(x, k, gain=1, data_format='NCHW', impl='ref'):
     r"""Filter a batch of 2D images with the given FIR filter.
@@ -162,9 +230,13 @@ def filter_2d(x, k, gain=1, data_format='NCHW', impl='ref'):
 
     k = _setup_kernel(k) * gain
     p = k.shape[0] - 1
-    return _simple_upfirdn_2d(x, k, pad0=(p+1)//2, pad1=p//2, data_format=data_format, impl=impl)
+    return _simple_upfirdn_2d(
+        x, k, pad0=(p + 1) // 2, pad1=p // 2, data_format=data_format, impl=impl
+    )
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+
 
 def upsample_2d(x, k=None, factor=2, gain=1, data_format='NCHW', impl='ref'):
     r"""Upsample a batch of 2D images with the given filter.
@@ -193,11 +265,21 @@ def upsample_2d(x, k=None, factor=2, gain=1, data_format='NCHW', impl='ref'):
     assert isinstance(factor, int) and factor >= 1
     if k is None:
         k = [1] * factor
-    k = _setup_kernel(k) * (gain * (factor ** 2))
+    k = _setup_kernel(k) * (gain * (factor**2))
     p = k.shape[0] - factor
-    return _simple_upfirdn_2d(x, k, up=factor, pad0=(p+1)//2+factor-1, pad1=p//2, data_format=data_format, impl=impl)
+    return _simple_upfirdn_2d(
+        x,
+        k,
+        up=factor,
+        pad0=(p + 1) // 2 + factor - 1,
+        pad1=p // 2,
+        data_format=data_format,
+        impl=impl,
+    )
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+
 
 def downsample_2d(x, k=None, factor=2, gain=1, data_format='NCHW', impl='ref'):
     r"""Downsample a batch of 2D images with the given filter.
@@ -227,9 +309,19 @@ def downsample_2d(x, k=None, factor=2, gain=1, data_format='NCHW', impl='ref'):
         k = [1] * factor
     k = _setup_kernel(k) * gain
     p = k.shape[0] - factor
-    return _simple_upfirdn_2d(x, k, down=factor, pad0=(p+1)//2, pad1=p//2, data_format=data_format, impl=impl)
+    return _simple_upfirdn_2d(
+        x,
+        k,
+        down=factor,
+        pad0=(p + 1) // 2,
+        pad1=p // 2,
+        data_format=data_format,
+        impl=impl,
+    )
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+
 
 def upsample_conv_2d(x, w, k=None, factor=2, gain=1, data_format='NCHW', impl='ref'):
     r"""Fused `upsample_2d()` followed by `tf.nn.conv2d()`.
@@ -269,17 +361,27 @@ def upsample_conv_2d(x, w, k=None, factor=2, gain=1, data_format='NCHW', impl='r
     # Setup filter kernel.
     if k is None:
         k = [1] * factor
-    k = _setup_kernel(k) * (gain * (factor ** 2))
+    k = _setup_kernel(k) * (gain * (factor**2))
     p = (k.shape[0] - factor) - (convW - 1)
 
     # Determine data dimensions.
     if data_format == 'NCHW':
         stride = [1, 1, factor, factor]
-        output_shape = [_shape(x, 0), outC, (_shape(x, 2) - 1) * factor + convH, (_shape(x, 3) - 1) * factor + convW]
+        output_shape = [
+            _shape(x, 0),
+            outC,
+            (_shape(x, 2) - 1) * factor + convH,
+            (_shape(x, 3) - 1) * factor + convW,
+        ]
         num_groups = _shape(x, 1) // inC
     else:
         stride = [1, factor, factor, 1]
-        output_shape = [_shape(x, 0), (_shape(x, 1) - 1) * factor + convH, (_shape(x, 2) - 1) * factor + convW, outC]
+        output_shape = [
+            _shape(x, 0),
+            (_shape(x, 1) - 1) * factor + convH,
+            (_shape(x, 2) - 1) * factor + convW,
+            outC,
+        ]
         num_groups = _shape(x, 3) // inC
 
     # Transpose weights.
@@ -288,10 +390,26 @@ def upsample_conv_2d(x, w, k=None, factor=2, gain=1, data_format='NCHW', impl='r
     w = tf.reshape(w, [convH, convW, -1, num_groups * inC])
 
     # Execute.
-    x = tf.nn.conv2d_transpose(x, w, output_shape=output_shape, strides=stride, padding='VALID', data_format=data_format)
-    return _simple_upfirdn_2d(x, k, pad0=(p+1)//2+factor-1, pad1=p//2+1, data_format=data_format, impl=impl)
+    x = tf.nn.conv2d_transpose(
+        x,
+        w,
+        output_shape=output_shape,
+        strides=stride,
+        padding='VALID',
+        data_format=data_format,
+    )
+    return _simple_upfirdn_2d(
+        x,
+        k,
+        pad0=(p + 1) // 2 + factor - 1,
+        pad1=p // 2 + 1,
+        data_format=data_format,
+        impl=impl,
+    )
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+
 
 def conv_downsample_2d(x, w, k=None, factor=2, gain=1, data_format='NCHW', impl='ref'):
     r"""Fused `tf.nn.conv2d()` followed by `downsample_2d()`.
@@ -328,11 +446,15 @@ def conv_downsample_2d(x, w, k=None, factor=2, gain=1, data_format='NCHW', impl=
         s = [1, 1, factor, factor]
     else:
         s = [1, factor, factor, 1]
-    x = _simple_upfirdn_2d(x, k, pad0=(p+1)//2, pad1=p//2, data_format=data_format, impl=impl)
+    x = _simple_upfirdn_2d(
+        x, k, pad0=(p + 1) // 2, pad1=p // 2, data_format=data_format, impl=impl
+    )
     return tf.nn.conv2d(x, w, strides=s, padding='VALID', data_format=data_format)
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
 # Internal helper funcs.
+
 
 def _shape(tf_expr, dim_idx):
     if tf_expr.shape.rank is not None:
@@ -340,6 +462,7 @@ def _shape(tf_expr, dim_idx):
         if dim is not None:
             return dim
     return tf.shape(tf_expr)[dim_idx]
+
 
 def _setup_kernel(k):
     k = np.asarray(k, dtype=np.float32)
@@ -350,15 +473,31 @@ def _setup_kernel(k):
     assert k.shape[0] == k.shape[1]
     return k
 
-def _simple_upfirdn_2d(x, k, up=1, down=1, pad0=0, pad1=0, data_format='NCHW', impl='ref'):
+
+def _simple_upfirdn_2d(
+    x, k, up=1, down=1, pad0=0, pad1=0, data_format='NCHW', impl='ref'
+):
     assert data_format in ['NCHW', 'NHWC']
     assert x.shape.rank == 4
     y = x
     if data_format == 'NCHW':
         y = tf.reshape(y, [-1, _shape(y, 2), _shape(y, 3), 1])
-    y = upfirdn_2d(y, k, upx=up, upy=up, downx=down, downy=down, padx0=pad0, padx1=pad1, pady0=pad0, pady1=pad1, impl=impl)
+    y = upfirdn_2d(
+        y,
+        k,
+        upx=up,
+        upy=up,
+        downx=down,
+        downy=down,
+        padx0=pad0,
+        padx1=pad1,
+        pady0=pad0,
+        pady1=pad1,
+        impl=impl,
+    )
     if data_format == 'NCHW':
         y = tf.reshape(y, [-1, _shape(x, 1), _shape(y, 1), _shape(y, 2)])
     return y
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------

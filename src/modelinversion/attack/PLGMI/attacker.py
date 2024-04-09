@@ -1,5 +1,3 @@
-
-
 import statistics
 import time
 from collections import OrderedDict
@@ -17,26 +15,32 @@ from ...utils import *
 
 
 class PLGMIAttacker(BaseAttacker):
-    
+
     def __init__(self, config: PLGMIAttackConfig) -> None:
         self._tag = f'{config.dataset_name}_{config.target_name}_{config.gan_dataset_name}_{config.gan_target_name}'
         super().__init__(config)
         self.config: PLGMIAttackConfig
         self.loss_fn = ClassifyLoss(config.inv_loss_type)
-        
+
     def get_tag(self) -> str:
         return self._tag
-        
+
     def prepare_attack(self):
         config: PLGMIAttackConfig = self.config
-        self.G = ResNetGenerator(num_classes=NUM_CLASSES[config.dataset_name], distribution=config.gen_distribution).to(self.config.device)
-        
+        self.G = ResNetGenerator(
+            num_classes=NUM_CLASSES[config.dataset_name],
+            distribution=config.gen_distribution,
+        ).to(self.config.device)
+
         self.folder_manager.load_state_dict(
-            self.G, 
-            ['PLGMI', f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_PLG_MI_G.tar'], 
-            device=config.device
+            self.G,
+            [
+                'PLGMI',
+                f'{config.gan_dataset_name}_{config.gan_target_name.upper()}_PLG_MI_G.tar',
+            ],
+            device=config.device,
         )
-        
+
     def get_loss(self, fake, iden):
         aug_list = self.config.attack_transform
         out1 = self.T(aug_list(fake)).result
@@ -44,13 +48,12 @@ class PLGMIAttacker(BaseAttacker):
 
         inv_loss = self.loss_fn(out1, iden) + self.loss_fn(out2, iden)
         return inv_loss
-        
-        
+
     def attack_step(self, iden):
-        
+
         config = self.config
         device = config.device
-        
+
         bs = iden.shape[0]
         iden = iden.view(-1).long().to(config.device)
 
@@ -60,8 +63,6 @@ class PLGMIAttacker(BaseAttacker):
         res = []
         res5 = []
         seed_acc = torch.zeros((bs, 5))
-
-        
 
         for random_seed in range(config.gen_num_per_target):
             tf = time.time()
@@ -93,7 +94,11 @@ class PLGMIAttacker(BaseAttacker):
                         eval_prob = self.E(fake_img).result
                         eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
                         acc = iden.eq(eval_iden.long()).sum().item() * 1.0 / bs
-                        print("Iteration:{}\tInv Loss:{:.2f}\tAttack Acc:{:.2f}".format(i + 1, inv_loss_val, acc))
+                        print(
+                            "Iteration:{}\tInv Loss:{:.2f}\tAttack Acc:{:.2f}".format(
+                                i + 1, inv_loss_val, acc
+                            )
+                        )
 
             with torch.no_grad():
                 fake = self.G(z, iden)
@@ -111,8 +116,10 @@ class PLGMIAttacker(BaseAttacker):
                         cnt += 1
                         flag[i] = 1
                         best_img = fake[i]
-                        self.folder_manager.save_result_image(best_img, gt, folder_name='success_imgs')
-                        
+                        self.folder_manager.save_result_image(
+                            best_img, gt, folder_name='success_imgs'
+                        )
+
                     _, top5_idx = torch.topk(eval_prob[i], 5)
                     if gt in top5_idx:
                         cnt5 += 1
@@ -127,7 +134,11 @@ class PLGMIAttacker(BaseAttacker):
         acc, acc_5 = statistics.mean(res), statistics.mean(res5)
         acc_var = statistics.variance(res)
         acc_var5 = statistics.variance(res5)
-        print("Acc:{:.2f}\tAcc_5:{:.2f}\tAcc_var:{:.4f}\tAcc_var5:{:.4f}".format(acc, acc_5, acc_var, acc_var5))
+        print(
+            "Acc:{:.2f}\tAcc_5:{:.2f}\tAcc_var:{:.4f}\tAcc_var5:{:.4f}".format(
+                acc, acc_5, acc_var, acc_var5
+            )
+        )
 
         # return acc, acc_5, acc_var, acc_var5
         # return {
@@ -136,10 +147,4 @@ class PLGMIAttacker(BaseAttacker):
         #     'acc_var': acc_var,
         #     'acc5_var': acc_var5
         # }
-        return OrderedDict(
-            acc = acc,
-            acc5 = acc_5,
-            acc_var = acc_var,
-            acc5_var = acc_var5
-        )
-        
+        return OrderedDict(acc=acc, acc5=acc_5, acc_var=acc_var, acc5_var=acc_var5)

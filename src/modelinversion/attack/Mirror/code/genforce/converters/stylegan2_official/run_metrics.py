@@ -15,7 +15,8 @@ import pretrained_networks
 from metrics import metric_base
 from metrics.metric_defaults import metric_defaults
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+
 
 def run(network_pkl, metrics, dataset, data_dir, mirror_augment):
     print('Evaluating metrics "%s" for "%s"...' % (','.join(metrics), network_pkl))
@@ -23,10 +24,20 @@ def run(network_pkl, metrics, dataset, data_dir, mirror_augment):
     network_pkl = pretrained_networks.get_path_or_url(network_pkl)
     dataset_args = dnnlib.EasyDict(tfrecord_dir=dataset, shuffle_mb=0)
     num_gpus = dnnlib.submit_config.num_gpus
-    metric_group = metric_base.MetricGroup([metric_defaults[metric] for metric in metrics])
-    metric_group.run(network_pkl, data_dir=data_dir, dataset_args=dataset_args, mirror_augment=mirror_augment, num_gpus=num_gpus)
+    metric_group = metric_base.MetricGroup(
+        [metric_defaults[metric] for metric in metrics]
+    )
+    metric_group.run(
+        network_pkl,
+        data_dir=data_dir,
+        dataset_args=dataset_args,
+        mirror_augment=mirror_augment,
+        num_gpus=num_gpus,
+    )
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+
 
 def _str_to_bool(v):
     if isinstance(v, bool):
@@ -38,35 +49,61 @@ def _str_to_bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
-#----------------------------------------------------------------------------
 
-_examples = '''examples:
+# ----------------------------------------------------------------------------
+
+_examples = (
+    '''examples:
 
   python %(prog)s --data-dir=~/datasets --network=gdrive:networks/stylegan2-ffhq-config-f.pkl --metrics=fid50k,ppl_wend --dataset=ffhq --mirror-augment=true
 
 valid metrics:
 
-  ''' + ', '.join(sorted([x for x in metric_defaults.keys()])) + '''
+  '''
+    + ', '.join(sorted([x for x in metric_defaults.keys()]))
+    + '''
 '''
+)
+
 
 def main():
     parser = argparse.ArgumentParser(
         description='Run StyleGAN2 metrics.',
         epilog=_examples,
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('--result-dir', help='Root directory for run results (default: %(default)s)', default='results', metavar='DIR')
-    parser.add_argument('--network', help='Network pickle filename', dest='network_pkl', required=True)
-    parser.add_argument('--metrics', help='Metrics to compute (default: %(default)s)', default='fid50k', type=lambda x: x.split(','))
+    parser.add_argument(
+        '--result-dir',
+        help='Root directory for run results (default: %(default)s)',
+        default='results',
+        metavar='DIR',
+    )
+    parser.add_argument(
+        '--network', help='Network pickle filename', dest='network_pkl', required=True
+    )
+    parser.add_argument(
+        '--metrics',
+        help='Metrics to compute (default: %(default)s)',
+        default='fid50k',
+        type=lambda x: x.split(','),
+    )
     parser.add_argument('--dataset', help='Training dataset', required=True)
     parser.add_argument('--data-dir', help='Dataset root directory', required=True)
-    parser.add_argument('--mirror-augment', help='Mirror augment (default: %(default)s)', default=False, type=_str_to_bool, metavar='BOOL')
-    parser.add_argument('--num-gpus', help='Number of GPUs to use', type=int, default=1, metavar='N')
+    parser.add_argument(
+        '--mirror-augment',
+        help='Mirror augment (default: %(default)s)',
+        default=False,
+        type=_str_to_bool,
+        metavar='BOOL',
+    )
+    parser.add_argument(
+        '--num-gpus', help='Number of GPUs to use', type=int, default=1, metavar='N'
+    )
 
     args = parser.parse_args()
 
     if not os.path.exists(args.data_dir):
-        print ('Error: dataset root directory does not exist.')
+        print('Error: dataset root directory does not exist.')
         sys.exit(1)
 
     kwargs = vars(args)
@@ -78,9 +115,10 @@ def main():
     sc.run_desc = 'run-metrics'
     dnnlib.submit_run(sc, 'run_metrics.run', **kwargs)
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
 
 if __name__ == "__main__":
     main()
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------

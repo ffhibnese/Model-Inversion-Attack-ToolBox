@@ -2,26 +2,32 @@ from tqdm import tqdm
 import torch
 import numpy as np
 from scipy import linalg
+
 # FID
 import sys
+
 sys.path.append('../stylegan2-ada-pytorch')
 from metrics import metric_utils
 
 
 device = 'cuda:0'
 _feature_detector_cache = None
+
+
 def get_feature_detector():
     global _feature_detector_cache
     if _feature_detector_cache is None:
         _feature_detector_cache = metric_utils.get_feature_detector(
             'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada-pytorch/pretrained/'
-            'metrics/inception-2015-12-05.pt', device)
+            'metrics/inception-2015-12-05.pt',
+            device,
+        )
     return _feature_detector_cache
 
 
 def postprocess(x):
     """."""
-    return ((x * .5 + .5) * 255).to(torch.uint8)
+    return ((x * 0.5 + 0.5) * 255).to(torch.uint8)
 
 
 def run_fid(x1, x2):
@@ -61,7 +67,9 @@ def run_batch_extract(x, device, bs=500):
     return z
 
 
-def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6, return_details=False):
+def calculate_frechet_distance(
+    mu1, sigma1, mu2, sigma2, eps=1e-6, return_details=False
+):
     """Numpy implementation of the Frechet Distance.
     The Frechet distance between two multivariate Gaussians X_1 ~ N(mu_1, C_1)
     and X_2 ~ N(mu_2, C_2) is
@@ -89,18 +97,22 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6, return_detail
     sigma1 = np.atleast_2d(sigma1)
     sigma2 = np.atleast_2d(sigma2)
 
-    assert mu1.shape == mu2.shape, \
-        'Training and test mean vectors have different lengths'
-    assert sigma1.shape == sigma2.shape, \
-        'Training and test covariances have different dimensions'
+    assert (
+        mu1.shape == mu2.shape
+    ), 'Training and test mean vectors have different lengths'
+    assert (
+        sigma1.shape == sigma2.shape
+    ), 'Training and test covariances have different dimensions'
 
     diff = mu1 - mu2
 
     # Product might be almost singular
     covmean, _ = linalg.sqrtm(sigma1.dot(sigma2), disp=False)
     if not np.isfinite(covmean).all():
-        msg = ('fid calculation produces singular product; '
-               'adding %s to diagonal of cov estimates') % eps
+        msg = (
+            'fid calculation produces singular product; '
+            'adding %s to diagonal of cov estimates'
+        ) % eps
         print(msg)
         offset = np.eye(sigma1.shape[0]) * eps
         covmean = linalg.sqrtm((sigma1 + offset).dot(sigma2 + offset))
@@ -114,12 +126,12 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6, return_detail
 
     tr_covmean = np.trace(covmean)
     if not return_details:
-        return (diff.dot(diff) + np.trace(sigma1) +
-                np.trace(sigma2) - 2 * tr_covmean)
+        return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
     else:
         t1 = diff.dot(diff)
         t2 = np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
         return (t1 + t2), t1, t2
+
 
 if __name__ == '__main__':
     # Load Data
@@ -138,4 +150,3 @@ if __name__ == '__main__':
     # FID
     fid = run_fid(target_x, fake)
     print(f"Independent:{fid}")
-

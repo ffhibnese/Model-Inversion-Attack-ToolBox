@@ -15,11 +15,13 @@ class EncoderRunner(BaseEncoderRunner):
         super().build_models()
         if 'generator_smooth' not in self.models:
             self.models['generator_smooth'] = deepcopy(self.models['generator'])
-            super().load(self.config.get('gan_model_path'),
-                   running_metadata=False,
-                   learning_rate=False,
-                   optimizer=False,
-                   running_stats=False)
+            super().load(
+                self.config.get('gan_model_path'),
+                running_metadata=False,
+                learning_rate=False,
+                optimizer=False,
+                running_stats=False,
+            )
 
     def train_step(self, data, **train_kwargs):
         self.set_model_requires_grad('generator', False)

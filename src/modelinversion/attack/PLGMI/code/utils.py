@@ -14,8 +14,15 @@ class Dict2Args(object):
             setattr(self, key, value)
 
 
-def generate_images(gen, device, batch_size=64, dim_z=128, distribution=None,
-                    num_classes=None, class_id=None):
+def generate_images(
+    gen,
+    device,
+    batch_size=64,
+    dim_z=128,
+    distribution=None,
+    num_classes=None,
+    class_id=None,
+):
     """Generate images.
 
     Priority: num_classes > class_id.
@@ -66,9 +73,13 @@ def sample_z(batch_size, dim_z, device, distribution=None):
     if distribution is None:
         distribution = 'normal'
     if distribution == 'normal':
-        return torch.empty(batch_size, dim_z, dtype=torch.float32, device=device).normal_()
+        return torch.empty(
+            batch_size, dim_z, dtype=torch.float32, device=device
+        ).normal_()
     else:
-        return torch.empty(batch_size, dim_z, dtype=torch.float32, device=device).uniform_()
+        return torch.empty(
+            batch_size, dim_z, dtype=torch.float32, device=device
+        ).uniform_()
 
 
 def sample_pseudo_labels(num_classes, batch_size, device):
@@ -103,12 +114,10 @@ def save_images(n_iter, count, root, train_image_root, fake, real):
     """
 
     fake_path = os.path.join(
-        train_image_root,
-        'fake_{}_iter_{:07d}.png'.format(count, n_iter)
+        train_image_root, 'fake_{}_iter_{:07d}.png'.format(count, n_iter)
     )
     real_path = os.path.join(
-        train_image_root,
-        'real_{}_iter_{:07d}.png'.format(count, n_iter)
+        train_image_root, 'real_{}_iter_{:07d}.png'.format(count, n_iter)
     )
     torchvision.utils.save_image(
         fake, fake_path, nrow=4, normalize=True, scale_each=True
@@ -135,20 +144,26 @@ def save_checkpoints(args, n_iter, count, gen, opt_gen, dis, opt_dis):
 
     count = n_iter // args.checkpoint_interval
     gen_dst = os.path.join(
-        args.results_root,
-        'gen_{}_iter_{:07d}.pth.tar'.format(count, n_iter)
+        args.results_root, 'gen_{}_iter_{:07d}.pth.tar'.format(count, n_iter)
     )
-    torch.save({
-        'model': gen.state_dict(), 'opt': opt_gen.state_dict(),
-    }, gen_dst)
+    torch.save(
+        {
+            'model': gen.state_dict(),
+            'opt': opt_gen.state_dict(),
+        },
+        gen_dst,
+    )
     shutil.copy(gen_dst, os.path.join(args.results_root, 'gen_latest.pth.tar'))
     dis_dst = os.path.join(
-        args.results_root,
-        'dis_{}_iter_{:07d}.pth.tar'.format(count, n_iter)
+        args.results_root, 'dis_{}_iter_{:07d}.pth.tar'.format(count, n_iter)
     )
-    torch.save({
-        'model': dis.state_dict(), 'opt': opt_dis.state_dict(),
-    }, dis_dst)
+    torch.save(
+        {
+            'model': dis.state_dict(),
+            'opt': opt_dis.state_dict(),
+        },
+        dis_dst,
+    )
     shutil.copy(dis_dst, os.path.join(args.results_root, 'dis_latest.pth.tar'))
 
 
@@ -177,8 +192,11 @@ def resume_from_args(args_path, gen_ckpt_path, dis_ckpt_path):
     num_classes = args['num_classes'] if conditional else 0
     # Initialize generator
     gen = resnet64.ResNetGenerator(
-        args['gen_num_features'], args['gen_dim_z'], args['gen_bottom_width'],
-        num_classes=num_classes, distribution=args['gen_distribution']
+        args['gen_num_features'],
+        args['gen_dim_z'],
+        args['gen_bottom_width'],
+        num_classes=num_classes,
+        distribution=args['gen_distribution'],
     )
     opt_gen = torch.optim.Adam(
         gen.parameters(), args['lr'], (args['beta1'], args['beta2'])
@@ -260,4 +278,6 @@ def save_tensor_images(images, filename, nrow=None, normalize=True):
     if not nrow:
         torchvision.utils.save_image(images, filename, normalize=normalize, padding=0)
     else:
-        torchvision.utils.save_image(images, filename, normalize=normalize, nrow=nrow, padding=0)
+        torchvision.utils.save_image(
+            images, filename, normalize=normalize, nrow=nrow, padding=0
+        )

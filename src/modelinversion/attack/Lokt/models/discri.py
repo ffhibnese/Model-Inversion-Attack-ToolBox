@@ -5,10 +5,19 @@ import torch.nn.functional as F
 from torch.nn import init
 from torch.nn import utils
 
+
 class Block(nn.Module):
 
-    def __init__(self, in_ch, out_ch, h_ch=None, ksize=3, pad=1,
-                 activation=F.relu, downsample=False):
+    def __init__(
+        self,
+        in_ch,
+        out_ch,
+        h_ch=None,
+        ksize=3,
+        pad=1,
+        activation=F.relu,
+        downsample=False,
+    ):
         super(Block, self).__init__()
 
         self.activation = activation
@@ -78,27 +87,32 @@ class OptimizedBlock(nn.Module):
         h = self.activation(self.c1(x))
         return F.avg_pool2d(self.c2(h), 2)
 
+
 ############ general gan (GMI)
 
 
 class DGWGAN(nn.Module):
     def __init__(self, in_dim=3, dim=64):
         super(DGWGAN, self).__init__()
+
         def conv_ln_lrelu(in_dim, out_dim):
             return nn.Sequential(
                 nn.Conv2d(in_dim, out_dim, 5, 2, 2),
                 # Since there is no effective implementation of LayerNorm,
                 # we use InstanceNorm2d instead of LayerNorm here.
                 nn.InstanceNorm2d(out_dim, affine=True),
-                nn.LeakyReLU(0.2))
+                nn.LeakyReLU(0.2),
+            )
 
         self.ls = nn.Sequential(
-            nn.Conv2d(in_dim, dim, 5, 2, 2), nn.LeakyReLU(0.2),
+            nn.Conv2d(in_dim, dim, 5, 2, 2),
+            nn.LeakyReLU(0.2),
             conv_ln_lrelu(dim, dim * 2),
             conv_ln_lrelu(dim * 2, dim * 4),
             conv_ln_lrelu(dim * 4, dim * 8),
-            nn.Conv2d(dim * 8, 1, 4))
-    
+            nn.Conv2d(dim * 8, 1, 4),
+        )
+
     def forward(self, x):
         y = self.ls(x)
         y = y.view(-1)
@@ -106,42 +120,44 @@ class DGWGAN(nn.Module):
 
 
 class Discriminator_cond_wgp(nn.Module):
-    def __init__(self, in_dim=3, dim=64,num_classes=1000):
+    def __init__(self, in_dim=3, dim=64, num_classes=1000):
         super(Discriminator_cond_wgp, self).__init__()
+
         def conv_ln_lrelu(in_dim, out_dim):
             return nn.Sequential(
                 nn.Conv2d(in_dim, out_dim, 5, 2, 2),
                 # Since there is no effective implementation of LayerNorm,
                 # we use InstanceNorm2d instead of LayerNorm here.
                 nn.InstanceNorm2d(out_dim, affine=True),
-                nn.LeakyReLU(0.2))
+                nn.LeakyReLU(0.2),
+            )
 
         self.body = nn.Sequential(
-            nn.Conv2d(in_dim, dim, 5, 2, 2), nn.LeakyReLU(0.2),
+            nn.Conv2d(in_dim, dim, 5, 2, 2),
+            nn.LeakyReLU(0.2),
             conv_ln_lrelu(dim, dim * 2),
             conv_ln_lrelu(dim * 2, dim * 4),
-            conv_ln_lrelu(dim * 4, dim * 8)
-            )
-        self.l_s =nn.Sequential(nn.Conv2d(dim * 8, 1, 4),nn.Sigmoid())
+            conv_ln_lrelu(dim * 4, dim * 8),
+        )
+        self.l_s = nn.Sequential(nn.Conv2d(dim * 8, 1, 4), nn.Sigmoid())
 
-        
         self.pooling = nn.MaxPool2d(3, stride=2)
         self.l_y = nn.Linear(dim * 8, num_classes)
         self.fc_layer = nn.Linear(512, num_classes)
-        
 
     def forward(self, x):
         # print('x',x.shape)
         h = self.body(x)
         y = self.l_s(h)
         y = y.view(-1)
-        y = torch.unsqueeze(y,1)
+        y = torch.unsqueeze(y, 1)
         # print('y',y.shape)
         h1 = torch.squeeze(self.pooling(h))
         # print('h.',h.shape, h1.shape)
         pred = self.l_y(h1)
         # print('pred',pred.shape)
-        return y,pred
+        return y, pred
+
 
 class SNResNetProjectionDiscriminator(nn.Module):
 
@@ -152,18 +168,21 @@ class SNResNetProjectionDiscriminator(nn.Module):
         self.activation = activation
 
         self.block1 = OptimizedBlock(3, num_features)
-        self.block2 = Block(num_features, num_features * 2,
-                            activation=activation, downsample=True)
-        self.block3 = Block(num_features * 2, num_features * 4,
-                            activation=activation, downsample=True)
-        self.block4 = Block(num_features * 4, num_features * 8,
-                            activation=activation, downsample=True)
-        self.block5 = Block(num_features * 8, num_features * 16,
-                            activation=activation, downsample=True)
+        self.block2 = Block(
+            num_features, num_features * 2, activation=activation, downsample=True
+        )
+        self.block3 = Block(
+            num_features * 2, num_features * 4, activation=activation, downsample=True
+        )
+        self.block4 = Block(
+            num_features * 4, num_features * 8, activation=activation, downsample=True
+        )
+        self.block5 = Block(
+            num_features * 8, num_features * 16, activation=activation, downsample=True
+        )
         self.l6 = utils.spectral_norm(nn.Linear(num_features * 16, 1))
         if num_classes > 0:
-            self.l_y = utils.spectral_norm(
-                nn.Embedding(num_classes, num_features * 16))
+            self.l_y = utils.spectral_norm(nn.Embedding(num_classes, num_features * 16))
 
         self._initialize()
 
@@ -198,14 +217,18 @@ class SNResNetConditionalDiscriminator(nn.Module):
         self.activation = activation
 
         self.block1 = OptimizedBlock(3, num_features)
-        self.block2 = Block(num_features, num_features * 2,
-                            activation=activation, downsample=True)
-        self.block3 = Block(num_features * 2, num_features * 4,
-                            activation=activation, downsample=True)
-        self.block4 = Block(num_features * 4, num_features * 8,
-                            activation=activation, downsample=True)
-        self.block5 = Block(num_features * 8, num_features * 16,
-                            activation=activation, downsample=True)
+        self.block2 = Block(
+            num_features, num_features * 2, activation=activation, downsample=True
+        )
+        self.block3 = Block(
+            num_features * 2, num_features * 4, activation=activation, downsample=True
+        )
+        self.block4 = Block(
+            num_features * 4, num_features * 8, activation=activation, downsample=True
+        )
+        self.block5 = Block(
+            num_features * 8, num_features * 16, activation=activation, downsample=True
+        )
         self.l6 = nn.Linear(num_features * 16, 1)
         self.sigmod = nn.Sigmoid()
         # self.l6 = utils.spectral_norm(nn.Linear(num_features * 16, 1))
@@ -219,7 +242,6 @@ class SNResNetConditionalDiscriminator(nn.Module):
         if optional_l_y is not None:
             init.xavier_uniform_(optional_l_y.weight.data)
 
-
     def forward(self, x):
         h = x
         h = self.block1(h)
@@ -235,7 +257,6 @@ class SNResNetConditionalDiscriminator(nn.Module):
         return output, pred
 
 
-
 class SNResNetConditionalDiscriminator_vggface2(nn.Module):
 
     def __init__(self, num_features=64, num_classes=0, activation=F.relu):
@@ -245,14 +266,18 @@ class SNResNetConditionalDiscriminator_vggface2(nn.Module):
         self.activation = activation
 
         self.block1 = OptimizedBlock(3, num_features)
-        self.block2 = Block(num_features, num_features * 4,
-                            activation=activation, downsample=True)
-        self.block3 = Block(num_features * 4, num_features*8,
-                            activation=activation, downsample=True)
-        self.block4 = Block(num_features * 8, num_features * 16,
-                            activation=activation, downsample=True)
-        self.block5 = Block(num_features * 16, num_features * 32,
-                            activation=activation, downsample=True)
+        self.block2 = Block(
+            num_features, num_features * 4, activation=activation, downsample=True
+        )
+        self.block3 = Block(
+            num_features * 4, num_features * 8, activation=activation, downsample=True
+        )
+        self.block4 = Block(
+            num_features * 8, num_features * 16, activation=activation, downsample=True
+        )
+        self.block5 = Block(
+            num_features * 16, num_features * 32, activation=activation, downsample=True
+        )
         self.l6 = nn.Linear(num_features * 32, 1)
         self.sigmod = nn.Sigmoid()
         # self.l6 = utils.spectral_norm(nn.Linear(num_features * 16, 1))
@@ -266,7 +291,6 @@ class SNResNetConditionalDiscriminator_vggface2(nn.Module):
         if optional_l_y is not None:
             init.xavier_uniform_(optional_l_y.weight.data)
 
-
     def forward(self, x):
         h = x
         h = self.block1(h)
@@ -281,10 +305,10 @@ class SNResNetConditionalDiscriminator_vggface2(nn.Module):
         pred = self.l_y(h)
         return output, pred
 
+
 class SNResNetConcatDiscriminator(nn.Module):
 
-    def __init__(self, num_features, num_classes, activation=F.relu,
-                 dim_emb=128):
+    def __init__(self, num_features, num_classes, activation=F.relu, dim_emb=128):
         super(SNResNetConcatDiscriminator, self).__init__()
         self.num_features = num_features
         self.num_classes = num_classes
@@ -292,16 +316,23 @@ class SNResNetConcatDiscriminator(nn.Module):
         self.activation = activation
 
         self.block1 = OptimizedBlock(3, num_features)
-        self.block2 = Block(num_features, num_features * 2,
-                            activation=activation, downsample=True)
-        self.block3 = Block(num_features * 2, num_features * 4,
-                            activation=activation, downsample=True)
+        self.block2 = Block(
+            num_features, num_features * 2, activation=activation, downsample=True
+        )
+        self.block3 = Block(
+            num_features * 2, num_features * 4, activation=activation, downsample=True
+        )
         if num_classes > 0:
             self.l_y = utils.spectral_norm(nn.Embedding(num_classes, dim_emb))
-        self.block4 = Block(num_features * 4 + dim_emb, num_features * 8,
-                            activation=activation, downsample=True)
-        self.block5 = Block(num_features * 8, num_features * 16,
-                            activation=activation, downsample=True)
+        self.block4 = Block(
+            num_features * 4 + dim_emb,
+            num_features * 8,
+            activation=activation,
+            downsample=True,
+        )
+        self.block5 = Block(
+            num_features * 8, num_features * 16, activation=activation, downsample=True
+        )
         self.l6 = utils.spectral_norm(nn.Linear(num_features * 16, 1))
 
         self._initialize()

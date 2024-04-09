@@ -13,8 +13,17 @@ def _upsample(x):
 
 class Block(nn.Module):
 
-    def __init__(self, in_ch, out_ch, h_ch=None, ksize=3, pad=1,
-                 activation=F.relu, upsample=False, num_classes=0):
+    def __init__(
+        self,
+        in_ch,
+        out_ch,
+        h_ch=None,
+        ksize=3,
+        pad=1,
+        activation=F.relu,
+        upsample=False,
+        num_classes=0,
+    ):
         super(Block, self).__init__()
 
         self.activation = activation
@@ -28,10 +37,8 @@ class Block(nn.Module):
         self.c1 = nn.Conv2d(in_ch, h_ch, ksize, 1, pad)
         self.c2 = nn.Conv2d(h_ch, out_ch, ksize, 1, pad)
         if self.num_classes > 0:
-            self.b1 = CategoricalConditionalBatchNorm2d(
-                num_classes, in_ch)
-            self.b2 = CategoricalConditionalBatchNorm2d(
-                num_classes, h_ch)
+            self.b1 = CategoricalConditionalBatchNorm2d(num_classes, in_ch)
+            self.b2 = CategoricalConditionalBatchNorm2d(num_classes, h_ch)
         else:
             self.b1 = nn.BatchNorm2d(in_ch)
             self.b2 = nn.BatchNorm2d(h_ch)

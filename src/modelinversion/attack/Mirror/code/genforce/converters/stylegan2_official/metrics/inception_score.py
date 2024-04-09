@@ -13,7 +13,8 @@ import dnnlib.tflib as tflib
 from metrics import metric_base
 from training import misc
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+
 
 class IS(metric_base.MetricBase):
     def __init__(self, num_images, num_splits, minibatch_per_gpu, **kwargs):
@@ -24,8 +25,12 @@ class IS(metric_base.MetricBase):
 
     def _evaluate(self, Gs, Gs_kwargs, num_gpus):
         minibatch_size = num_gpus * self.minibatch_per_gpu
-        inception = misc.load_pkl('http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/inception_v3_softmax.pkl')
-        activations = np.empty([self.num_images, inception.output_shape[1]], dtype=np.float32)
+        inception = misc.load_pkl(
+            'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/inception_v3_softmax.pkl'
+        )
+        activations = np.empty(
+            [self.num_images, inception.output_shape[1]], dtype=np.float32
+        )
 
         # Construct TensorFlow graph.
         result_expr = []
@@ -33,7 +38,9 @@ class IS(metric_base.MetricBase):
             with tf.device('/gpu:%d' % gpu_idx):
                 Gs_clone = Gs.clone()
                 inception_clone = inception.clone()
-                latents = tf.random_normal([self.minibatch_per_gpu] + Gs_clone.input_shape[1:])
+                latents = tf.random_normal(
+                    [self.minibatch_per_gpu] + Gs_clone.input_shape[1:]
+                )
                 labels = self._get_random_labels_tf(self.minibatch_per_gpu)
                 images = Gs_clone.get_output_for(latents, labels, **Gs_kwargs)
                 images = tflib.convert_images_to_uint8(images)
@@ -43,16 +50,25 @@ class IS(metric_base.MetricBase):
         for begin in range(0, self.num_images, minibatch_size):
             self._report_progress(begin, self.num_images)
             end = min(begin + minibatch_size, self.num_images)
-            activations[begin:end] = np.concatenate(tflib.run(result_expr), axis=0)[:end-begin]
+            activations[begin:end] = np.concatenate(tflib.run(result_expr), axis=0)[
+                : end - begin
+            ]
 
         # Calculate IS.
         scores = []
         for i in range(self.num_splits):
-            part = activations[i * self.num_images // self.num_splits : (i + 1) * self.num_images // self.num_splits]
+            part = activations[
+                i
+                * self.num_images
+                // self.num_splits : (i + 1)
+                * self.num_images
+                // self.num_splits
+            ]
             kl = part * (np.log(part) - np.log(np.expand_dims(np.mean(part, 0), 0)))
             kl = np.mean(np.sum(kl, 1))
             scores.append(np.exp(kl))
         self._report_result(np.mean(scores), suffix='_mean')
         self._report_result(np.std(scores), suffix='_std')
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------

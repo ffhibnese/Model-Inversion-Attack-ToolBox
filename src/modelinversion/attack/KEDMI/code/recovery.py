@@ -33,10 +33,25 @@ def reparameterize(mu, logvar):
     eps = torch.randn_like(std)
 
     return eps * std + mu
-    
-def dist_inversion(G, D, T, E, iden, folder_manager, lr=2e-2, momentum=0.9, lamda=100, iter_times=1500, clip_range=1, num_seeds=5, device='cpu'):
+
+
+def dist_inversion(
+    G,
+    D,
+    T,
+    E,
+    iden,
+    folder_manager,
+    lr=2e-2,
+    momentum=0.9,
+    lamda=100,
+    iter_times=1500,
+    clip_range=1,
+    num_seeds=5,
+    device='cpu',
+):
     # save_img_dir = os.path.join(save_dir, 'all_imgs')
-    # success_dir = os.path.join(save_dir, 'success_imgs') 
+    # success_dir = os.path.join(save_dir, 'success_imgs')
     # os.makedirs(save_img_dir, exist_ok=True)
     # os.makedirs(success_dir, exist_ok=True)
 
@@ -64,7 +79,7 @@ def dist_inversion(G, D, T, E, iden, folder_manager, lr=2e-2, momentum=0.9, lamd
     for i in range(iter_times):
         z = reparameterize(mu, log_var).to(device)
         fake = G(z)
-        
+
         _, label = D(fake)
 
         out = T(fake).result
@@ -73,7 +88,9 @@ def dist_inversion(G, D, T, E, iden, folder_manager, lr=2e-2, momentum=0.9, lamd
             if p.grad is not None:
                 p.grad.data.zero_()
 
-        Prior_Loss = torch.mean(F.softplus(log_sum_exp(label))) - torch.mean(log_sum_exp(label))
+        Prior_Loss = torch.mean(F.softplus(log_sum_exp(label))) - torch.mean(
+            log_sum_exp(label)
+        )
         Iden_Loss = criterion(out, iden)
 
         Total_Loss = Prior_Loss + lamda * Iden_Loss
@@ -93,8 +110,10 @@ def dist_inversion(G, D, T, E, iden, folder_manager, lr=2e-2, momentum=0.9, lamd
                 eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
                 acc = iden.eq(eval_iden.long()).sum().item() * 1.0 / bs
                 print(
-                    "Iteration:{}\tPrior Loss:{:.2f}\tIden Loss:{:.2f}\tAttack Acc:{:.2f}".format(i + 1, Prior_Loss_val,
-                                                                                                  Iden_Loss_val, acc))
+                    "Iteration:{}\tPrior Loss:{:.2f}\tIden Loss:{:.2f}\tAttack Acc:{:.2f}".format(
+                        i + 1, Prior_Loss_val, Iden_Loss_val, acc
+                    )
+                )
 
     interval = time.time() - tf
     print("Time:{:.2f}".format(interval))
@@ -115,21 +134,27 @@ def dist_inversion(G, D, T, E, iden, folder_manager, lr=2e-2, momentum=0.9, lamd
             for i in range(bs):
                 gt = iden[i].item()
                 sample = fake[i]
-                
+
                 folder_manager.save_result_image(sample, gt)
 
                 if eval_iden[i].item() == gt:
                     seed_acc[i, random_seed] = 1
                     cnt += 1
                     best_img = G(z)[i]
-                    folder_manager.save_result_image(best_img, gt, folder_name='success_imgs')
-                   
+                    folder_manager.save_result_image(
+                        best_img, gt, folder_name='success_imgs'
+                    )
+
                 _, top5_idx = torch.topk(eval_prob[i], 5)
                 if gt in top5_idx:
                     cnt5 += 1
 
             interval = time.time() - tf
-            print("Time:{:.2f}\tSeed:{}\tAcc:{:.2f}\t".format(interval, random_seed, cnt * 1.0 / bs))
+            print(
+                "Time:{:.2f}\tSeed:{}\tAcc:{:.2f}\t".format(
+                    interval, random_seed, cnt * 1.0 / bs
+                )
+            )
             res.append(cnt * 1.0 / bs)
             res5.append(cnt5 * 1.0 / bs)
 
@@ -138,8 +163,10 @@ def dist_inversion(G, D, T, E, iden, folder_manager, lr=2e-2, momentum=0.9, lamd
     acc, acc_5 = statistics.mean(res), statistics.mean(res5)
     acc_var = statistics.variance(res)
     acc_var5 = statistics.variance(res5)
-    print("Acc:{:.2f}\tAcc_5:{:.2f}\tAcc_var:{:.4f}\tAcc_var5:{:.4f}".format(acc, acc_5, acc_var, acc_var5))
+    print(
+        "Acc:{:.2f}\tAcc_5:{:.2f}\tAcc_var:{:.4f}\tAcc_var5:{:.4f}".format(
+            acc, acc_5, acc_var, acc_var5
+        )
+    )
 
     return acc, acc_5, acc_var, acc_var5
-
-

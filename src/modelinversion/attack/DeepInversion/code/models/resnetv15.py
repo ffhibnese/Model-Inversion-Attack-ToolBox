@@ -6,6 +6,7 @@ __all__ = ['ResNet', 'build_resnet', 'resnet_versions', 'resnet_configs']
 
 # ResNetBuilder {{{
 
+
 class ResNetBuilder(object):
     def __init__(self, version, config):
         self.config = config
@@ -18,24 +19,44 @@ class ResNetBuilder(object):
     def conv(self, kernel_size, in_planes, out_planes, stride=1):
         if kernel_size == 3:
             conv = self.config['conv'](
-                    in_planes, out_planes, kernel_size=3, stride=stride,
-                    padding=1, bias=False)
+                in_planes,
+                out_planes,
+                kernel_size=3,
+                stride=stride,
+                padding=1,
+                bias=False,
+            )
         elif kernel_size == 1:
-            conv = nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride,
-                             bias=False)
+            conv = nn.Conv2d(
+                in_planes, out_planes, kernel_size=1, stride=stride, bias=False
+            )
         elif kernel_size == 5:
-            conv = nn.Conv2d(in_planes, out_planes, kernel_size=5, stride=stride,
-                             padding=2, bias=False)
+            conv = nn.Conv2d(
+                in_planes,
+                out_planes,
+                kernel_size=5,
+                stride=stride,
+                padding=2,
+                bias=False,
+            )
         elif kernel_size == 7:
-            conv = nn.Conv2d(in_planes, out_planes, kernel_size=7, stride=stride,
-                             padding=3, bias=False)
+            conv = nn.Conv2d(
+                in_planes,
+                out_planes,
+                kernel_size=7,
+                stride=stride,
+                padding=3,
+                bias=False,
+            )
         else:
             return None
 
         if self.config['nonlinearity'] == 'relu':
-            nn.init.kaiming_normal_(conv.weight,
-                    mode=self.config['conv_init'],
-                    nonlinearity=self.config['nonlinearity'])
+            nn.init.kaiming_normal_(
+                conv.weight,
+                mode=self.config['conv_init'],
+                nonlinearity=self.config['nonlinearity'],
+            )
 
         return conv
 
@@ -70,7 +91,9 @@ class ResNetBuilder(object):
     def activation(self):
         return self.config['activation']()
 
+
 # ResNetBuilder }}}
+
 
 # BasicBlock {{{
 class BasicBlock(nn.Module):
@@ -108,7 +131,10 @@ class BasicBlock(nn.Module):
         out = self.relu(out)
 
         return out
+
+
 # BasicBlock }}}
+
 
 # Bottleneck {{{
 class Bottleneck(nn.Module):
@@ -126,7 +152,6 @@ class Bottleneck(nn.Module):
         self.relu = builder.activation()
         self.downsample = downsample
         self.stride = stride
-
 
     def forward(self, x):
         residual = x
@@ -151,7 +176,10 @@ class Bottleneck(nn.Module):
         out = self.relu(out)
 
         return out
+
+
 # Bottleneck }}}
+
 
 # ResNet {{{
 class ResNet(nn.Module):
@@ -172,8 +200,9 @@ class ResNet(nn.Module):
     def _make_layer(self, builder, block, planes, blocks, stride=1):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
-            dconv = builder.conv1x1(self.inplanes, planes * block.expansion,
-                                    stride=stride)
+            dconv = builder.conv1x1(
+                self.inplanes, planes * block.expansion, stride=stride
+            )
             dbn = builder.batchnorm(planes * block.expansion)
             if dbn is not None:
                 downsample = nn.Sequential(dconv, dbn)
@@ -208,58 +237,60 @@ class ResNet(nn.Module):
         x = self.fc(x)
 
         return x
+
+
 # ResNet }}}
 
 
 resnet_configs = {
-        'classic' : {
-            'conv' : nn.Conv2d,
-            'conv_init' : 'fan_out',
-            'nonlinearity' : 'relu',
-            'last_bn_0_init' : False,
-            'activation' : lambda: nn.ReLU(inplace=True),
-            },
-        'fanin' : {
-            'conv' : nn.Conv2d,
-            'conv_init' : 'fan_in',
-            'nonlinearity' : 'relu',
-            'last_bn_0_init' : False,
-            'activation' : lambda: nn.ReLU(inplace=True),
-            },
-        }
+    'classic': {
+        'conv': nn.Conv2d,
+        'conv_init': 'fan_out',
+        'nonlinearity': 'relu',
+        'last_bn_0_init': False,
+        'activation': lambda: nn.ReLU(inplace=True),
+    },
+    'fanin': {
+        'conv': nn.Conv2d,
+        'conv_init': 'fan_in',
+        'nonlinearity': 'relu',
+        'last_bn_0_init': False,
+        'activation': lambda: nn.ReLU(inplace=True),
+    },
+}
 
 resnet_versions = {
-        'resnet18' : {
-            'net' : ResNet,
-            'block' : BasicBlock,
-            'layers' : [2, 2, 2, 2],
-            'num_classes' : 1000,
-            },
-         'resnet34' : {
-            'net' : ResNet,
-            'block' : BasicBlock,
-            'layers' : [3, 4, 6, 3],
-            'num_classes' : 1000,
-            },
-         'resnet50' : {
-            'net' : ResNet,
-            'block' : Bottleneck,
-            'layers' : [3, 4, 6, 3],
-            'num_classes' : 1000,
-            },
-        'resnet101' : {
-            'net' : ResNet,
-            'block' : Bottleneck,
-            'layers' : [3, 4, 23, 3],
-            'num_classes' : 1000,
-            },
-        'resnet152' : {
-            'net' : ResNet,
-            'block' : Bottleneck,
-            'layers' : [3, 8, 36, 3],
-            'num_classes' : 1000,
-            },
-        }
+    'resnet18': {
+        'net': ResNet,
+        'block': BasicBlock,
+        'layers': [2, 2, 2, 2],
+        'num_classes': 1000,
+    },
+    'resnet34': {
+        'net': ResNet,
+        'block': BasicBlock,
+        'layers': [3, 4, 6, 3],
+        'num_classes': 1000,
+    },
+    'resnet50': {
+        'net': ResNet,
+        'block': Bottleneck,
+        'layers': [3, 4, 6, 3],
+        'num_classes': 1000,
+    },
+    'resnet101': {
+        'net': ResNet,
+        'block': Bottleneck,
+        'layers': [3, 4, 23, 3],
+        'num_classes': 1000,
+    },
+    'resnet152': {
+        'net': ResNet,
+        'block': Bottleneck,
+        'layers': [3, 8, 36, 3],
+        'num_classes': 1000,
+    },
+}
 
 
 def build_resnet(version, config, model_state=None):
@@ -269,9 +300,8 @@ def build_resnet(version, config, model_state=None):
     builder = ResNetBuilder(version, config)
     print("Version: {}".format(version))
     print("Config: {}".format(config))
-    model = version['net'](builder,
-                           version['block'],
-                           version['layers'],
-                           version['num_classes'])
+    model = version['net'](
+        builder, version['block'], version['layers'], version['num_classes']
+    )
 
     return model

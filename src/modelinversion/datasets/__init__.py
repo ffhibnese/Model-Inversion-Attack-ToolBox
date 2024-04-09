@@ -1,5 +1,1 @@
-from .utils import (
-    InfiniteSamplerWrapper,
-    ClassSubset,
-    top_k_selection
-)
+from .utils import InfiniteSamplerWrapper, ClassSubset, top_k_selection

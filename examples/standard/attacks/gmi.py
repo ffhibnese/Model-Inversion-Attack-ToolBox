@@ -11,9 +11,18 @@ from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor, Compose, Resize
 from kornia import augmentation
 
-from modelinversion.models import SimpleGenerator64, GmiDiscriminator64, IR152_64, FaceNet112
+from modelinversion.models import (
+    SimpleGenerator64,
+    GmiDiscriminator64,
+    IR152_64,
+    FaceNet112,
+)
 from modelinversion.sampler import SimpleLatentsSampler
-from modelinversion.utils import unwrapped_parallel_module, augment_images_fn_generator, Logger
+from modelinversion.utils import (
+    unwrapped_parallel_module,
+    augment_images_fn_generator,
+    Logger,
+)
 from modelinversion.attack import (
     SimpleWhiteBoxOptimization,
     SimpleWhiteBoxOptimizationConfig,
@@ -21,13 +30,17 @@ from modelinversion.attack import (
     ImageAugmentClassificationLoss,
     ComposeImageLoss,
     ImageClassifierAttackConfig,
-    ImageClassifierAttacker
+    ImageClassifierAttacker,
 )
-from modelinversion.metrics import ImageClassifierAttackAccuracy, ImageDistanceMetric, ImageFidPRDCMetric
+from modelinversion.metrics import (
+    ImageClassifierAttackAccuracy,
+    ImageDistanceMetric,
+    ImageFidPRDCMetric,
+)
 
 
 if __name__ == '__main__':
-    
+
     experiment_dir = '<fill it>'
     device_ids_str = '3'
     num_classes = 1000
@@ -37,98 +50,111 @@ if __name__ == '__main__':
     eval_model_ckpt_path = '<fill it>'
     eval_dataset_path = '<fill it>'
     attack_targets = list(range(100))
-    
+
     batch_size = 100
-    
+
     # prepare logger
-    
+
     now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
     logger = Logger(experiment_dir, f'attack_{now_time}.log')
-    
+
     # prepare devices
-    
+
     os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_str
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
-    
+
     # prepare models
-    
+
     z_dim = 100
-    
+
     latents_sampler = SimpleLatentsSampler(z_dim, batch_size)
-    
+
     target_model = IR152_64(num_classes=num_classes)
     eval_model = FaceNet112(num_classes, register_last_feature_hook=True)
     generator = SimpleGenerator64(in_dim=z_dim)
     discriminator = GmiDiscriminator64()
-    
-    target_model.load_state_dict(torch.load(target_model_ckpt_path, map_location='cpu')['state_dict'])
-    eval_model.load_state_dict(torch.load(eval_model_ckpt_path, map_location='cpu')['state_dict'])
-    generator.load_state_dict(torch.load(generator_ckpt_path, map_location='cpu')['state_dict'])
-    discriminator.load_state_dict(torch.load(discriminator_ckpt_path, map_location='cpu')['state_dict'])
-    
+
+    target_model.load_state_dict(
+        torch.load(target_model_ckpt_path, map_location='cpu')['state_dict']
+    )
+    eval_model.load_state_dict(
+        torch.load(eval_model_ckpt_path, map_location='cpu')['state_dict']
+    )
+    generator.load_state_dict(
+        torch.load(generator_ckpt_path, map_location='cpu')['state_dict']
+    )
+    discriminator.load_state_dict(
+        torch.load(discriminator_ckpt_path, map_location='cpu')['state_dict']
+    )
+
     target_model = nn.DataParallel(target_model, device_ids=gpu_devices).to(device)
     eval_model = nn.DataParallel(eval_model, device_ids=gpu_devices).to(device)
     generator = nn.DataParallel(generator, device_ids=gpu_devices).to(device)
     discriminator = nn.DataParallel(discriminator, device_ids=gpu_devices).to(device)
-    
+
     target_model.eval()
     eval_model.eval()
     generator.eval()
     discriminator.eval()
-    
+
     # prepare eval dataset
-    
-    eval_dataset = ImageFolder(eval_dataset_path, transform=Compose([
-        Resize((64, 64)),
-        ToTensor()
-    ]))
-    
+
+    eval_dataset = ImageFolder(
+        eval_dataset_path, transform=Compose([Resize((64, 64)), ToTensor()])
+    )
+
     # prepare optimization
-    
 
     optimization_config = SimpleWhiteBoxOptimizationConfig(
         experiment_dir=experiment_dir,
         device=device,
         optimizer='SGD',
         optimizer_kwargs={'lr': 0.02, 'momentum': 0.9},
-        iter_times=1500
+        iter_times=1500,
     )
-    
+
     identity_loss_fn = ImageAugmentClassificationLoss(
-        classifier=target_model,
-        loss_fn='ce',
-        create_aug_images_fn=None
+        classifier=target_model, loss_fn='ce', create_aug_images_fn=None
     )
-    
-    discriminator_loss_fn = GmiDiscriminatorLoss(
-        discriminator
+
+    discriminator_loss_fn = GmiDiscriminatorLoss(discriminator)
+
+    loss_fn = ComposeImageLoss(
+        [identity_loss_fn, discriminator_loss_fn], weights=[100, 1]
     )
-    
-    loss_fn = ComposeImageLoss([identity_loss_fn, discriminator_loss_fn], weights=[100, 1])
-    
-    
-    optimization_fn = SimpleWhiteBoxOptimization(optimization_config, generator, loss_fn)
-    
+
+    optimization_fn = SimpleWhiteBoxOptimization(
+        optimization_config, generator, loss_fn
+    )
+
     # prepare metrics
-    
+
     accuracy_metric = ImageClassifierAttackAccuracy(
         batch_size, eval_model, device=device, description='evaluation'
     )
-    
-    
+
     distance_metric = ImageDistanceMetric(
-        batch_size, eval_model, eval_dataset, device=device, description='evaluation', save_individual_res_dir=experiment_dir
+        batch_size,
+        eval_model,
+        eval_dataset,
+        device=device,
+        description='evaluation',
+        save_individual_res_dir=experiment_dir,
     )
-    
+
     fid_prdc_metric = ImageFidPRDCMetric(
-        batch_size, eval_dataset, device=device, save_individual_prdc_dir=experiment_dir,
-        fid=True, prdc=True
+        batch_size,
+        eval_dataset,
+        device=device,
+        save_individual_prdc_dir=experiment_dir,
+        fid=True,
+        prdc=True,
     )
-    
+
     # prepare attack
-    
+
     attack_config = ImageClassifierAttackConfig(
         latents_sampler,
         optimize_num=50,
@@ -139,12 +165,9 @@ if __name__ == '__main__':
         save_final_images=False,
         eval_metrics=[accuracy_metric, distance_metric, fid_prdc_metric],
         eval_optimized_result=False,
-        eval_final_result=True
+        eval_final_result=True,
     )
-    
+
     attacker = ImageClassifierAttacker(attack_config)
-    
+
     attacker.attack(attack_targets)
-    
-    
-    

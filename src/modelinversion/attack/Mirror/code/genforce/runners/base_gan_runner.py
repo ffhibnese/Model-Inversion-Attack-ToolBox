@@ -44,9 +44,9 @@ class BaseGANRunner(BaseRunner):
         assert len(model_params) == len(avg_params)
         for param_name in avg_params:
             assert param_name in model_params
-            avg_params[param_name].data = (
-                avg_params[param_name].data * beta +
-                model_params[param_name].data * (1 - beta))
+            avg_params[param_name].data = avg_params[
+                param_name
+            ].data * beta + model_params[param_name].data * (1 - beta)
 
     def build_models(self):
         super().build_models()
@@ -55,13 +55,15 @@ class BaseGANRunner(BaseRunner):
         self.z_space_dim = self.models['generator'].z_space_dim
         self.resolution = self.models['generator'].resolution
         self.G_kwargs_train = self.config.modules['generator'].get(
-            'kwargs_train', dict())
-        self.G_kwargs_val = self.config.modules['generator'].get(
-            'kwargs_val', dict())
+            'kwargs_train', dict()
+        )
+        self.G_kwargs_val = self.config.modules['generator'].get('kwargs_val', dict())
         self.D_kwargs_train = self.config.modules['discriminator'].get(
-            'kwargs_train', dict())
+            'kwargs_train', dict()
+        )
         self.D_kwargs_val = self.config.modules['discriminator'].get(
-            'kwargs_val', dict())
+            'kwargs_val', dict()
+        )
 
     def train_step(self, data, **train_kwargs):
         raise NotImplementedError('Should be implemented in derived class.')
@@ -69,11 +71,7 @@ class BaseGANRunner(BaseRunner):
     def val(self, **val_kwargs):
         self.synthesize(**val_kwargs)
 
-    def synthesize(self,
-                   num,
-                   z=None,
-                   html_name=None,
-                   save_raw_synthesis=False):
+    def synthesize(self, num, z=None, html_name=None, save_raw_synthesis=False):
         """Synthesizes images.
 
         Args:
@@ -107,7 +105,7 @@ class BaseGANRunner(BaseRunner):
 
         indices = list(range(self.rank, num, self.world_size))
         for batch_idx in range(0, len(indices), self.val_batch_size):
-            sub_indices = indices[batch_idx:batch_idx + self.val_batch_size]
+            sub_indices = indices[batch_idx : batch_idx + self.val_batch_size]
             batch_size = len(sub_indices)
             if z is None:
                 code = torch.randn(batch_size, self.z_space_dim).cuda()
@@ -132,11 +130,11 @@ class BaseGANRunner(BaseRunner):
             task2 = self.logger.add_pbar_task('Visualize', total=num)
             html = HtmlPageVisualizer(grid_size=num)
             for image_idx in range(num):
-                image = load_image(
-                    os.path.join(temp_dir, f'{image_idx:06d}.jpg'))
+                image = load_image(os.path.join(temp_dir, f'{image_idx:06d}.jpg'))
                 row_idx, col_idx = divmod(image_idx, html.num_cols)
-                html.set_cell(row_idx, col_idx, image=image,
-                              text=f'Sample {image_idx:06d}')
+                html.set_cell(
+                    row_idx, col_idx, image=image, text=f'Sample {image_idx:06d}'
+                )
                 self.logger.update_pbar(task2, 1)
             html.save(os.path.join(self.work_dir, html_name))
         if not save_raw_synthesis:
@@ -144,11 +142,7 @@ class BaseGANRunner(BaseRunner):
 
         self.logger.close_pbar()
 
-    def fid(self,
-            fid_num,
-            z=None,
-            ignore_cache=False,
-            align_tf=True):
+    def fid(self, fid_num, z=None, ignore_cache=False, align_tf=True):
         """Computes the FID metric."""
         self.set_mode('val')
 
@@ -158,11 +152,13 @@ class BaseGANRunner(BaseRunner):
 
         if self.inception_model is None:
             if align_tf:
-                self.logger.info(f'Building inception model '
-                                 f'(aligned with TensorFlow) ...')
+                self.logger.info(
+                    f'Building inception model ' f'(aligned with TensorFlow) ...'
+                )
             else:
-                self.logger.info(f'Building inception model '
-                                 f'(using torchvision) ...')
+                self.logger.info(
+                    f'Building inception model ' f'(using torchvision) ...'
+                )
             self.inception_model = build_inception_model(align_tf).cuda()
             self.logger.info(f'Finish building inception model.')
 
@@ -182,7 +178,7 @@ class BaseGANRunner(BaseRunner):
         fake_feature_list = []
         task1 = self.logger.add_pbar_task('Fake', total=fid_num)
         for batch_idx in range(0, len(indices), self.val_batch_size):
-            sub_indices = indices[batch_idx:batch_idx + self.val_batch_size]
+            sub_indices = indices[batch_idx : batch_idx + self.val_batch_size]
             batch_size = len(sub_indices)
             if z is None:
                 code = torch.randn(batch_size, self.z_space_dim).cuda()
@@ -195,31 +191,38 @@ class BaseGANRunner(BaseRunner):
                     G = self.models['generator']
                 fake_images = G(code)['image']
                 fake_feature_list.append(
-                    extract_feature(self.inception_model, fake_images))
+                    extract_feature(self.inception_model, fake_images)
+                )
             self.logger.update_pbar(task1, batch_size * self.world_size)
-        np.save(f'{self.work_dir}/fake_fid_features_{self.rank}.npy',
-                np.concatenate(fake_feature_list, axis=0))
+        np.save(
+            f'{self.work_dir}/fake_fid_features_{self.rank}.npy',
+            np.concatenate(fake_feature_list, axis=0),
+        )
 
         # Extract features from real images if needed.
         cached_fid_file = f'{self.work_dir}/real_fid{fid_num}.npy'
-        do_real_test = (not os.path.exists(cached_fid_file) or ignore_cache)
+        do_real_test = not os.path.exists(cached_fid_file) or ignore_cache
         if do_real_test:
             real_feature_list = []
             task2 = self.logger.add_pbar_task("Real", total=fid_num)
             for batch_idx in range(0, len(indices), self.val_batch_size):
-                sub_indices = indices[batch_idx:batch_idx + self.val_batch_size]
+                sub_indices = indices[batch_idx : batch_idx + self.val_batch_size]
                 batch_size = len(sub_indices)
                 data = next(self.val_loader)
                 for key in data:
                     data[key] = data[key][:batch_size].cuda(
-                        torch.cuda.current_device(), non_blocking=True)
+                        torch.cuda.current_device(), non_blocking=True
+                    )
                 with torch.no_grad():
                     real_images = data['image']
                     real_feature_list.append(
-                        extract_feature(self.inception_model, real_images))
+                        extract_feature(self.inception_model, real_images)
+                    )
                 self.logger.update_pbar(task2, batch_size * self.world_size)
-            np.save(f'{self.work_dir}/real_fid_features_{self.rank}.npy',
-                    np.concatenate(real_feature_list, axis=0))
+            np.save(
+                f'{self.work_dir}/real_fid_features_{self.rank}.npy',
+                np.concatenate(real_feature_list, axis=0),
+            )
 
         dist.barrier()
         if self.rank != 0:
@@ -230,7 +233,8 @@ class BaseGANRunner(BaseRunner):
         fake_feature_list.clear()
         for rank in range(self.world_size):
             fake_feature_list.append(
-                np.load(f'{self.work_dir}/fake_fid_features_{rank}.npy'))
+                np.load(f'{self.work_dir}/fake_fid_features_{rank}.npy')
+            )
             os.remove(f'{self.work_dir}/fake_fid_features_{rank}.npy')
         fake_features = np.concatenate(fake_feature_list, axis=0)
         assert fake_features.ndim == 2 and fake_features.shape[0] == fid_num
@@ -248,13 +252,13 @@ class BaseGANRunner(BaseRunner):
             real_feature_list.clear()
             for rank in range(self.world_size):
                 real_feature_list.append(
-                    np.load(f'{self.work_dir}/real_fid_features_{rank}.npy'))
+                    np.load(f'{self.work_dir}/real_fid_features_{rank}.npy')
+                )
                 os.remove(f'{self.work_dir}/real_fid_features_{rank}.npy')
             real_features = np.concatenate(real_feature_list, axis=0)
             assert real_features.shape == (fid_num, feature_dim)
             real_features = np.pad(real_features, ((0, pad), (0, 0)))
-            real_features = real_features.reshape(
-                self.world_size, -1, feature_dim)
+            real_features = real_features.reshape(self.world_size, -1, feature_dim)
             real_features = real_features.transpose(1, 0, 2)
             real_features = real_features.reshape(-1, feature_dim)[:fid_num]
             np.save(cached_fid_file, real_features)

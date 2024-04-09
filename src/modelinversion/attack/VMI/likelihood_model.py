@@ -7,83 +7,110 @@ from flow.model import Glow
 
 
 def load_flow(inp_dim, hidden_channels, K, sn, nonlin, flow_permutation):
-    glow_default = {'mlp': True,
-                    'image_shape': None,
-                    'actnorm_scale': 1,
-                    'flow_coupling': 'additive',
-                    'LU_decomposed': True,
-                    'y_classes': -1,
-                    'L': 0, # Not used for MLP
-                    'learn_top': False,
-                    'y_condition': False,
-                    'logittransform': False,
-                    'use_binning_correction': False,
-                    'use_actnorm': False
-                    }
-    flow = Glow(inp_dim=inp_dim,
-                hidden_channels=hidden_channels,
-                K=K,
-                sn=sn,
-                nonlin=nonlin,
-                flow_permutation=flow_permutation,
-                **glow_default)
+    glow_default = {
+        'mlp': True,
+        'image_shape': None,
+        'actnorm_scale': 1,
+        'flow_coupling': 'additive',
+        'LU_decomposed': True,
+        'y_classes': -1,
+        'L': 0,  # Not used for MLP
+        'learn_top': False,
+        'y_condition': False,
+        'logittransform': False,
+        'use_binning_correction': False,
+        'use_actnorm': False,
+    }
+    flow = Glow(
+        inp_dim=inp_dim,
+        hidden_channels=hidden_channels,
+        K=K,
+        sn=sn,
+        nonlin=nonlin,
+        flow_permutation=flow_permutation,
+        **glow_default,
+    )
     flow.return_ll_only = True
     return flow
 
-def load_glow(inp_dim, hidden_channels, K, sn, nonlin, flow_permutation, flow_coupling, flow_L, use_actnorm):
-    glow_default = {'mlp': False,
-                    'actnorm_scale': 1,
-                    'LU_decomposed': True,
-                    'y_classes': -1,
-                    'learn_top': False,
-                    'y_condition': False,
-                    'logittransform': False,
-                    'use_binning_correction': False,
-                    }
-    flow = Glow(inp_dim=None,
-                image_shape=(1, 1, inp_dim),
-                hidden_channels=hidden_channels,
-                K=K,
-                sn=sn,
-                nonlin=nonlin,
-                flow_permutation=flow_permutation,
-                flow_coupling=flow_coupling,
-                L=flow_L,
-                use_actnorm=use_actnorm,
-                **glow_default)
+
+def load_glow(
+    inp_dim,
+    hidden_channels,
+    K,
+    sn,
+    nonlin,
+    flow_permutation,
+    flow_coupling,
+    flow_L,
+    use_actnorm,
+):
+    glow_default = {
+        'mlp': False,
+        'actnorm_scale': 1,
+        'LU_decomposed': True,
+        'y_classes': -1,
+        'learn_top': False,
+        'y_condition': False,
+        'logittransform': False,
+        'use_binning_correction': False,
+    }
+    flow = Glow(
+        inp_dim=None,
+        image_shape=(1, 1, inp_dim),
+        hidden_channels=hidden_channels,
+        K=K,
+        sn=sn,
+        nonlin=nonlin,
+        flow_permutation=flow_permutation,
+        flow_coupling=flow_coupling,
+        L=flow_L,
+        use_actnorm=use_actnorm,
+        **glow_default,
+    )
     flow.return_ll_only = True
     return flow
 
 
 class FlowMiner(nn.Module):
-    def __init__(self, nz0, flow_permutation, K, flow_glow=False, flow_coupling='additive', flow_L=1, flow_use_actnorm=True):
+    def __init__(
+        self,
+        nz0,
+        flow_permutation,
+        K,
+        flow_glow=False,
+        flow_coupling='additive',
+        flow_L=1,
+        flow_use_actnorm=True,
+    ):
         super(FlowMiner, self).__init__()
         self.nz0 = nz0
         self.is_glow = flow_glow
         if flow_glow:
-            self.flow = load_glow(inp_dim=self.nz0,
-                                  hidden_channels=100,
-                                  K=K,
-                                  sn=False,
-                                  nonlin='elu',
-                                  flow_permutation=flow_permutation,
-                                  flow_coupling=flow_coupling,
-                                  flow_L=flow_L,
-                                  use_actnorm=flow_use_actnorm
-                                  )
+            self.flow = load_glow(
+                inp_dim=self.nz0,
+                hidden_channels=100,
+                K=K,
+                sn=False,
+                nonlin='elu',
+                flow_permutation=flow_permutation,
+                flow_coupling=flow_coupling,
+                flow_L=flow_L,
+                use_actnorm=flow_use_actnorm,
+            )
             self.flow.cuda()
             # Init Actnorm
             init_z = torch.randn(100, self.nz0, 1, 1).cuda()
             self.flow(init_z)
         else:
-            self.flow = load_flow(inp_dim=self.nz0,
-                                  hidden_channels=100,
-                                  K=K,
-                                  sn=False,
-                                  nonlin='elu',
-                                  flow_permutation=flow_permutation
-                                  )
-           
+            self.flow = load_flow(
+                inp_dim=self.nz0,
+                hidden_channels=100,
+                K=K,
+                sn=False,
+                nonlin='elu',
+                flow_permutation=flow_permutation,
+            )
 
     def forward(self, z):
         if self.is_glow:
@@ -102,8 +129,19 @@ class FlowMiner(nn.Module):
         super().load_state_dict(sd)
         self.flow.set_actnorm_init()
 
+
 class LayeredFlowMiner(nn.Module):
-    def __init__(self, k, l, flow_permutation, K, flow_glow=False, flow_coupling='additive', flow_L=1, flow_use_actnorm=True):
+    def __init__(
+        self,
+        k,
+        l,
+        flow_permutation,
+        K,
+        flow_glow=False,
+        flow_coupling='additive',
+        flow_L=1,
+        flow_use_actnorm=True,
+    ):
         """
         input
                 k: num dim
@@ -112,7 +150,18 @@ class LayeredFlowMiner(nn.Module):
         super(LayeredFlowMiner, self).__init__()
         self.nz0 = k
         self.l = l
-        self.flow_miners = [FlowMiner(self.nz0, flow_permutation, K, flow_glow, flow_coupling, flow_L, flow_use_actnorm) for _ in range(self.l)]
+        self.flow_miners = [
+            FlowMiner(
+                self.nz0,
+                flow_permutation,
+                K,
+                flow_glow,
+                flow_coupling,
+                flow_L,
+                flow_use_actnorm,
+            )
+            for _ in range(self.l)
+        ]
         for ll, flow_miner in enumerate(self.flow_miners):
             for name, p in flow_miner.named_parameters():
                 name = name.replace('.', '_')
@@ -145,7 +194,6 @@ class LayeredFlowMiner(nn.Module):
             flow_miner.flow.train()
 
 
-
 class MixtureOfRMVN(nn.Module):
     def __init__(self, k, l):
         """
@@ -165,8 +213,6 @@ class MixtureOfRMVN(nn.Module):
         z0s = [mvn(z) for mvn in self.mvns]
         z0s = torch.stack(z0s).permute(1, 0, 2)  # (N, l, nz0)
         return z0s
-
-
 
 
 class MixtureOfIndependentRMVN(MixtureOfRMVN):
@@ -249,7 +295,9 @@ class MixtureOfGMM(nn.Module):
         self.nz0 = k
         self.n_components = n_components
         self.l = l
-        self.gmms = [ReparameterizedGMM2(self.nz0, self.n_components) for _ in range(self.l)]
+        self.gmms = [
+            ReparameterizedGMM2(self.nz0, self.n_components) for _ in range(self.l)
+        ]
         for ll, gmm in enumerate(self.gmms):
             for name, p in gmm.named_parameters():
                 self.register_parameter(f"gmm_{ll}_{name}", p)
@@ -258,6 +306,7 @@ class MixtureOfGMM(nn.Module):
         z0s = [gmm(z) for gmm in self.gmms]
         z0s = torch.stack(z0s).permute(1, 0, 2)  # (N, l, nz0)
         return z0s
+
 
 class ReparameterizedGMM2(nn.Module):
     def __init__(self, k, n_components):
@@ -273,9 +322,8 @@ class ReparameterizedGMM2(nn.Module):
                 self.register_parameter(f"mvn_{ll}_{name}", p)
         self.mixing_weight_logits = nn.Parameter(torch.zeros(self.n_components))
 
-
     def sample_components_onehot(self, n):
-        return F.gumbel_softmax(self.mixing_weight_logits[None].repeat(n,1), hard=True)
+        return F.gumbel_softmax(self.mixing_weight_logits[None].repeat(n, 1), hard=True)
 
     def forward(self, z):
         batch_size = len(z)
@@ -296,9 +344,13 @@ class ReparameterizedGMM2(nn.Module):
         for mvn in self.mvns:
             logp = mvn.logp(x)
             logps.append(logp)
-        logps = torch.stack(logps) # (n_comp, n)
-        log_mixing_weights = F.log_softmax(self.mixing_weight_logits[None].repeat(n,1), dim=1).t()
-        logp = torch.logsumexp(logps + log_mixing_weights, dim=0) - np.log(self.n_components)
+        logps = torch.stack(logps)  # (n_comp, n)
+        log_mixing_weights = F.log_softmax(
+            self.mixing_weight_logits[None].repeat(n, 1), dim=1
+        ).t()
+        logp = torch.logsumexp(logps + log_mixing_weights, dim=0) - np.log(
+            self.n_components
+        )
         return logp
 
     def sample(self, N):
@@ -327,6 +379,7 @@ class ReparameterizedMVN(nn.Module):
     def sample(self, N):
         return self(torch.randn(N, self.nz0).to(self.m.device))
 
+
 def test_mvn_opt():
     def plot_data_samples(data, samples, fname):
         fig, axs = plt.subplots(1, 2, figsize=(8, 4))
@@ -337,6 +390,7 @@ def test_mvn_opt():
         plt.title('Model')
         plt.scatter(samples.T[0], samples.T[1])
         plt.savefig(fname, bbox_inches='tight')
+
     # test logp
     m = torch.tensor([[2, 1]]).float()
     L = torch.tensor([[1, 2], [0, 1]]).float()
@@ -362,7 +416,7 @@ def test_mvn_opt():
                 samples = model(torch.randn(5000, 2))
             plot_data_samples(X, samples, fname)
         optimizer.zero_grad()
-        loss = - model.logp(X).mean()
+        loss = -model.logp(X).mean()
         loss.backward()
         optimizer.step()
         pbar.set_postfix_str(s=f'Loss: {loss.item():.2f}', refresh=True)
@@ -377,7 +431,7 @@ def test_mvn_entropy():
     model.L.data = L
 
     samples = model(torch.randn(5000, 2))
-    H1 = - model.logp(samples).mean()
+    H1 = -model.logp(samples).mean()
     H2 = model.entropy()
     print(H1, H2, H1 - H2)
 
@@ -400,10 +454,10 @@ if __name__ == '__main__':
     # test_mvn_top()
     # test_mvn_entropy()
     # # Test Flow
-    # flow = load_glow(hidden_channels=100, 
-    #           K=10, 
-    #           sn=False, 
-    #           nonlin='elu', 
+    # flow = load_glow(hidden_channels=100,
+    #           K=10,
+    #           sn=False,
+    #           nonlin='elu',
     #           flow_permutation='shuffle')
     # flow = flow.cuda()
     # z = torch.randn(100, 512, 1, 1).cuda()
@@ -429,4 +483,6 @@ if __name__ == '__main__':
     # path = '/scratch/hdd001/home/wangkuan/mm-icml2021/run_scripts/May19-celeba-dcgan-gmm-dev.sh-db0-1/expCelebA.1.DCGAN-m_gmm_ncomp5-lr1e-3-l-kl1e-3-id0/miner_10.pt'
     # sd = torch.load(path)
 
-    import ipdb; ipdb.set_trace()
+    import ipdb
+
+    ipdb.set_trace()

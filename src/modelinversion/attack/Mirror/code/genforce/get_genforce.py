@@ -1,4 +1,3 @@
-
 """This file is modifed from synthesize.py. The goal is to return a generator which output an image in range [0., 1.]"""
 
 import os
@@ -15,46 +14,55 @@ from .models import build_generator, build_discriminator
 from .utils.misc import bool_parser
 from .utils.visualizer import HtmlPageVisualizer
 
+
 def postprocess(images):
     """change the range from [-1, 1] to [0., 1.]"""
-    images = torch.clamp((images + 1.) / 2., 0., 1.)
+    images = torch.clamp((images + 1.0) / 2.0, 0.0, 1.0)
     return images
 
-def get_genforce(model_name, device, checkpoint_dir, use_discri=True, use_w_space=True, use_z_plus_space=False, repeat_w=True):
-    
+
+def get_genforce(
+    model_name,
+    device,
+    checkpoint_dir,
+    use_discri=True,
+    use_w_space=True,
+    use_z_plus_space=False,
+    repeat_w=True,
+):
+
     trunc_psi = 0.7
     trunc_layers = 8
-    
+
     if model_name not in MODEL_ZOO:
         raise RuntimeError(f'model name `{model_name}` is not in model zoo')
     model_config = MODEL_ZOO[model_name].copy()
     url = model_config.pop('url')
-    
+
     print(f'Building generator for model `{model_name}`')
     if model_name.startswith('stylegan'):
         generator = build_generator(**model_config, repeat_w=repeat_w)
     else:
         generator = build_generator(**model_config)
-    synthesis_kwargs = dict(trunc_psi=trunc_psi,
-                            trunc_layers=trunc_layers)
-    
+    synthesis_kwargs = dict(trunc_psi=trunc_psi, trunc_layers=trunc_layers)
+
     # Build discriminator
     if use_discri:
         print(f'Building discriminator for model `{model_name}` ...')
         discriminator = build_discriminator(**model_config)
     else:
         discriminator = None
-        
+
     # load checkpoints
     os.makedirs(os.path.join(checkpoint_dir, 'genforce'), exist_ok=True)
     ckpt_path = os.path.join(checkpoint_dir, 'genforce', f'{model_name}.pth')
-    
+
     if not os.path.exists(ckpt_path):
         print(f'Download checkpoint {model_name} from {url} ...')
         subprocess.call(['wget', '--quiet', '-O', ckpt_path, url])
-        
+
     checkpoint = torch.load(ckpt_path)
-    
+
     if 'generator_smooth' in checkpoint:
         generator.load_state_dict(checkpoint['generator_smooth'])
     else:
@@ -66,7 +74,7 @@ def get_genforce(model_name, device, checkpoint_dir, use_discri=True, use_w_spac
         discriminator = discriminator.to(device)
         discriminator.eval()
     print('Finish loading checkpoint.')
-    
+
     def fake_generator(code):
         # Sample and synthesize.
         # print(f'Synthesizing {args.num} samples ...')
@@ -82,6 +90,7 @@ def get_genforce(model_name, device, checkpoint_dir, use_discri=True, use_w_spac
 
     return Fake_G(generator, fake_generator), discriminator
 
+
 class Fake_G:
 
     def __init__(self, G, g_function):
@@ -91,7 +100,7 @@ class Fake_G:
     def __call__(self, code):
         # print(f'code.shape {code.shape}')
         return self.g_function(code)
-    
+
     def mapping(self, code, label=None):
         return self.G.mapping(code, label=None)
 

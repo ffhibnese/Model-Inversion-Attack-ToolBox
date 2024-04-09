@@ -23,12 +23,19 @@ data = dict(
     repeat=500,
     # train=dict(root_dir='data/ffhq', resolution=resolution, mirror=0.5),
     # val=dict(root_dir='data/ffhq', resolution=resolution),
-    train=dict(root_dir='data/', data_format='list',
-               image_list_path='data/ffhq/ffhq_train_list.txt',
-               resolution=resolution, mirror=0.5),
-    val=dict(root_dir='data/', data_format='list',
-             image_list_path='./data/ffhq/ffhq_val_list.txt',
-             resolution=resolution),
+    train=dict(
+        root_dir='data/',
+        data_format='list',
+        image_list_path='data/ffhq/ffhq_train_list.txt',
+        resolution=resolution,
+        mirror=0.5,
+    ),
+    val=dict(
+        root_dir='data/',
+        data_format='list',
+        image_list_path='./data/ffhq/ffhq_val_list.txt',
+        resolution=resolution,
+    ),
 )
 
 controllers = dict(
@@ -50,13 +57,17 @@ modules = dict(
         kwargs_val=dict(randomize_noise=False),
     ),
     encoder=dict(
-        model=dict(gan_type=gan_type, resolution=resolution, network_depth=18,
-                   latent_dim = [1024] * 8 + [512, 512, 256, 256, 128, 128],
-                   num_latents_per_head=[4, 4, 6],
-                   use_fpn=True,
-                   fpn_channels=512,
-                   use_sam=True,
-                   sam_channels=512),
+        model=dict(
+            gan_type=gan_type,
+            resolution=resolution,
+            network_depth=18,
+            latent_dim=[1024] * 8 + [512, 512, 256, 256, 128, 128],
+            num_latents_per_head=[4, 4, 6],
+            use_fpn=True,
+            fpn_channels=512,
+            use_sam=True,
+            sam_channels=512,
+        ),
         lr=dict(lr_type='ExpSTEP', decay_factor=0.8, decay_step=36458 // 2),
         opt=dict(opt_type='Adam', base_lr=1e-4, betas=(0.9, 0.99)),
         kwargs_train=dict(),
@@ -68,6 +79,7 @@ loss = dict(
     type='EncoderLoss',
     d_loss_kwargs=dict(r1_gamma=10.0),
     e_loss_kwargs=dict(adv_lw=0.08, perceptual_lw=5e-5),
-    perceptual_kwargs=dict(output_layer_idx=23,
-                           pretrained_weight_path=perceptual_model_path),
+    perceptual_kwargs=dict(
+        output_layer_idx=23, pretrained_weight_path=perceptual_model_path
+    ),
 )

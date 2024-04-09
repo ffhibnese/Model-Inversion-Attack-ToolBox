@@ -9,8 +9,9 @@ def compute_same_pad(kernel_size, stride):
     if isinstance(stride, int):
         stride = [stride]
 
-    assert len(stride) == len(kernel_size),\
-        "Pass kernel size and stride both as int, or both as equal length iterable"
+    assert len(stride) == len(
+        kernel_size
+    ), "Pass kernel size and stride both as int, or both as equal length iterable"
 
     return [((k - 1) * s + 1) // 2 for k, s in zip(kernel_size, stride)]
 
@@ -34,9 +35,9 @@ def uniform_binning_correction(x, n_bits=8):
     n_bins = 2**n_bits
     chw = c * h * w
     # correct for pytorch.to_tensor
-    x = x * 255. / 256.
+    x = x * 255.0 / 256.0
     x = x + torch.zeros_like(x).uniform_(0, 1.0 / n_bins)
-    x = torch.clamp(x, min=0,max=1)
+    x = torch.clamp(x, min=0, max=1)
     objective = -math.log(n_bins) * chw * torch.ones(b, device=x.device)
     return x, objective
 
@@ -47,6 +48,6 @@ def split_feature(tensor, type="split"):
     """
     C = tensor.size(1)
     if type == "split":
-        return tensor[:, :C // 2, ...], tensor[:, C // 2:, ...]
+        return tensor[:, : C // 2, ...], tensor[:, C // 2 :, ...]
     elif type == "cross":
         return tensor[:, 0::2, ...], tensor[:, 1::2, ...]

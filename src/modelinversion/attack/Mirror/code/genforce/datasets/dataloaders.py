@@ -14,13 +14,9 @@ __all__ = ['IterDataLoader']
 class IterDataLoader(object):
     """Iteration-based data loader."""
 
-    def __init__(self,
-                 dataset,
-                 batch_size,
-                 shuffle=True,
-                 num_workers=1,
-                 current_iter=0,
-                 repeat=1):
+    def __init__(
+        self, dataset, batch_size, shuffle=True, num_workers=1, current_iter=0, repeat=1
+    ):
         """Initializes the data loader.
 
         Args:
@@ -43,27 +39,29 @@ class IterDataLoader(object):
 
     def build_dataloader(self):
         """Builds data loader."""
-        dist_sampler = DistributedSampler(self._dataset,
-                                          shuffle=self.shuffle,
-                                          current_iter=self._iter,
-                                          repeat=self.repeat)
+        dist_sampler = DistributedSampler(
+            self._dataset,
+            shuffle=self.shuffle,
+            current_iter=self._iter,
+            repeat=self.repeat,
+        )
 
-        self._dataloader = DataLoader(self._dataset,
-                                      batch_size=self.batch_size,
-                                      shuffle=(dist_sampler is None),
-                                      num_workers=self.num_workers,
-                                      drop_last=self.shuffle,
-                                      pin_memory=True,
-                                      sampler=dist_sampler)
+        self._dataloader = DataLoader(
+            self._dataset,
+            batch_size=self.batch_size,
+            shuffle=(dist_sampler is None),
+            num_workers=self.num_workers,
+            drop_last=self.shuffle,
+            pin_memory=True,
+            sampler=dist_sampler,
+        )
         self.iter_loader = iter(self._dataloader)
-
 
     def overwrite_param(self, batch_size=None, resolution=None):
         """Overwrites some parameters for progressive training."""
         if (not batch_size) and (not resolution):
             return
-        if (batch_size == self.batch_size) and (
-                resolution == self.dataset.resolution):
+        if (batch_size == self.batch_size) and (resolution == self.dataset.resolution):
             return
         if batch_size:
             self.batch_size = batch_size
@@ -106,9 +104,7 @@ def dataloader_test(root_dir, test_num=10):
     res = 2
     bs = 2
     dataset = BaseDataset(root_dir=root_dir, resolution=res)
-    dataloader = IterDataLoader(dataset=dataset,
-                                batch_size=bs,
-                                shuffle=False)
+    dataloader = IterDataLoader(dataset=dataset, batch_size=bs, shuffle=False)
     for _ in range(test_num):
         data_batch = next(dataloader)
         image = data_batch['image']
@@ -120,9 +116,12 @@ def dataloader_test(root_dir, test_num=10):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test Data Loader.')
-    parser.add_argument('root_dir', type=str,
-                        help='Root directory of the dataset.')
-    parser.add_argument('--test_num', type=int, default=10,
-                        help='Number of tests. (default: %(default)s)')
+    parser.add_argument('root_dir', type=str, help='Root directory of the dataset.')
+    parser.add_argument(
+        '--test_num',
+        type=int,
+        default=10,
+        help='Number of tests. (default: %(default)s)',
+    )
     args = parser.parse_args()
     dataloader_test(args.root_dir, args.test_num)

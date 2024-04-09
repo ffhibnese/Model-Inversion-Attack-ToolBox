@@ -15,12 +15,12 @@ links = [
     'https://nihcc.box.com/shared/static/upyy3ml7qdumlgk2rfcvlb9k6gvqq2pj.gz',
     'https://nihcc.box.com/shared/static/l6nilvfa9cg3s28tqv1qc1olm3gnz54p.gz',
     'https://nihcc.box.com/shared/static/hhq8fkdgvcari67vfhs7ppg2w6ni4jze.gz',
-    'https://nihcc.box.com/shared/static/ioqwiy20ihqwyr8pf4c24eazhh281pbu.gz'
+    'https://nihcc.box.com/shared/static/ioqwiy20ihqwyr8pf4c24eazhh281pbu.gz',
 ]
 
 for idx, link in enumerate(links):
-    fn = '/scratch/hdd001/home/wangkuan/data/chestxray/images_%02d.tar.gz' % (idx+1)
-    print('downloading: '+fn+'...')
+    fn = '/scratch/hdd001/home/wangkuan/data/chestxray/images_%02d.tar.gz' % (idx + 1)
+    print('downloading: ' + fn + '...')
     urllib.request.urlretrieve(link, fn)  # download the zip file
 
 print("Download complete. Please check the checksums")

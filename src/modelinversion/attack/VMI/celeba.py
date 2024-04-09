@@ -11,6 +11,7 @@ import pandas
 CELEBA_IMGS = 'data/img_align_celeba'
 CELEBA_ROOT = 'data/celeb_a'
 
+
 def create_split_by_pid_frequencies(subset):
     # Get PIDs
     with open(os.path.join(CELEBA_ROOT, 'identity_CelebA.txt'), 'r') as f:
@@ -22,6 +23,7 @@ def create_split_by_pid_frequencies(subset):
             A = int(A.split('.')[0]) - 1
             B = int(B) - 1
             return A, B
+
         imgid2personid = dict([_process_line(line) for line in lines])
 
     print("===> Calculating PID frequencies")
@@ -59,7 +61,6 @@ def create_split_by_pid_frequencies(subset):
     return train_ids, test_ids
 
 
-
 def get_celeba_dataset(subset, crop=False):
     assert subset in ['target', 'aux', 'all']
     print("===> Loading Images")
@@ -70,14 +71,16 @@ def get_celeba_dataset(subset, crop=False):
     if os.path.exists(cache_path):
         print("===> Loading cache")
         X = np.load(open(cache_path, 'rb'))
-        X = torch.from_numpy(X / 255.)
+        X = torch.from_numpy(X / 255.0)
     else:
-        tr = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.CenterCrop((128 if not crop else 114)),
-            transforms.Resize((64)),
-            transforms.ToTensor()
-        ])
+        tr = transforms.Compose(
+            [
+                transforms.ToPILImage(),
+                transforms.CenterCrop((128 if not crop else 114)),
+                transforms.Resize((64)),
+                transforms.ToTensor(),
+            ]
+        )
         # Get Images
         print("=====> Loading all image")
         X = []
@@ -106,6 +109,7 @@ def get_celeba_dataset(subset, crop=False):
             A = int(A.split('.')[0]) - 1
             B = int(B) - 1
             return A, B
+
         imgid2personid = dict([_process_line(line) for line in lines])
 
     print("===> Calculating PID frequencies")
@@ -151,10 +155,18 @@ def get_celeba_dataset(subset, crop=False):
 
 def main(batch_size):
     train_x, train_y, test_x, test_y = get_celeba_dataset('target')
-    train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(
-        train_x, train_y), batch_size=batch_size, shuffle=True, num_workers=2)
-    test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(
-        test_x, test_y), batch_size=batch_size, shuffle=False, num_workers=2)
+    train_loader = torch.utils.data.DataLoader(
+        torch.utils.data.TensorDataset(train_x, train_y),
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=2,
+    )
+    test_loader = torch.utils.data.DataLoader(
+        torch.utils.data.TensorDataset(test_x, test_y),
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=2,
+    )
     return train_loader, test_loader
 
 

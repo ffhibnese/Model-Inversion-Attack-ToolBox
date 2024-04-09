@@ -18,9 +18,11 @@ def test_logger():
             class_name = 'DumbLogger'
 
         print(f'===== Test `utils.logger.{class_name}` =====')
-        logger = build_logger(logger_type,
-                              logger_name=logger_type,
-                              logfile_name=f'test_{logger_type}_logger.log')
+        logger = build_logger(
+            logger_type,
+            logger_name=logger_type,
+            logfile_name=f'test_{logger_type}_logger.log',
+        )
         logger.print('print log')
         logger.debug('debug log')
         logger.info('info log')

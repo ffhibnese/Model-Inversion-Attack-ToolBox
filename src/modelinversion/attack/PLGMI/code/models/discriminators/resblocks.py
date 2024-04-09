@@ -9,8 +9,16 @@ from torch.nn import utils
 
 class Block(nn.Module):
 
-    def __init__(self, in_ch, out_ch, h_ch=None, ksize=3, pad=1,
-                 activation=F.relu, downsample=False):
+    def __init__(
+        self,
+        in_ch,
+        out_ch,
+        h_ch=None,
+        ksize=3,
+        pad=1,
+        activation=F.relu,
+        downsample=False,
+    ):
         super(Block, self).__init__()
 
         self.activation = activation

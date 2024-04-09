@@ -8,7 +8,9 @@ from .stylegan2ada_tf_converter import convert_stylegan2ada_tf_weight
 from .stylegan2ada_pth_converter import convert_stylegan2ada_pth_weight
 
 __all__ = [
-    'convert_pggan_weight', 'convert_stylegan_weight',
-    'convert_stylegan2_weight', 'convert_stylegan2ada_tf_weight',
-    'convert_stylegan2ada_pth_weight'
+    'convert_pggan_weight',
+    'convert_stylegan_weight',
+    'convert_stylegan2_weight',
+    'convert_stylegan2ada_tf_weight',
+    'convert_stylegan2ada_pth_weight',
 ]

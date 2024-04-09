@@ -55,5 +55,6 @@ def compute_fid(fake_features, real_features):
     C_r = np.cov(real_features, rowvar=False)
 
     fid = np.sum((m_f - m_r) ** 2) + np.trace(
-        C_f + C_r - 2 * scipy.linalg.sqrtm(np.dot(C_f, C_r)))
+        C_f + C_r - 2 * scipy.linalg.sqrtm(np.dot(C_f, C_r))
+    )
     return np.real(fid)

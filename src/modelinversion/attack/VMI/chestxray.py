@@ -8,8 +8,16 @@ from tqdm import tqdm
 import numpy as np
 
 CHESTXRAY_ROOT = '/scratch/hdd001/home/wangkuan/data/chestxray'
-CLASS_LABELS = ['Atelectasis', 'Cardiomegaly', 'Effusion',
-                'Infiltration', 'Mass', 'Nodule', 'Pneumonia', 'Pneumothorax']
+CLASS_LABELS = [
+    'Atelectasis',
+    'Cardiomegaly',
+    'Effusion',
+    'Infiltration',
+    'Mass',
+    'Nodule',
+    'Pneumonia',
+    'Pneumothorax',
+]
 
 
 def load_ims_by_fnames(fnames, tr):
@@ -23,6 +31,7 @@ def load_ims_by_fnames(fnames, tr):
             im = tr(im)
         except:
             import ipdb
+
             ipdb.set_trace()
         ims.append(im)
     ims = torch.stack(ims)
@@ -33,19 +42,23 @@ def create_data_cache(image_size):
     size_folder = f"{image_size}x{image_size}"
     os.makedirs(os.path.join(CHESTXRAY_ROOT, size_folder), exist_ok=True)
 
-    tr = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize((image_size)),
-        transforms.ToTensor()
-    ])
+    tr = transforms.Compose(
+        [
+            transforms.ToPILImage(),
+            transforms.Resize((image_size)),
+            transforms.ToTensor(),
+        ]
+    )
 
     dfpath = os.path.join(CHESTXRAY_ROOT, 'Data_Entry_2017_v2020.csv')
     df = pandas.read_csv(dfpath)
 
-    test_fnames = pandas.read_csv(os.path.join(
-        CHESTXRAY_ROOT, 'test_list.txt'), names=['fnames'])['fnames'].values
-    train_fnames = pandas.read_csv(os.path.join(
-        CHESTXRAY_ROOT, 'train_val_list.txt'), names=['fnames'])['fnames'].values
+    test_fnames = pandas.read_csv(
+        os.path.join(CHESTXRAY_ROOT, 'test_list.txt'), names=['fnames']
+    )['fnames'].values
+    train_fnames = pandas.read_csv(
+        os.path.join(CHESTXRAY_ROOT, 'train_val_list.txt'), names=['fnames']
+    )['fnames'].values
 
     # Collect Train/Test fnames by class
     train_x = []
@@ -54,8 +67,7 @@ def create_data_cache(image_size):
     test_y = []
 
     for c in tqdm(range(8), desc='loading images by class'):
-        fnames_c = df[df['Finding Labels'] ==
-                      CLASS_LABELS[c]]['Image Index'].values
+        fnames_c = df[df['Finding Labels'] == CLASS_LABELS[c]]['Image Index'].values
         fnames_c_train = list(set(fnames_c).intersection(set(train_fnames)))
         fnames_c_test = list(set(fnames_c).intersection(set(test_fnames)))
         train_x.append(load_ims_by_fnames(fnames_c_train, tr))
@@ -67,25 +79,35 @@ def create_data_cache(image_size):
     train_y = torch.cat(train_y)
     test_y = torch.cat(test_y)
 
-    np.save(open(os.path.join(CHESTXRAY_ROOT, size_folder, 'train_x.npy'), 'wb'),
-            (train_x.numpy() * 255).astype('uint8'))
-    np.save(open(os.path.join(CHESTXRAY_ROOT, size_folder, 'train_y.npy'), 'wb'),
-            (train_y.numpy()).astype('uint8'))
-    np.save(open(os.path.join(CHESTXRAY_ROOT, size_folder, 'test_x.npy'), 'wb'),
-            (test_x.numpy() * 255).astype('uint8'))
-    np.save(open(os.path.join(CHESTXRAY_ROOT, size_folder, 'test_y.npy'), 'wb'),
-            (test_y.numpy()).astype('uint8'))
+    np.save(
+        open(os.path.join(CHESTXRAY_ROOT, size_folder, 'train_x.npy'), 'wb'),
+        (train_x.numpy() * 255).astype('uint8'),
+    )
+    np.save(
+        open(os.path.join(CHESTXRAY_ROOT, size_folder, 'train_y.npy'), 'wb'),
+        (train_y.numpy()).astype('uint8'),
+    )
+    np.save(
+        open(os.path.join(CHESTXRAY_ROOT, size_folder, 'test_x.npy'), 'wb'),
+        (test_x.numpy() * 255).astype('uint8'),
+    )
+    np.save(
+        open(os.path.join(CHESTXRAY_ROOT, size_folder, 'test_y.npy'), 'wb'),
+        (test_y.numpy()).astype('uint8'),
+    )
 
 
 def create_aux_data_cache(image_size):
     size_folder = f"{image_size}x{image_size}"
     os.makedirs(os.path.join(CHESTXRAY_ROOT, size_folder), exist_ok=True)
 
-    tr = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize((image_size)),
-        transforms.ToTensor()
-    ])
+    tr = transforms.Compose(
+        [
+            transforms.ToPILImage(),
+            transforms.Resize((image_size)),
+            transforms.ToTensor(),
+        ]
+    )
 
     dfpath = os.path.join(CHESTXRAY_ROOT, 'Data_Entry_2017_v2020.csv')
     df = pandas.read_csv(dfpath)
@@ -99,17 +121,27 @@ def create_aux_data_cache(image_size):
     np.random.shuffle(fnames)
     x = load_ims_by_fnames(fnames[:50000], tr)
 
-    np.save(open(os.path.join(CHESTXRAY_ROOT, size_folder, 'aux_x.npy'), 'wb'),
-            (x.numpy() * 255).astype('uint8'))
+    np.save(
+        open(os.path.join(CHESTXRAY_ROOT, size_folder, 'aux_x.npy'), 'wb'),
+        (x.numpy() * 255).astype('uint8'),
+    )
 
 
 def load_data_cache(image_size):
     size_folder = f"{image_size}x{image_size}"
-    train_x = np.load(os.path.join(
-        CHESTXRAY_ROOT, size_folder, 'train_x.npy')).astype('float32') / 255
+    train_x = (
+        np.load(os.path.join(CHESTXRAY_ROOT, size_folder, 'train_x.npy')).astype(
+            'float32'
+        )
+        / 255
+    )
     train_y = np.load(os.path.join(CHESTXRAY_ROOT, size_folder, 'train_y.npy'))
-    test_x = np.load(os.path.join(CHESTXRAY_ROOT,size_folder, 'test_x.npy')
-                     ).astype('float32') / 255
+    test_x = (
+        np.load(os.path.join(CHESTXRAY_ROOT, size_folder, 'test_x.npy')).astype(
+            'float32'
+        )
+        / 255
+    )
     test_y = np.load(os.path.join(CHESTXRAY_ROOT, size_folder, 'test_y.npy'))
 
     # To Torch Tensor
@@ -123,11 +155,13 @@ def load_data_cache(image_size):
 
 def visualize_subset_by_labels():
     image_size = 128
-    tr = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize((image_size)),
-        transforms.ToTensor()
-    ])
+    tr = transforms.Compose(
+        [
+            transforms.ToPILImage(),
+            transforms.Resize((image_size)),
+            transforms.ToTensor(),
+        ]
+    )
 
     labels = ['No Finding'] + CLASS_LABELS
     os.makedirs(os.path.join(CHESTXRAY_ROOT, 'viz'), exist_ok=True)
@@ -137,15 +171,13 @@ def visualize_subset_by_labels():
 
     for label in labels:
         # os.makedirs(os.path.join(CHESTXRAY_ROOT, 'viz', label), exist_ok=True)
-        fnames_c = df[df['Finding Labels'] ==
-                      label]['Image Index'].values
+        fnames_c = df[df['Finding Labels'] == label]['Image Index'].values
         fnames_c = fnames_c[:100]
 
         ims = load_ims_by_fnames(fnames_c, tr)
 
         fpath = os.path.join(CHESTXRAY_ROOT, 'viz', f'{label}.jpeg')
         vutils.save_image(ims, fpath, nrow=10)
-
 
 
 if __name__ == '__main__':

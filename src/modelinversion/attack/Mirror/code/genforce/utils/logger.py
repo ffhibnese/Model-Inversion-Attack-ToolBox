@@ -36,8 +36,9 @@ def build_logger(logger_type='normal', **kwargs):
     assert isinstance(logger_type, str)
     logger_type = logger_type.lower()
     if logger_type not in _LOGGER_TYPES:
-        raise ValueError(f'Invalid logger type `{logger_type}`!\n'
-                         f'Types allowed: {_LOGGER_TYPES}.')
+        raise ValueError(
+            f'Invalid logger type `{logger_type}`!\n' f'Types allowed: {_LOGGER_TYPES}.'
+        )
     if logger_type == 'normal':
         return Logger(**kwargs)
     if logger_type == 'rich':
@@ -59,10 +60,9 @@ class Logger(object):
     NOTE: If `logfile_name` is empty, the file stream will be skipped.
     """
 
-    def __init__(self,
-                 work_dir=DEFAULT_WORK_DIR,
-                 logfile_name='log.txt',
-                 logger_name='logger'):
+    def __init__(
+        self, work_dir=DEFAULT_WORK_DIR, logfile_name='log.txt', logger_name='logger'
+    ):
         """Initializes the logger.
 
         Args:
@@ -73,14 +73,16 @@ class Logger(object):
         self.logger = logging.getLogger(logger_name)
         self.logger.propagate = False
         if self.logger.hasHandlers():  # Already existed
-            raise SystemExit(f'Logger `{logger_name}` has already existed!\n'
-                             f'Please use another name, or otherwise the '
-                             f'messages from these two logger may be mixed up.')
+            raise SystemExit(
+                f'Logger `{logger_name}` has already existed!\n'
+                f'Please use another name, or otherwise the '
+                f'messages from these two logger may be mixed up.'
+            )
 
         self.logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter(
-            '[%(asctime)s][%(levelname)s] %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S')
+            '[%(asctime)s][%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S'
+        )
 
         # Print log message with `INFO` level or above onto the screen.
         terminal_handler = logging.StreamHandler(stream=sys.stdout)
@@ -195,8 +197,7 @@ class TimeColumn(ProgressColumn):
         elapsed_time = _format_time(task.elapsed)
         eta = _format_time(task.time_remaining)
         speed = f'{task.speed:.2f}/s' if task.speed else '?/s'
-        return Text(f'[{elapsed_time}<{eta}, {speed}]',
-                    style="progress.remaining")
+        return Text(f'[{elapsed_time}<{eta}, {speed}]', style="progress.remaining")
 
 
 class RichLogger(object):
@@ -206,10 +207,9 @@ class RichLogger(object):
     a pretty format automatically.
     """
 
-    def __init__(self,
-                 work_dir=DEFAULT_WORK_DIR,
-                 logfile_name='log.txt',
-                 logger_name='logger'):
+    def __init__(
+        self, work_dir=DEFAULT_WORK_DIR, logfile_name='log.txt', logger_name='logger'
+    ):
         """Initializes the logger.
 
         Args:
@@ -220,21 +220,23 @@ class RichLogger(object):
         self.logger = logging.getLogger(logger_name)
         self.logger.propagate = False
         if self.logger.hasHandlers():  # Already existed
-            raise SystemExit(f'Logger `{logger_name}` has already existed!\n'
-                             f'Please use another name, or otherwise the '
-                             f'messages from these two logger may be mixed up.')
+            raise SystemExit(
+                f'Logger `{logger_name}` has already existed!\n'
+                f'Please use another name, or otherwise the '
+                f'messages from these two logger may be mixed up.'
+            )
 
         self.logger.setLevel(logging.DEBUG)
 
         # Print log message with `INFO` level or above onto the screen.
-        terminal_console = Console(
-            file=sys.stderr, log_time=False, log_path=False)
+        terminal_console = Console(file=sys.stderr, log_time=False, log_path=False)
         terminal_handler = RichHandler(
             level=logging.INFO,
             console=terminal_console,
             show_time=True,
             show_level=True,
-            show_path=False)
+            show_path=False,
+        )
         terminal_handler.setFormatter(logging.Formatter('%(message)s'))
         self.logger.addHandler(terminal_handler)
 
@@ -243,13 +245,15 @@ class RichLogger(object):
             os.makedirs(work_dir, exist_ok=True)
             self.file_stream = open(os.path.join(work_dir, logfile_name), 'a')
             file_console = Console(
-                file=self.file_stream, log_time=False, log_path=False)
+                file=self.file_stream, log_time=False, log_path=False
+            )
             file_handler = RichHandler(
                 level=logging.DEBUG,
                 console=file_console,
                 show_time=True,
                 show_level=True,
-                show_path=False)
+                show_path=False,
+            )
             file_handler.setFormatter(logging.Formatter('%(message)s'))
             self.logger.addHandler(file_handler)
 
@@ -288,11 +292,13 @@ class RichLogger(object):
             TimeColumn(),
         )
 
-        self.pbar = Progress(*columns,
-                             console=self.logger.handlers[0].console,
-                             transient=not leave,
-                             auto_refresh=True,
-                             refresh_per_second=10)
+        self.pbar = Progress(
+            *columns,
+            console=self.logger.handlers[0].console,
+            transient=not leave,
+            auto_refresh=True,
+            refresh_per_second=10,
+        )
         self.pbar.start()
 
     def add_pbar_task(self, name, total):

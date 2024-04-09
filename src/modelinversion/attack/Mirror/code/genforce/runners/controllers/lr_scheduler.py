@@ -16,11 +16,7 @@ class BaseWarmUpLR(lr_scheduler._LRScheduler):  # pylint: disable=protected-acce
     number of epochs should be converted to number of iterations before using.
     """
 
-    def __init__(self,
-                 optimizer,
-                 warmup_type='NO',
-                 warmup_iters=0,
-                 warmup_factor=0.1):
+    def __init__(self, optimizer, warmup_type='NO', warmup_iters=0, warmup_factor=0.1):
         """Initializes the scheduler with warm-up settings.
 
         Following warm-up types are supported:
@@ -103,13 +99,15 @@ class StepWarmUpLR(BaseWarmUpLR):
     adjusted at those particular iterations.
     """
 
-    def __init__(self,
-                 optimizer,
-                 decay_step,
-                 decay_factor=0.1,
-                 warmup_type='NO',
-                 warmup_iters=0,
-                 warmup_factor=0.1):
+    def __init__(
+        self,
+        optimizer,
+        decay_step,
+        decay_factor=0.1,
+        warmup_type='NO',
+        warmup_iters=0,
+        warmup_factor=0.1,
+    ):
         self._decay_step = decay_step
         self._decay_factor = decay_factor
         super().__init__(optimizer, warmup_type, warmup_iters, warmup_factor)
@@ -133,10 +131,12 @@ class StepWarmUpLR(BaseWarmUpLR):
             for step in set(self.decay_step):
                 if self.last_epoch >= step:
                     bucket_id += 1
-            scale = self.decay_factor ** bucket_id
+            scale = self.decay_factor**bucket_id
             return [lr * scale for lr in self.base_lrs]
-        raise TypeError(f'Type of LR decay step can only be integer, list, '
-                        f'or tuple, but `{type(self.decay_step)}` is received!')
+        raise TypeError(
+            f'Type of LR decay step can only be integer, list, '
+            f'or tuple, but `{type(self.decay_step)}` is received!'
+        )
 
 
 class EXPStepWarmUpLR(BaseWarmUpLR):
@@ -148,13 +148,16 @@ class EXPStepWarmUpLR(BaseWarmUpLR):
     If the `decay_step` is a list of integers, the learning rate will be
     adjusted at those particular iterations.
     """
-    def __init__(self,
-                 optimizer,
-                 decay_step,
-                 decay_factor=0.1,
-                 warmup_type='NO',
-                 warmup_iters=0,
-                 warmup_factor=0.1):
+
+    def __init__(
+        self,
+        optimizer,
+        decay_step,
+        decay_factor=0.1,
+        warmup_type='NO',
+        warmup_iters=0,
+        warmup_factor=0.1,
+    ):
         self._decay_step = decay_step
         self._decay_factor = decay_factor
         super().__init__(optimizer, warmup_type, warmup_iters, warmup_factor)
@@ -178,10 +181,12 @@ class EXPStepWarmUpLR(BaseWarmUpLR):
             for step in set(self.decay_step):
                 if self.last_epoch >= step:
                     bucket_id += 1
-            scale = self.decay_factor ** bucket_id
+            scale = self.decay_factor**bucket_id
             return [lr * scale for lr in self.base_lrs]
-        raise TypeError(f'Type of LR decay step can only be integer, list, '
-                        f'or tuple, but `{type(self.decay_step)}` is received!')
+        raise TypeError(
+            f'Type of LR decay step can only be integer, list, '
+            f'or tuple, but `{type(self.decay_step)}` is received!'
+        )
 
 
 _ALLOWED_LR_TYPES = ['FIXED', 'STEP', 'EXPSTEP']
@@ -217,28 +222,36 @@ def build_lr_scheduler(config, optimizer):
     warmup_factor = config.get('warmup_factor', 0.1)
 
     if lr_type not in _ALLOWED_LR_TYPES:
-        raise ValueError(f'Invalid learning rate scheduler type `{lr_type}`!'
-                         f'Allowed types: {_ALLOWED_LR_TYPES}.')
+        raise ValueError(
+            f'Invalid learning rate scheduler type `{lr_type}`!'
+            f'Allowed types: {_ALLOWED_LR_TYPES}.'
+        )
 
     if lr_type == 'FIXED':
-        return FixedWarmUpLR(optimizer=optimizer,
-                             warmup_type=warmup_type,
-                             warmup_iters=warmup_iters,
-                             warmup_factor=warmup_factor)
+        return FixedWarmUpLR(
+            optimizer=optimizer,
+            warmup_type=warmup_type,
+            warmup_iters=warmup_iters,
+            warmup_factor=warmup_factor,
+        )
     if lr_type == 'STEP':
-        return StepWarmUpLR(optimizer=optimizer,
-                            decay_step=config['decay_step'],
-                            decay_factor=config.get('decay_factor', 0.1),
-                            warmup_type=warmup_type,
-                            warmup_iters=warmup_iters,
-                            warmup_factor=warmup_factor)
+        return StepWarmUpLR(
+            optimizer=optimizer,
+            decay_step=config['decay_step'],
+            decay_factor=config.get('decay_factor', 0.1),
+            warmup_type=warmup_type,
+            warmup_iters=warmup_iters,
+            warmup_factor=warmup_factor,
+        )
     if lr_type == 'EXPSTEP':
-        return EXPStepWarmUpLR(optimizer=optimizer,
-                               decay_step=config['decay_step'],
-                               decay_factor=config.get('decay_factor', 0.1),
-                               warmup_type=warmup_type,
-                               warmup_iters=warmup_iters,
-                               warmup_factor=warmup_factor)
+        return EXPStepWarmUpLR(
+            optimizer=optimizer,
+            decay_step=config['decay_step'],
+            decay_factor=config.get('decay_factor', 0.1),
+            warmup_type=warmup_type,
+            warmup_iters=warmup_iters,
+            warmup_factor=warmup_factor,
+        )
     raise NotImplementedError(f'Not implemented scheduler type `{lr_type}`!')
 
 
@@ -273,10 +286,14 @@ class LRScheduler(BaseController):
             if name not in runner.optimizers:
                 raise AttributeError(f'Optimizer `{name}` is missing!')
             runner.lr_schedulers[name] = build_lr_scheduler(
-                config, runner.optimizers[name])
+                config, runner.optimizers[name]
+            )
             runner.running_stats.add(
-                f'lr_{name}', log_format='.3e', log_name=f'lr ({name})',
-                log_strategy='CURRENT')
+                f'lr_{name}',
+                log_format='.3e',
+                log_name=f'lr ({name})',
+                log_strategy='CURRENT',
+            )
 
     def execute_after_iteration(self, runner):
         for name, scheduler in runner.lr_schedulers.items():

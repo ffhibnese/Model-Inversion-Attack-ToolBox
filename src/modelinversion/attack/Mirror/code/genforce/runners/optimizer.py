@@ -43,8 +43,10 @@ def build_optimizer(config, model):
     bias_wd_multiplier = config.get('bias_wd_multiplier', 1.0)
 
     if opt_type not in _ALLOWED_OPT_TYPES:
-        raise ValueError(f'Invalid optimizer type `{opt_type}`!'
-                         f'Allowed types: {_ALLOWED_OPT_TYPES}.')
+        raise ValueError(
+            f'Invalid optimizer type `{opt_type}`!'
+            f'Allowed types: {_ALLOWED_OPT_TYPES}.'
+        )
 
     model_params = []
     for param_name, param in model.named_parameters():
@@ -59,19 +61,23 @@ def build_optimizer(config, model):
         model_params.append(param_group)
 
     if opt_type == 'SGD':
-        return torch.optim.SGD(params=model_params,
-                               lr=base_lr,
-                               momentum=config.get('momentum', 0.9),
-                               dampening=config.get('dampening', 0),
-                               weight_decay=base_wd,
-                               nesterov=config.get('nesterov', False))
+        return torch.optim.SGD(
+            params=model_params,
+            lr=base_lr,
+            momentum=config.get('momentum', 0.9),
+            dampening=config.get('dampening', 0),
+            weight_decay=base_wd,
+            nesterov=config.get('nesterov', False),
+        )
     if opt_type == 'ADAM':
-        return AdamOptimizer(params=model_params,
-                             lr=base_lr,
-                             betas=config.get('betas', (0.9, 0.999)),
-                             eps=config.get('eps', 1e-8),
-                             weight_decay=base_wd,
-                             amsgrad=config.get('amsgrad', False))
+        return AdamOptimizer(
+            params=model_params,
+            lr=base_lr,
+            betas=config.get('betas', (0.9, 0.999)),
+            eps=config.get('eps', 1e-8),
+            weight_decay=base_wd,
+            amsgrad=config.get('amsgrad', False),
+        )
     raise NotImplementedError(f'Not implemented optimizer type `{opt_type}`!')
 
 
@@ -112,6 +118,7 @@ def build_optimizers(opt_config, runner):
 # pylint: disable=misplaced-comparison-constant
 # pylint: disable=super-with-arguments
 
+
 class AdamOptimizer(torch.optim.Optimizer):
     r"""Implements Adam algorithm.
 
@@ -140,8 +147,15 @@ class AdamOptimizer(torch.optim.Optimizer):
         https://openreview.net/forum?id=ryQu7f-RZ
     """
 
-    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
-                 weight_decay=0, amsgrad=False):
+    def __init__(
+        self,
+        params,
+        lr=1e-3,
+        betas=(0.9, 0.999),
+        eps=1e-8,
+        weight_decay=0,
+        amsgrad=False,
+    ):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if not 0.0 <= eps:
@@ -152,8 +166,9 @@ class AdamOptimizer(torch.optim.Optimizer):
             raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
         if not 0.0 <= weight_decay:
             raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
-        defaults = dict(lr=lr, betas=betas, eps=eps,
-                        weight_decay=weight_decay, amsgrad=amsgrad)
+        defaults = dict(
+            lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, amsgrad=amsgrad
+        )
         super(AdamOptimizer, self).__init__(params, defaults)
 
     def __setstate__(self, state):
@@ -180,7 +195,9 @@ class AdamOptimizer(torch.optim.Optimizer):
                     continue
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('Adam does not support sparse gradients, please consider SparseAdam instead')
+                    raise RuntimeError(
+                        'Adam does not support sparse gradients, please consider SparseAdam instead'
+                    )
                 amsgrad = group['amsgrad']
                 assert not amsgrad
 
@@ -190,12 +207,18 @@ class AdamOptimizer(torch.optim.Optimizer):
                 if len(state) == 0:
                     state['step'] = 0
                     # Exponential moving average of gradient values
-                    state['exp_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                    state['exp_avg'] = torch.zeros_like(
+                        p, memory_format=torch.preserve_format
+                    )
                     # Exponential moving average of squared gradient values
-                    state['exp_avg_sq'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                    state['exp_avg_sq'] = torch.zeros_like(
+                        p, memory_format=torch.preserve_format
+                    )
                     if amsgrad:
                         # Maintains max of all exp. moving avg. of sq. grad. values
-                        state['max_exp_avg_sq'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                        state['max_exp_avg_sq'] = torch.zeros_like(
+                            p, memory_format=torch.preserve_format
+                        )
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 # if amsgrad:
@@ -227,9 +250,12 @@ class AdamOptimizer(torch.optim.Optimizer):
 
                 step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
 
-                p.addcdiv_(exp_avg, exp_avg_sq.sqrt().add_(group['eps']) , value=-step_size)
+                p.addcdiv_(
+                    exp_avg, exp_avg_sq.sqrt().add_(group['eps']), value=-step_size
+                )
 
         return loss
+
 
 # pylint: enable=line-too-long
 # pylint: enable=unneeded-not

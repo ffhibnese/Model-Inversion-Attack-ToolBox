@@ -12,8 +12,14 @@ from .base import BaseIntermediateImageGenerator, LambdaModule
 class _ConditionalBatchNorm2d(nn.BatchNorm2d):
     """Conditional Batch Normalization"""
 
-    def __init__(self, num_features, eps=1e-05, momentum=0.1,
-                 affine=False, track_running_stats=True):
+    def __init__(
+        self,
+        num_features,
+        eps=1e-05,
+        momentum=0.1,
+        affine=False,
+        track_running_stats=True,
+    ):
         super(_ConditionalBatchNorm2d, self).__init__(
             num_features, eps, momentum, affine, track_running_stats
         )
@@ -30,10 +36,16 @@ class _ConditionalBatchNorm2d(nn.BatchNorm2d):
             else:  # use exponential moving average
                 exponential_average_factor = self.momentum
 
-        output = F.batch_norm(input, self.running_mean, self.running_var,
-                              self.weight, self.bias,
-                              self.training or not self.track_running_stats,
-                              exponential_average_factor, self.eps)
+        output = F.batch_norm(
+            input,
+            self.running_mean,
+            self.running_var,
+            self.weight,
+            self.bias,
+            self.training or not self.track_running_stats,
+            exponential_average_factor,
+            self.eps,
+        )
         if weight.dim() == 1:
             weight = weight.unsqueeze(0)
         if bias.dim() == 1:
@@ -46,8 +58,15 @@ class _ConditionalBatchNorm2d(nn.BatchNorm2d):
 
 class _CategoricalConditionalBatchNorm2d(_ConditionalBatchNorm2d):
 
-    def __init__(self, num_classes, num_features, eps=1e-5, momentum=0.1,
-                 affine=False, track_running_stats=True):
+    def __init__(
+        self,
+        num_classes,
+        num_features,
+        eps=1e-5,
+        momentum=0.1,
+        affine=False,
+        track_running_stats=True,
+    ):
         super(_CategoricalConditionalBatchNorm2d, self).__init__(
             num_features, eps, momentum, affine, track_running_stats
         )
@@ -64,8 +83,11 @@ class _CategoricalConditionalBatchNorm2d(_ConditionalBatchNorm2d):
         weight = self.weights(c)
         bias = self.biases(c)
 
-        return super(_CategoricalConditionalBatchNorm2d, self).forward(input, weight, bias)
-    
+        return super(_CategoricalConditionalBatchNorm2d, self).forward(
+            input, weight, bias
+        )
+
+
 def _upsample(x):
     h, w = x.size()[2:]
     return F.interpolate(x, size=(h * 2, w * 2), mode='bilinear')
@@ -73,8 +95,17 @@ def _upsample(x):
 
 class _GenBlock(nn.Module):
 
-    def __init__(self, in_ch, out_ch, h_ch=None, ksize=3, pad=1,
-                 activation=F.relu, upsample=False, num_classes=0):
+    def __init__(
+        self,
+        in_ch,
+        out_ch,
+        h_ch=None,
+        ksize=3,
+        pad=1,
+        activation=F.relu,
+        upsample=False,
+        num_classes=0,
+    ):
         super(_GenBlock, self).__init__()
 
         self.activation = activation
@@ -88,10 +119,8 @@ class _GenBlock(nn.Module):
         self.c1 = nn.Conv2d(in_ch, h_ch, ksize, 1, pad)
         self.c2 = nn.Conv2d(h_ch, out_ch, ksize, 1, pad)
         if self.num_classes > 0:
-            self.b1 = _CategoricalConditionalBatchNorm2d(
-                num_classes, in_ch)
-            self.b2 = _CategoricalConditionalBatchNorm2d(
-                num_classes, h_ch)
+            self.b1 = _CategoricalConditionalBatchNorm2d(num_classes, in_ch)
+            self.b2 = _CategoricalConditionalBatchNorm2d(num_classes, h_ch)
         else:
             self.b1 = nn.BatchNorm2d(in_ch)
             self.b2 = nn.BatchNorm2d(h_ch)
@@ -131,6 +160,7 @@ class _GenBlock(nn.Module):
             h = self.b2(h)
         return self.c2(self.activation(h))
 
+
 class PlgmiGenerator64(BaseIntermediateImageGenerator):
     """Generator generates 64x64."""
 
@@ -143,37 +173,59 @@ class PlgmiGenerator64(BaseIntermediateImageGenerator):
         self.activation = activation
         self.num_classes = num_classes
         # self.distribution = distribution
-        
+
         def _reshape():
-            return LambdaModule(lambda x: x.reshape(x.size(0), -1, self.bottom_width, self.bottom_width))
-        
-        
+            return LambdaModule(
+                lambda x: x.reshape(x.size(0), -1, self.bottom_width, self.bottom_width)
+            )
+
         # print(dim_z)
-        self.block1 = nn.Sequential(nn.Linear(dim_z, 16 * num_features * bottom_width ** 2), _reshape())
-
-        self.block2 = _GenBlock(num_features * 16, num_features * 8,
-                            activation=activation, upsample=True,
-                            num_classes=num_classes)
-        self.block3 = _GenBlock(num_features * 8, num_features * 4,
-                            activation=activation, upsample=True,
-                            num_classes=num_classes)
-        self.block4 = _GenBlock(num_features * 4, num_features * 2,
-                            activation=activation, upsample=True,
-                            num_classes=num_classes)
-        self.block5 = _GenBlock(num_features * 2, num_features,
-                            activation=activation, upsample=True,
-                            num_classes=num_classes)
-        self.block5_res = nn.Sequential(
-            nn.BatchNorm2d(num_features),
-            activation
+        self.block1 = nn.Sequential(
+            nn.Linear(dim_z, 16 * num_features * bottom_width**2), _reshape()
         )
-        
-        self.block6 = nn.Sequential(nn.Conv2d(num_features, 3, 1, 1), nn.Tanh())
-        
 
-    def _forward_impl(self, *inputs, labels: torch.LongTensor | None = None, start_block: int = None, end_block: int = None, **kwargs):
+        self.block2 = _GenBlock(
+            num_features * 16,
+            num_features * 8,
+            activation=activation,
+            upsample=True,
+            num_classes=num_classes,
+        )
+        self.block3 = _GenBlock(
+            num_features * 8,
+            num_features * 4,
+            activation=activation,
+            upsample=True,
+            num_classes=num_classes,
+        )
+        self.block4 = _GenBlock(
+            num_features * 4,
+            num_features * 2,
+            activation=activation,
+            upsample=True,
+            num_classes=num_classes,
+        )
+        self.block5 = _GenBlock(
+            num_features * 2,
+            num_features,
+            activation=activation,
+            upsample=True,
+            num_classes=num_classes,
+        )
+        self.block5_res = nn.Sequential(nn.BatchNorm2d(num_features), activation)
+
+        self.block6 = nn.Sequential(nn.Conv2d(num_features, 3, 1, 1), nn.Tanh())
+
+    def _forward_impl(
+        self,
+        *inputs,
+        labels: torch.LongTensor | None = None,
+        start_block: int = None,
+        end_block: int = None,
+        **kwargs,
+    ):
         h = inputs[0]
-        
+
         for i in range(start_block, end_block):
             if i in [0, 5]:
                 h = getattr(self, f'block{i+1}')(h)
@@ -182,7 +234,8 @@ class PlgmiGenerator64(BaseIntermediateImageGenerator):
             if i == 4:
                 h = self.block5_res(h)
         return h
-    
+
+
 class PlgmiGenerator256(BaseIntermediateImageGenerator):
     """Generator generates 64x64."""
 
@@ -195,41 +248,71 @@ class PlgmiGenerator256(BaseIntermediateImageGenerator):
         self.activation = activation
         self.num_classes = num_classes
         # self.distribution = distribution
-        
+
         def _reshape():
-            return LambdaModule(lambda x: x.reshape(x.size(0), -1, self.bottom_width, self.bottom_width))
-        
-        
+            return LambdaModule(
+                lambda x: x.reshape(x.size(0), -1, self.bottom_width, self.bottom_width)
+            )
+
         # print(dim_z)
-        self.block1 = nn.Sequential(nn.Linear(dim_z, 16 * num_features * bottom_width ** 2), _reshape())
-
-        self.block2 = _GenBlock(num_features * 16, num_features * 8,
-                            activation=activation, upsample=True,
-                            num_classes=num_classes)
-        self.block3 = _GenBlock(num_features * 8, num_features * 4,
-                            activation=activation, upsample=True,
-                            num_classes=num_classes)
-        self.block4 = _GenBlock(num_features * 4, num_features * 2,
-                            activation=activation, upsample=True,
-                            num_classes=num_classes)
-        self.block5 = _GenBlock(num_features * 2, num_features,
-                            activation=activation, upsample=True,
-                            num_classes=num_classes)
-        self.block6 = _GenBlock(num_features * 2, num_features,
-                            activation=activation, upsample=True,
-                            num_classes=num_classes)
-        self.block7 = _GenBlock(num_features * 2, num_features,
-                            activation=activation, upsample=True,
-                            num_classes=num_classes)
-        self.block7_res = nn.Sequential(
-            nn.BatchNorm2d(num_features),
-            activation
+        self.block1 = nn.Sequential(
+            nn.Linear(dim_z, 16 * num_features * bottom_width**2), _reshape()
         )
-        
-        self.block8 = nn.Sequential(nn.Conv2d(num_features, 3, 1, 1), nn.Tanh())
-        
 
-    def _forward_impl(self, *inputs, labels: torch.LongTensor | None = None, start_block: int = None, end_block: int = None, **kwargs):
+        self.block2 = _GenBlock(
+            num_features * 16,
+            num_features * 8,
+            activation=activation,
+            upsample=True,
+            num_classes=num_classes,
+        )
+        self.block3 = _GenBlock(
+            num_features * 8,
+            num_features * 4,
+            activation=activation,
+            upsample=True,
+            num_classes=num_classes,
+        )
+        self.block4 = _GenBlock(
+            num_features * 4,
+            num_features * 2,
+            activation=activation,
+            upsample=True,
+            num_classes=num_classes,
+        )
+        self.block5 = _GenBlock(
+            num_features * 2,
+            num_features,
+            activation=activation,
+            upsample=True,
+            num_classes=num_classes,
+        )
+        self.block6 = _GenBlock(
+            num_features * 2,
+            num_features,
+            activation=activation,
+            upsample=True,
+            num_classes=num_classes,
+        )
+        self.block7 = _GenBlock(
+            num_features * 2,
+            num_features,
+            activation=activation,
+            upsample=True,
+            num_classes=num_classes,
+        )
+        self.block7_res = nn.Sequential(nn.BatchNorm2d(num_features), activation)
+
+        self.block8 = nn.Sequential(nn.Conv2d(num_features, 3, 1, 1), nn.Tanh())
+
+    def _forward_impl(
+        self,
+        *inputs,
+        labels: torch.LongTensor | None = None,
+        start_block: int = None,
+        end_block: int = None,
+        **kwargs,
+    ):
         h = inputs[0]
         for i in range(start_block, end_block):
             if i in [0, 7]:
@@ -240,10 +323,19 @@ class PlgmiGenerator256(BaseIntermediateImageGenerator):
                 h = self.block7_res(h)
         return h
 
+
 class _DisBlock(nn.Module):
 
-    def __init__(self, in_ch, out_ch, h_ch=None, ksize=3, pad=1,
-                 activation=F.relu, downsample=False):
+    def __init__(
+        self,
+        in_ch,
+        out_ch,
+        h_ch=None,
+        ksize=3,
+        pad=1,
+        activation=F.relu,
+        downsample=False,
+    ):
         super(_DisBlock, self).__init__()
 
         self.activation = activation
@@ -313,30 +405,36 @@ class _OptimizedBlock(nn.Module):
         h = self.activation(self.c1(x))
         return F.avg_pool2d(self.c2(h), 2)
 
+
 class PlgmiDiscriminator64(nn.Module):
 
     def __init__(self, num_classes):
         super(PlgmiDiscriminator64, self).__init__()
-        
-        num_features=64
-        activation=F.relu
+
+        num_features = 64
+        activation = F.relu
         self.num_features = num_features
         self.num_classes = num_classes
         self.activation = activation
 
         self.block1 = _OptimizedBlock(3, num_features)
-        self.block2 = _DisBlock(num_features, num_features * 2,
-                            activation=activation, downsample=True)
-        self.block3 = _DisBlock(num_features * 2, num_features * 4,
-                            activation=activation, downsample=True)
-        self.block4 = _DisBlock(num_features * 4, num_features * 8,
-                            activation=activation, downsample=True)
-        self.block5 = _DisBlock(num_features * 8, num_features * 16,
-                            activation=activation, downsample=True)
+        self.block2 = _DisBlock(
+            num_features, num_features * 2, activation=activation, downsample=True
+        )
+        self.block3 = _DisBlock(
+            num_features * 2, num_features * 4, activation=activation, downsample=True
+        )
+        self.block4 = _DisBlock(
+            num_features * 4, num_features * 8, activation=activation, downsample=True
+        )
+        self.block5 = _DisBlock(
+            num_features * 8, num_features * 16, activation=activation, downsample=True
+        )
         self.l6 = nn.utils.spectral_norm(nn.Linear(num_features * 16, 1))
         if num_classes > 0:
             self.l_y = nn.utils.spectral_norm(
-                nn.Embedding(num_classes, num_features * 16))
+                nn.Embedding(num_classes, num_features * 16)
+            )
 
         self._initialize()
 
@@ -360,36 +458,43 @@ class PlgmiDiscriminator64(nn.Module):
         if y is not None:
             output += torch.sum(self.l_y(y) * h, dim=1, keepdim=True)
         return output
-    
-    
+
+
 class PlgmiDiscriminator256(nn.Module):
 
     def __init__(self, num_classes):
         super(PlgmiDiscriminator256, self).__init__()
-        
-        num_features=64
-        activation=F.relu
+
+        num_features = 64
+        activation = F.relu
         self.num_features = num_features
         self.num_classes = num_classes
         self.activation = activation
 
         self.block1 = _OptimizedBlock(3, num_features)
-        self.block2 = _DisBlock(num_features, num_features * 2,
-                            activation=activation, downsample=True)
-        self.block3 = _DisBlock(num_features * 2, num_features * 4,
-                            activation=activation, downsample=True)
-        self.block4 = _DisBlock(num_features * 4, num_features * 8,
-                            activation=activation, downsample=True)
-        self.block5 = _DisBlock(num_features * 8, num_features * 16,
-                            activation=activation, downsample=True)
-        self.block6 = _DisBlock(num_features * 16, num_features * 16,
-                            activation=activation, downsample=True)
-        self.block7 = _DisBlock(num_features * 16, num_features * 16,
-                            activation=activation, downsample=True)
+        self.block2 = _DisBlock(
+            num_features, num_features * 2, activation=activation, downsample=True
+        )
+        self.block3 = _DisBlock(
+            num_features * 2, num_features * 4, activation=activation, downsample=True
+        )
+        self.block4 = _DisBlock(
+            num_features * 4, num_features * 8, activation=activation, downsample=True
+        )
+        self.block5 = _DisBlock(
+            num_features * 8, num_features * 16, activation=activation, downsample=True
+        )
+        self.block6 = _DisBlock(
+            num_features * 16, num_features * 16, activation=activation, downsample=True
+        )
+        self.block7 = _DisBlock(
+            num_features * 16, num_features * 16, activation=activation, downsample=True
+        )
         self.l6 = nn.utils.spectral_norm(nn.Linear(num_features * 16, 1))
         if num_classes > 0:
             self.l_y = nn.utils.spectral_norm(
-                nn.Embedding(num_classes, num_features * 16))
+                nn.Embedding(num_classes, num_features * 16)
+            )
 
         self._initialize()
 

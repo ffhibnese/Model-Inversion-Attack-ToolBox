@@ -19,8 +19,9 @@ import dnnlib.tflib as tflib
 
 from training import dataset
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Base class for metrics.
+
 
 class MetricBase:
     def __init__(self, name, force_dataset_args={}, force_G_kwargs={}):
@@ -30,15 +31,15 @@ class MetricBase:
         self.force_G_kwargs = force_G_kwargs
 
         # Configuration.
-        self._dataset_args  = dnnlib.EasyDict()
-        self._run_dir       = None
-        self._progress_fn   = None
+        self._dataset_args = dnnlib.EasyDict()
+        self._run_dir = None
+        self._progress_fn = None
 
         # Internal state.
-        self._results       = []
-        self._network_name  = ''
-        self._eval_time     = 0
-        self._dataset       = None
+        self._results = []
+        self._network_name = ''
+        self._eval_time = 0
+        self._dataset = None
 
     def configure(self, dataset_args={}, run_dir=None, progress_fn=None):
         self._dataset_args = dnnlib.EasyDict(dataset_args)
@@ -52,7 +53,7 @@ class MetricBase:
         self._eval_time = 0
         self._dataset = None
 
-        with tf.Graph().as_default(), tflib.create_session().as_default(): # pylint: disable=not-context-manager
+        with tf.Graph().as_default(), tflib.create_session().as_default():  # pylint: disable=not-context-manager
             self._report_progress(0, 1)
             time_begin = time.time()
             with dnnlib.util.open_url(network_pkl) as f:
@@ -62,7 +63,9 @@ class MetricBase:
             G_kwargs.update(self.force_G_kwargs)
             self._evaluate(G=G, D=D, Gs=Gs, G_kwargs=G_kwargs, num_gpus=num_gpus)
 
-            self._eval_time = time.time() - time_begin # pylint: disable=attribute-defined-outside-init
+            self._eval_time = (
+                time.time() - time_begin
+            )  # pylint: disable=attribute-defined-outside-init
             self._report_progress(1, 1)
             if self._dataset is not None:
                 self._dataset.close()
@@ -71,24 +74,30 @@ class MetricBase:
         result_str = self.get_result_str()
         print(result_str)
         if self._run_dir is not None and os.path.isdir(self._run_dir):
-            with open(os.path.join(self._run_dir, f'metric-{self.name}.txt'), 'at') as f:
+            with open(
+                os.path.join(self._run_dir, f'metric-{self.name}.txt'), 'at'
+            ) as f:
                 f.write(result_str + '\n')
 
     def get_result_str(self):
         title = self._network_name
         if len(title) > 29:
             title = '...' + title[-26:]
-        result_str = f'{title:<30s} time {dnnlib.util.format_time(self._eval_time):<12s}'
+        result_str = (
+            f'{title:<30s} time {dnnlib.util.format_time(self._eval_time):<12s}'
+        )
         for res in self._results:
             result_str += f' {self.name}{res.suffix} {res.fmt % res.value}'
         return result_str.strip()
 
     def update_autosummaries(self):
         for res in self._results:
-            tflib.autosummary.autosummary('Metrics/' + self.name + res.suffix, res.value)
+            tflib.autosummary.autosummary(
+                'Metrics/' + self.name + res.suffix, res.value
+            )
 
     def _evaluate(self, **_kwargs):
-        raise NotImplementedError # to be overridden by subclasses
+        raise NotImplementedError  # to be overridden by subclasses
 
     def _report_result(self, value, suffix='', fmt='%-10.4f'):
         self._results += [dnnlib.EasyDict(value=value, suffix=suffix, fmt=fmt)]
@@ -103,7 +112,9 @@ class MetricBase:
         all_args.update(kwargs)
         md5 = hashlib.md5(repr(sorted(all_args.items())).encode('utf-8'))
         dataset_name = os.path.splitext(os.path.basename(self._dataset_args.path))[0]
-        return dnnlib.make_cache_dir_path('metrics', f'{md5.hexdigest()}-{self.name}-{dataset_name}.{extension}')
+        return dnnlib.make_cache_dir_path(
+            'metrics', f'{md5.hexdigest()}-{self.name}-{dataset_name}.{extension}'
+        )
 
     def _get_dataset_obj(self):
         if self._dataset is None:
@@ -125,8 +136,12 @@ class MetricBase:
             num = len(images)
             if num == 0:
                 break
-            images = np.concatenate(images + [images[-1]] * (minibatch_size - num), axis=0)
-            labels = np.concatenate(labels + [labels[-1]] * (minibatch_size - num), axis=0)
+            images = np.concatenate(
+                images + [images[-1]] * (minibatch_size - num), axis=0
+            )
+            labels = np.concatenate(
+                labels + [labels[-1]] * (minibatch_size - num), axis=0
+            )
             yield images, labels, num
             if num < minibatch_size:
                 break
@@ -134,4 +149,5 @@ class MetricBase:
     def _get_random_labels_tf(self, minibatch_size):
         return self._get_dataset_obj().get_random_labels_tf(minibatch_size)
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------

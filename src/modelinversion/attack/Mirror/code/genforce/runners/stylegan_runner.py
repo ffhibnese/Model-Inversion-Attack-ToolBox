@@ -17,14 +17,12 @@ class StyleGANRunner(BaseGANRunner):
 
     def build_models(self):
         super().build_models()
-        self.g_smooth_img = self.config.modules['generator'].get(
-            'g_smooth_img', 10000)
+        self.g_smooth_img = self.config.modules['generator'].get('g_smooth_img', 10000)
         self.models['generator_smooth'] = deepcopy(self.models['generator'])
 
     def build_loss(self):
         super().build_loss()
-        self.running_stats.add(
-            f'Gs_beta', log_format='.4f', log_strategy='CURRENT')
+        self.running_stats.add(f'Gs_beta', log_format='.4f', log_strategy='CURRENT')
 
     def train_step(self, data, **train_kwargs):
         # Set level-of-details.
@@ -47,9 +45,11 @@ class StyleGANRunner(BaseGANRunner):
         # Life-long update for generator.
         beta = 0.5 ** (self.batch_size * self.world_size / self.g_smooth_img)
         self.running_stats.update({'Gs_beta': beta})
-        self.moving_average_model(model=self.models['generator'],
-                                  avg_model=self.models['generator_smooth'],
-                                  beta=beta)
+        self.moving_average_model(
+            model=self.models['generator'],
+            avg_model=self.models['generator_smooth'],
+            beta=beta,
+        )
 
         # Update generator.
         if self._iter % self.config.get('D_repeats', 1) == 0:

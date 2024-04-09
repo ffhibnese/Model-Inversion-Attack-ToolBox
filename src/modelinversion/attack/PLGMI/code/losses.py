@@ -28,16 +28,16 @@ def poincare_loss(outputs, targets, xi=1e-4):
     v_norm_squared = torch.norm(v, p=2, dim=1) ** 2
     diff_norm_squared = torch.norm(u - v, p=2, dim=1) ** 2
     # Compute delta
-    delta = 2 * diff_norm_squared / ((1 - u_norm_squared) *
-                                     (1 - v_norm_squared))
+    delta = 2 * diff_norm_squared / ((1 - u_norm_squared) * (1 - v_norm_squared))
     # Compute distance
     loss = torch.arccosh(1 + delta)
     return loss.mean()
 
 
 def dis_hinge(dis_fake, dis_real):
-    loss = torch.mean(torch.relu(1. - dis_real)) + \
-           torch.mean(torch.relu(1. + dis_fake))
+    loss = torch.mean(torch.relu(1.0 - dis_real)) + torch.mean(
+        torch.relu(1.0 + dis_fake)
+    )
     return loss
 
 
@@ -64,7 +64,9 @@ class _Loss(object):
     """
 
     def __init__(self, loss_type, is_relativistic=False):
-        assert loss_type in AVAILABLE_LOSSES, "Invalid loss. Choose from {}".format(AVAILABLE_LOSSES)
+        assert loss_type in AVAILABLE_LOSSES, "Invalid loss. Choose from {}".format(
+            AVAILABLE_LOSSES
+        )
         self.loss_type = loss_type
         self.is_relativistic = is_relativistic
 
@@ -105,7 +107,9 @@ class GenLoss(_Loss):
             elif self.loss_type == "dcgan":
                 return gen_dcgan(dis_fake, dis_real)
         else:
-            assert dis_real is not None, "Relativistic Generator loss requires `dis_real`."
+            assert (
+                dis_real is not None
+            ), "Relativistic Generator loss requires `dis_real`."
             d_xf, d_xr = self._preprocess(dis_fake, dis_real)
             if self.loss_type == "hinge":
                 return dis_hinge(d_xr, d_xf)

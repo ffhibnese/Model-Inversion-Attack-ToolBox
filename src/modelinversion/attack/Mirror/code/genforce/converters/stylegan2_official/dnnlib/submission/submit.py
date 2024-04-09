@@ -26,11 +26,13 @@ from ..util import EasyDict
 
 from . import internal
 
+
 class SubmitTarget(Enum):
     """The target where the function should be run.
 
     LOCAL: Run it locally.
     """
+
     LOCAL = 1
 
 
@@ -41,6 +43,7 @@ class PathType(Enum):
     LINUX: Format with Linux/Posix style.
     AUTO: Use current OS type to select either WINDOWS or LINUX.
     """
+
     WINDOWS = 1
     LINUX = 2
     AUTO = 3
@@ -54,12 +57,14 @@ class PlatformExtras:
         data_reader_buffer_size: Used by DataReader to size internal shared memory buffers.
         data_reader_process_count: Number of worker processes to spawn (zero for single thread operation)
     """
+
     def __init__(self):
-        self.data_reader_buffer_size = 1<<30    # 1 GB
-        self.data_reader_process_count = 0      # single threaded default
+        self.data_reader_buffer_size = 1 << 30  # 1 GB
+        self.data_reader_process_count = 0  # single threaded default
 
 
 _user_name_override = None
+
 
 class SubmitConfig(util.EasyDict):
     """Strongly typed config dict needed to submit runs.
@@ -90,7 +95,17 @@ class SubmitConfig(util.EasyDict):
         # run (set these)
         self.run_dir_root = ""  # should always be passed through get_path_from_template
         self.run_desc = ""
-        self.run_dir_ignore = ["__pycache__", "*.pyproj", "*.sln", "*.suo", ".cache", ".idea", ".vs", ".vscode", "_cudacache"]
+        self.run_dir_ignore = [
+            "__pycache__",
+            "*.pyproj",
+            "*.sln",
+            "*.suo",
+            ".cache",
+            ".idea",
+            ".vs",
+            ".vscode",
+            "_cudacache",
+        ]
         self.run_dir_extra_files = []
 
         # submit (set these)
@@ -113,7 +128,9 @@ class SubmitConfig(util.EasyDict):
         self.platform_extras = PlatformExtras()
 
 
-def get_path_from_template(path_template: str, path_type: PathType = PathType.AUTO) -> str:
+def get_path_from_template(
+    path_template: str, path_type: PathType = PathType.AUTO
+) -> str:
     """Replace tags in the given path template and return either Windows or Linux formatted path."""
     # automatically select path type depending on running OS
     if path_type == PathType.AUTO:
@@ -163,6 +180,7 @@ def get_user_name():
     elif platform.system() == "Linux":
         try:
             import pwd
+
             return pwd.getpwuid(os.geteuid()).pw_name
         except:
             return "unknown"
@@ -184,6 +202,7 @@ def make_run_dir_path(*paths):
     E.g., `os.path.join(dnnlib.submit_config.run_dir, "output.txt"))`
     """
     import dnnlib
+
     if (dnnlib.submit_config is None) or (dnnlib.submit_config.run_dir is None):
         return os.path.join(os.getcwd(), *paths)
     return os.path.join(dnnlib.submit_config.run_dir, *paths)
@@ -197,7 +216,9 @@ def _create_run_dir_local(submit_config: SubmitConfig) -> str:
         os.makedirs(run_dir_root)
 
     submit_config.run_id = _get_next_run_id_local(run_dir_root)
-    submit_config.run_name = "{0:05d}-{1}".format(submit_config.run_id, submit_config.run_desc)
+    submit_config.run_name = "{0:05d}-{1}".format(
+        submit_config.run_id, submit_config.run_desc
+    )
     run_dir = os.path.join(run_dir_root, submit_config.run_name)
 
     if os.path.exists(run_dir):
@@ -210,7 +231,11 @@ def _create_run_dir_local(submit_config: SubmitConfig) -> str:
 
 def _get_next_run_id_local(run_dir_root: str) -> int:
     """Reads all directory names in a given directory (non-recursive) and returns the next (increasing) run id. Assumes IDs are numbers at the start of the directory names."""
-    dir_names = [d for d in os.listdir(run_dir_root) if os.path.isdir(os.path.join(run_dir_root, d))]
+    dir_names = [
+        d
+        for d in os.listdir(run_dir_root)
+        if os.path.isdir(os.path.join(run_dir_root, d))
+    ]
     r = re.compile("^\\d+")  # match one or more digits at the start of the string
     run_id = 0
 
@@ -230,27 +255,43 @@ def _populate_run_dir(submit_config: SubmitConfig, run_dir: str) -> None:
     with open(os.path.join(run_dir, "submit_config.txt"), "w") as f:
         pprint.pprint(submit_config, stream=f, indent=4, width=200, compact=False)
 
-    if (submit_config.submit_target == SubmitTarget.LOCAL) and submit_config.local.do_not_copy_source_files:
+    if (
+        submit_config.submit_target == SubmitTarget.LOCAL
+    ) and submit_config.local.do_not_copy_source_files:
         return
 
     files = []
 
-    run_func_module_dir_path = util.get_module_dir_by_obj_name(submit_config.run_func_name)
+    run_func_module_dir_path = util.get_module_dir_by_obj_name(
+        submit_config.run_func_name
+    )
     assert '.' in submit_config.run_func_name
     for _idx in range(submit_config.run_func_name.count('.') - 1):
         run_func_module_dir_path = os.path.dirname(run_func_module_dir_path)
-    files += util.list_dir_recursively_with_ignore(run_func_module_dir_path, ignores=submit_config.run_dir_ignore, add_base_to_relative=False)
+    files += util.list_dir_recursively_with_ignore(
+        run_func_module_dir_path,
+        ignores=submit_config.run_dir_ignore,
+        add_base_to_relative=False,
+    )
 
     dnnlib_module_dir_path = util.get_module_dir_by_obj_name("dnnlib")
-    files += util.list_dir_recursively_with_ignore(dnnlib_module_dir_path, ignores=submit_config.run_dir_ignore, add_base_to_relative=True)
+    files += util.list_dir_recursively_with_ignore(
+        dnnlib_module_dir_path,
+        ignores=submit_config.run_dir_ignore,
+        add_base_to_relative=True,
+    )
 
     files += submit_config.run_dir_extra_files
 
     files = [(f[0], os.path.join(run_dir, "src", f[1])) for f in files]
-    files += [(os.path.join(dnnlib_module_dir_path, "submission", "internal", "run.py"), os.path.join(run_dir, "run.py"))]
+    files += [
+        (
+            os.path.join(dnnlib_module_dir_path, "submission", "internal", "run.py"),
+            os.path.join(run_dir, "run.py"),
+        )
+    ]
 
     util.copy_files_and_create_dirs(files)
-
 
 
 def run_wrapper(submit_config: SubmitConfig) -> None:
@@ -259,16 +300,25 @@ def run_wrapper(submit_config: SubmitConfig) -> None:
 
     # when running locally, redirect stderr to stdout, log stdout to a file, and force flushing
     if is_local:
-        logger = util.Logger(file_name=os.path.join(submit_config.run_dir, "log.txt"), file_mode="w", should_flush=True)
+        logger = util.Logger(
+            file_name=os.path.join(submit_config.run_dir, "log.txt"),
+            file_mode="w",
+            should_flush=True,
+        )
     else:  # when running in a cluster, redirect stderr to stdout, and just force flushing (log writing is handled by run.sh)
         logger = util.Logger(file_name=None, should_flush=True)
 
     import dnnlib
+
     dnnlib.submit_config = submit_config
 
     exit_with_errcode = False
     try:
-        print("dnnlib: Running {0}() on {1}...".format(submit_config.run_func_name, submit_config.host_name))
+        print(
+            "dnnlib: Running {0}() on {1}...".format(
+                submit_config.run_func_name, submit_config.host_name
+            )
+        )
         start_time = time.time()
 
         run_func_obj = util.get_obj_by_name(submit_config.run_func_name)
@@ -279,7 +329,11 @@ def run_wrapper(submit_config: SubmitConfig) -> None:
         else:
             run_func_obj(**submit_config.run_func_kwargs)
 
-        print("dnnlib: Finished {0}() in {1}.".format(submit_config.run_func_name, util.format_time(time.time() - start_time)))
+        print(
+            "dnnlib: Finished {0}() in {1}.".format(
+                submit_config.run_func_name, util.format_time(time.time() - start_time)
+            )
+        )
     except:
         if is_local:
             raise
@@ -287,7 +341,10 @@ def run_wrapper(submit_config: SubmitConfig) -> None:
             traceback.print_exc()
 
             log_src = os.path.join(submit_config.run_dir, "log.txt")
-            log_dst = os.path.join(get_path_from_template(submit_config.run_dir_root), "{0}-error.txt".format(submit_config.run_name))
+            log_dst = os.path.join(
+                get_path_from_template(submit_config.run_dir_root),
+                "{0}-error.txt".format(submit_config.run_name),
+            )
             shutil.copyfile(log_src, log_dst)
 
             # Defer sys.exit(1) to happen after we close the logs and create a _finished.txt
@@ -307,7 +364,9 @@ def run_wrapper(submit_config: SubmitConfig) -> None:
     return submit_config
 
 
-def submit_run(submit_config: SubmitConfig, run_func_name: str, **run_func_kwargs) -> None:
+def submit_run(
+    submit_config: SubmitConfig, run_func_name: str, **run_func_kwargs
+) -> None:
     """Create a run dir, gather files related to the run, copy files to the run dir, and launch the run in appropriate place."""
     submit_config = copy.deepcopy(submit_config)
 
@@ -315,7 +374,7 @@ def submit_run(submit_config: SubmitConfig, run_func_name: str, **run_func_kwarg
     farm = None
     if submit_target == SubmitTarget.LOCAL:
         farm = internal.local.Target()
-    assert farm is not None # unknown target
+    assert farm is not None  # unknown target
 
     # Disallow submitting jobs with zero num_gpus.
     if (submit_config.num_gpus is None) or (submit_config.num_gpus == 0):
@@ -327,15 +386,22 @@ def submit_run(submit_config: SubmitConfig, run_func_name: str, **run_func_kwarg
     submit_config.run_func_name = run_func_name
     submit_config.run_func_kwargs = run_func_kwargs
 
-    #--------------------------------------------------------------------
+    # --------------------------------------------------------------------
     # Prepare submission by populating the run dir
-    #--------------------------------------------------------------------
+    # --------------------------------------------------------------------
     host_run_dir = _create_run_dir_local(submit_config)
 
-    submit_config.task_name = "{0}-{1:05d}-{2}".format(submit_config.user_name, submit_config.run_id, submit_config.run_desc)
+    submit_config.task_name = "{0}-{1:05d}-{2}".format(
+        submit_config.user_name, submit_config.run_id, submit_config.run_desc
+    )
     docker_valid_name_regex = "^[a-zA-Z0-9][a-zA-Z0-9_.-]+$"
     if not re.match(docker_valid_name_regex, submit_config.task_name):
-        raise RuntimeError("Invalid task name.  Probable reason: unacceptable characters in your submit_config.run_desc.  Task name must be accepted by the following regex: " + docker_valid_name_regex + ", got " + submit_config.task_name)
+        raise RuntimeError(
+            "Invalid task name.  Probable reason: unacceptable characters in your submit_config.run_desc.  Task name must be accepted by the following regex: "
+            + docker_valid_name_regex
+            + ", got "
+            + submit_config.task_name
+        )
 
     # Farm specific preparations for a submit
     farm.finalize_submit_config(submit_config, host_run_dir)

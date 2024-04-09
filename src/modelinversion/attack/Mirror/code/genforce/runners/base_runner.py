@@ -94,8 +94,9 @@ class BaseRunner(object):
         for controller in self.controllers:
             controller.end(self)
         self.timer.end(self)
-        self.logger.info(f'Finish runner in '
-                         f'{misc.format_time(self.end_time - self.start_time)}')
+        self.logger.info(
+            f'Finish runner in ' f'{misc.format_time(self.end_time - self.start_time)}'
+        )
 
     @property
     def name(self):
@@ -148,7 +149,8 @@ class BaseRunner(object):
                 shuffle=True,
                 num_workers=self.config.data.get('num_workers', 2),
                 current_iter=self.iter,
-                repeat=self.config.data.get('repeat', 1))
+                repeat=self.config.data.get('repeat', 1),
+            )
         elif mode == 'val':
             self.val_loader = IterDataLoader(
                 dataset=dataset,
@@ -156,7 +158,8 @@ class BaseRunner(object):
                 shuffle=False,
                 num_workers=self.config.data.get('num_workers', 2),
                 current_iter=0,
-                repeat=1)
+                repeat=1,
+            )
         else:
             raise NotImplementedError(f'Not implemented dataset mode `{mode}`!')
         self.logger.info(f'Finish building `{mode}` dataset.')
@@ -193,7 +196,8 @@ class BaseRunner(object):
                 module=self.models[name],
                 device_ids=[torch.cuda.current_device()],
                 broadcast_buffers=False,
-                find_unused_parameters=True)
+                find_unused_parameters=True,
+            )
 
     @staticmethod
     def get_module(model):
@@ -296,7 +300,8 @@ class BaseRunner(object):
             for key in data_batch:
                 assert data_batch[key].shape[0] == self.batch_size
                 data_batch[key] = data_batch[key].cuda(
-                    torch.cuda.current_device(), non_blocking=True)
+                    torch.cuda.current_device(), non_blocking=True
+                )
             self.train_step(data_batch, **train_kwargs)
             self.seen_img += self.batch_size * self.world_size
             self.timer.post_execute(self)
@@ -307,12 +312,14 @@ class BaseRunner(object):
         """Validation function."""
         raise NotImplementedError('Should be implemented in derived class.')
 
-    def save(self,
-             filepath,
-             running_metadata=True,
-             learning_rate=True,
-             optimizer=True,
-             running_stats=False):
+    def save(
+        self,
+        filepath,
+        running_metadata=True,
+        learning_rate=True,
+        optimizer=True,
+        running_stats=False,
+    ):
         """Saves the current running status.
         Args:
             filepath: File path to save the checkpoint.
@@ -352,13 +359,15 @@ class BaseRunner(object):
         torch.save(checkpoint, filepath)
         self.logger.info(f'Successfully saved checkpoint to `{filepath}`.')
 
-    def load(self,
-             filepath,
-             running_metadata=True,
-             learning_rate=True,
-             optimizer=True,
-             running_stats=False,
-             map_location='cpu'):
+    def load(
+        self,
+        filepath,
+        running_metadata=True,
+        learning_rate=True,
+        optimizer=True,
+        running_stats=False,
+        map_location='cpu',
+    ):
         """Loads previous running status.
 
         Args:
@@ -384,20 +393,23 @@ class BaseRunner(object):
             checkpoint = {'models': checkpoint}
         for model_name, model in self.models.items():
             if model_name not in checkpoint['models']:
-                self.logger.warning(f'Model `{model_name}` is not included in '
-                                    f'the checkpoint, and hence will NOT be '
-                                    f'loaded!')
+                self.logger.warning(
+                    f'Model `{model_name}` is not included in '
+                    f'the checkpoint, and hence will NOT be '
+                    f'loaded!'
+                )
                 continue
-            state_dict = _strip_state_dict_prefix(
-                checkpoint['models'][model_name])
+            state_dict = _strip_state_dict_prefix(checkpoint['models'][model_name])
             model.load_state_dict(state_dict)
             self.logger.info(f'  Successfully loaded model `{model_name}`.')
         # Load running metedata.
         if running_metadata:
             if 'running_metadata' not in checkpoint:
-                self.logger.warning(f'Running metadata is not included in the '
-                                    f'checkpoint, and hence will NOT be '
-                                    f'loaded!')
+                self.logger.warning(
+                    f'Running metadata is not included in the '
+                    f'checkpoint, and hence will NOT be '
+                    f'loaded!'
+                )
             else:
                 self._iter = checkpoint['running_metadata']['iter']
                 self._start_iter = self._iter
@@ -405,41 +417,53 @@ class BaseRunner(object):
         # Load optimizers.
         if optimizer:
             if 'optimizers' not in checkpoint:
-                self.logger.warning(f'Optimizers are not included in the '
-                                    f'checkpoint, and hence will NOT be '
-                                    f'loaded!')
+                self.logger.warning(
+                    f'Optimizers are not included in the '
+                    f'checkpoint, and hence will NOT be '
+                    f'loaded!'
+                )
             else:
                 for opt_name, opt in self.optimizers.items():
                     if opt_name not in checkpoint['optimizers']:
-                        self.logger.warning(f'Optimizer `{opt_name}` is not '
-                                            f'included in the checkpoint, and '
-                                            f'hence will NOT be loaded!')
+                        self.logger.warning(
+                            f'Optimizer `{opt_name}` is not '
+                            f'included in the checkpoint, and '
+                            f'hence will NOT be loaded!'
+                        )
                         continue
                     opt.load_state_dict(checkpoint['optimizers'][opt_name])
-                    self.logger.info(f'  Successfully loaded optimizer '
-                                     f'`{opt_name}`.')
+                    self.logger.info(
+                        f'  Successfully loaded optimizer ' f'`{opt_name}`.'
+                    )
         # Load learning rates.
         if learning_rate:
             if 'learning_rates' not in checkpoint:
-                self.logger.warning(f'Learning rates are not included in the '
-                                    f'checkpoint, and hence will NOT be '
-                                    f'loaded!')
+                self.logger.warning(
+                    f'Learning rates are not included in the '
+                    f'checkpoint, and hence will NOT be '
+                    f'loaded!'
+                )
             else:
                 for lr_name, lr in self.lr_schedulers.items():
                     if lr_name not in checkpoint['learning_rates']:
-                        self.logger.warning(f'Learning rate `{lr_name}` is not '
-                                            f'included in the checkpoint, and '
-                                            f'hence will NOT be loaded!')
+                        self.logger.warning(
+                            f'Learning rate `{lr_name}` is not '
+                            f'included in the checkpoint, and '
+                            f'hence will NOT be loaded!'
+                        )
                         continue
                     lr.load_state_dict(checkpoint['learning_rates'][lr_name])
-                    self.logger.info(f'  Successfully loaded learning rate '
-                                     f'`{lr_name}`.')
+                    self.logger.info(
+                        f'  Successfully loaded learning rate ' f'`{lr_name}`.'
+                    )
         # Load running stats.
         if running_stats:
             if 'running_stats' not in checkpoint:
-                self.logger.warning(f'Running stats is not included in the '
-                                    f'checkpoint, and hence will NOT be '
-                                    f'loaded!')
+                self.logger.warning(
+                    f'Running stats is not included in the '
+                    f'checkpoint, and hence will NOT be '
+                    f'loaded!'
+                )
             else:
                 self.running_stats = deepcopy(checkpoint['running_stats'])
                 self.logger.info(f'  Successfully loaded running stats.')
@@ -447,5 +471,6 @@ class BaseRunner(object):
         tailing_message = ''
         if running_metadata and 'running_metadata' in checkpoint:
             tailing_message = f' (iteration {self.iter})'
-        self.logger.info(f'Successfully resumed from checkpoint `{filepath}`.'
-                         f'{tailing_message}')
+        self.logger.info(
+            f'Successfully resumed from checkpoint `{filepath}`.' f'{tailing_message}'
+        )

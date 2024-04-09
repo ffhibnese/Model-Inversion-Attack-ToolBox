@@ -27,12 +27,14 @@ class SingleStats(object):
     (3) SUM: The cumulative value (from the beginning) will be logged.
     """
 
-    def __init__(self,
-                 name,
-                 log_format='.3f',
-                 log_name=None,
-                 log_tail=None,
-                 log_strategy='AVERAGE'):
+    def __init__(
+        self,
+        name,
+        log_format='.3f',
+        log_name=None,
+        log_tail=None,
+        log_strategy='AVERAGE',
+    ):
         """Initializes the stats with log format.
 
         Args:
@@ -111,8 +113,9 @@ class SingleStats(object):
             return self.avg
         if self.log_strategy == 'SUM':
             return self.sum
-        raise NotImplementedError(f'Log strategy `{self.log_strategy}` is not '
-                                  f'implemented!')
+        raise NotImplementedError(
+            f'Log strategy `{self.log_strategy}` is not ' f'implemented!'
+        )
 
     def __str__(self):
         """Gets log message."""
@@ -197,8 +200,9 @@ class RunningStats(object):
             return self.stats_pool[name]
         if name in self.__dict__:
             return self.__dict__[name]
-        raise AttributeError(f'`{self.__class__.__name__}` object has no '
-                             f'attribute `{name}`!')
+        raise AttributeError(
+            f'`{self.__class__.__name__}` object has no ' f'attribute `{name}`!'
+        )
 
     def __str__(self):
         """Gets log message."""

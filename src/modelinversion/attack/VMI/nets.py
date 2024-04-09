@@ -10,20 +10,40 @@ import layers
 
 
 class ConditionalGenerator(nn.Module):
-    def __init__(self, imgSize, nz, ngf, nc, n_conditions, is_conditional, sn, z_scale, conditioning_method, embed_condition=True, norm='bn', cdim=128):
+    def __init__(
+        self,
+        imgSize,
+        nz,
+        ngf,
+        nc,
+        n_conditions,
+        is_conditional,
+        sn,
+        z_scale,
+        conditioning_method,
+        embed_condition=True,
+        norm='bn',
+        cdim=128,
+    ):
         super(ConditionalGenerator, self).__init__()
         if sn:
             self.which_conv = functools.partial(
-                layers.SNConvTranspose2d, num_svs=1, num_itrs=1, eps=1e-12)
+                layers.SNConvTranspose2d, num_svs=1, num_itrs=1, eps=1e-12
+            )
         else:
             self.which_conv = nn.ConvTranspose2d
         # ** in biggan.py, they don't apply SN to G embeddings
         self.which_embed = nn.Embedding
         if norm == 'bn':
-            def which_norm(c): return nn.BatchNorm2d(c)
+
+            def which_norm(c):
+                return nn.BatchNorm2d(c)
+
         elif norm == 'in':
-            def which_norm(c): return nn.InstanceNorm2d(
-                c, affine=False, track_running_stats=False)
+
+            def which_norm(c):
+                return nn.InstanceNorm2d(c, affine=False, track_running_stats=False)
+
         if imgSize == 256:
             layers_ = [
                 self.which_conv(nz, ngf * 8, 4, 1, 0, bias=False),
@@ -45,7 +65,7 @@ class ConditionalGenerator(nn.Module):
                 which_norm(ngf // 4),
                 nn.ReLU(True),
                 self.which_conv(ngf // 4, nc, 4, 2, 1, bias=False),
-                nn.Tanh()
+                nn.Tanh(),
             ]
         elif imgSize == 128:
             layers_ = [
@@ -62,17 +82,16 @@ class ConditionalGenerator(nn.Module):
                 which_norm(ngf * 2),
                 nn.ReLU(True),
                 # state size. (ngf*2) x 16 x 16
-                self.which_conv(ngf * 2,    ngf, 4, 2, 1, bias=False),
+                self.which_conv(ngf * 2, ngf, 4, 2, 1, bias=False),
                 which_norm(ngf),
                 nn.ReLU(True),
                 # state size. (ngf) x 32 x 32
-                self.which_conv(ngf,      ngf // 2, 4, 2, 1, bias=False),
+                self.which_conv(ngf, ngf // 2, 4, 2, 1, bias=False),
                 which_norm(ngf // 2),
                 nn.ReLU(True),
                 # state size. (ngf) x 32 x 32
-                self.which_conv(ngf // 2,      nc, 4, 2, 1, bias=False),
-
-                nn.Tanh()
+                self.which_conv(ngf // 2, nc, 4, 2, 1, bias=False),
+                nn.Tanh(),
             ]
         elif imgSize == 64:
             layers_ = [
@@ -89,12 +108,12 @@ class ConditionalGenerator(nn.Module):
                 which_norm(ngf * 2),
                 nn.ReLU(True),
                 # state size. (ngf*2) x 16 x 16
-                self.which_conv(ngf * 2,    ngf, 4, 2, 1, bias=False),
+                self.which_conv(ngf * 2, ngf, 4, 2, 1, bias=False),
                 which_norm(ngf),
                 nn.ReLU(True),
                 # state size. (ngf) x 32 x 32
-                self.which_conv(ngf,      nc, 4, 2, 1, bias=False),
-                nn.Tanh()
+                self.which_conv(ngf, nc, 4, 2, 1, bias=False),
+                nn.Tanh(),
             ]
         elif imgSize == 32:
             layers_ = [
@@ -111,8 +130,8 @@ class ConditionalGenerator(nn.Module):
                 which_norm(ngf * 2),
                 nn.ReLU(True),
                 # state size. (ngf*2) x 16 x 16
-                self.which_conv(ngf * 2,    nc, 4, 2, 1, bias=False),
-                nn.Tanh()
+                self.which_conv(ngf * 2, nc, 4, 2, 1, bias=False),
+                nn.Tanh(),
             ]
         self.main = nn.Sequential(*layers_)
 
@@ -170,20 +189,40 @@ class ConditionalGenerator(nn.Module):
 
 
 class ConditionalGeneratorSecret(nn.Module):
-    def __init__(self, imgSize, nz, ngf, nc, n_conditions, is_conditional, sn, z_scale, conditioning_method, embed_condition=True, norm='bn', cdim=128):
+    def __init__(
+        self,
+        imgSize,
+        nz,
+        ngf,
+        nc,
+        n_conditions,
+        is_conditional,
+        sn,
+        z_scale,
+        conditioning_method,
+        embed_condition=True,
+        norm='bn',
+        cdim=128,
+    ):
         super(ConditionalGeneratorSecret, self).__init__()
         if sn:
             self.which_conv = functools.partial(
-                layers.SNConvTranspose2d, num_svs=1, num_itrs=1, eps=1e-12)
+                layers.SNConvTranspose2d, num_svs=1, num_itrs=1, eps=1e-12
+            )
         else:
             self.which_conv = nn.ConvTranspose2d
         # ** in biggan.py, they don't apply SN to G embeddings
         self.which_embed = nn.Embedding
         if norm == 'bn':
-            def which_norm(c): return nn.BatchNorm2d(c)
+
+            def which_norm(c):
+                return nn.BatchNorm2d(c)
+
         elif norm == 'in':
-            def which_norm(c): return nn.InstanceNorm2d(
-                c, affine=False, track_running_stats=False)
+
+            def which_norm(c):
+                return nn.InstanceNorm2d(c, affine=False, track_running_stats=False)
+
         assert imgSize == 64
         ngf = 32
         layers_ = [
@@ -206,7 +245,7 @@ class ConditionalGeneratorSecret(nn.Module):
             nn.ReLU(True),
             which_norm(32),
             self.which_conv(32, 3, 3, 1, 0, bias=False),
-            nn.Tanh()
+            nn.Tanh(),
         ]
 
         self.main = nn.Sequential(*layers_)
@@ -265,12 +304,33 @@ class ConditionalGeneratorSecret(nn.Module):
 
 
 class ConditionalGeneratorToy(ConditionalGenerator):
-    def __init__(self, imgSize, nz, ngf, nc, n_conditions, is_conditional, sn, z_scale, conditioning_method):
-        super(ConditionalGeneratorToy, self).__init__(imgSize, nz, ngf, nc,
-                                                      n_conditions, is_conditional, sn, z_scale, conditioning_method)
+    def __init__(
+        self,
+        imgSize,
+        nz,
+        ngf,
+        nc,
+        n_conditions,
+        is_conditional,
+        sn,
+        z_scale,
+        conditioning_method,
+    ):
+        super(ConditionalGeneratorToy, self).__init__(
+            imgSize,
+            nz,
+            ngf,
+            nc,
+            n_conditions,
+            is_conditional,
+            sn,
+            z_scale,
+            conditioning_method,
+        )
         if sn:
             self.which_conv = functools.partial(
-                layers.SNConvTranspose2d, num_svs=1, num_itrs=1, eps=1e-12)
+                layers.SNConvTranspose2d, num_svs=1, num_itrs=1, eps=1e-12
+            )
         else:
             self.which_conv = nn.ConvTranspose2d
         # ** in biggan.py, they don't apply SN to G embeddings
@@ -286,7 +346,7 @@ class ConditionalGeneratorToy(ConditionalGenerator):
             self.which_conv(ngf, ngf, 1, bias=False),
             nn.BatchNorm2d(ngf),
             nn.ReLU(True),
-            self.which_conv(ngf, ngf,  1, bias=False),
+            self.which_conv(ngf, ngf, 1, bias=False),
             nn.BatchNorm2d(ngf),
             nn.ReLU(True),
             self.which_conv(ngf, nc, 1, bias=False),
@@ -314,18 +374,36 @@ class ConditionalGeneratorToy(ConditionalGenerator):
 
 
 class DiscriminatorKPlusOne(nn.Module):
-    """
-    """
+    """ """
 
-    def __init__(self, imgSize, nc, ndf=64, is_conditional=False, n_conditions=1, sn=False, num_SVs=1, num_SV_itrs=1, SN_eps=1e-12, index2class=None, embed_condition=True, output_type='standard', use_sigmoid=True, cdim=128):
+    def __init__(
+        self,
+        imgSize,
+        nc,
+        ndf=64,
+        is_conditional=False,
+        n_conditions=1,
+        sn=False,
+        num_SVs=1,
+        num_SV_itrs=1,
+        SN_eps=1e-12,
+        index2class=None,
+        embed_condition=True,
+        output_type='standard',
+        use_sigmoid=True,
+        cdim=128,
+    ):
         super(DiscriminatorKPlusOne, self).__init__()
         if sn:
             self.conv2d = functools.partial(
-                layers.SNConv2d, num_svs=num_SVs, num_itrs=num_SV_itrs, eps=SN_eps)
+                layers.SNConv2d, num_svs=num_SVs, num_itrs=num_SV_itrs, eps=SN_eps
+            )
             self.linear = functools.partial(
-                layers.SNLinear, num_svs=num_SVs, num_itrs=num_SV_itrs, eps=SN_eps)
+                layers.SNLinear, num_svs=num_SVs, num_itrs=num_SV_itrs, eps=SN_eps
+            )
             self.embedding = functools.partial(
-                layers.SNEmbedding, num_svs=num_SVs, num_itrs=num_SV_itrs, eps=SN_eps)
+                layers.SNEmbedding, num_svs=num_SVs, num_itrs=num_SV_itrs, eps=SN_eps
+            )
         else:
             self.conv2d = nn.Conv2d
             self.linear = nn.Linear
@@ -345,7 +423,7 @@ class DiscriminatorKPlusOne(nn.Module):
         if imgSize == 64:
             layers_ = [
                 # input is (nc) x 64 x 64
-                self.conv2d(nc, ndf,      4, 2, 1, bias=False),
+                self.conv2d(nc, ndf, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ndf),
                 nn.LeakyReLU(0.2, inplace=True),
                 # state size. (ndf) x 32 x 32
@@ -392,8 +470,13 @@ class DiscriminatorKPlusOne(nn.Module):
         for l in range(L):
             # layers_.append(nn.BatchNorm1d(self.zdim))
             # layers_.append(nn.LeakyReLU(0.2, inplace=True))
-            layers_.append(self.linear(
-                self.zdim, self.n_conditions if l == L-1 else self.zdim, bias=False))
+            layers_.append(
+                self.linear(
+                    self.zdim,
+                    self.n_conditions if l == L - 1 else self.zdim,
+                    bias=False,
+                )
+            )
         self.decoder = nn.Sequential(*layers_)
 
     def cond(self, h):
@@ -437,21 +520,40 @@ class DiscriminatorBase(nn.Module):
     computation graph:
     x --<main>--> h --<out>--> o0
                   h --<cond>-->z
-                y --<embed>--> e    
+                y --<embed>--> e
     o = sigmoid(o0 + sum(z*e))
 
     The child classes can implement different <main> and <out>
     """
 
-    def __init__(self, imgSize, nc, ndf=64, is_conditional=False, n_conditions=1, sn=False, num_SVs=1, num_SV_itrs=1, SN_eps=1e-12, index2class=None, embed_condition=True, output_type='standard', use_sigmoid=True, cdim=128):
+    def __init__(
+        self,
+        imgSize,
+        nc,
+        ndf=64,
+        is_conditional=False,
+        n_conditions=1,
+        sn=False,
+        num_SVs=1,
+        num_SV_itrs=1,
+        SN_eps=1e-12,
+        index2class=None,
+        embed_condition=True,
+        output_type='standard',
+        use_sigmoid=True,
+        cdim=128,
+    ):
         super(DiscriminatorBase, self).__init__()
         if sn:
             self.conv2d = functools.partial(
-                layers.SNConv2d, num_svs=num_SVs, num_itrs=num_SV_itrs, eps=SN_eps)
+                layers.SNConv2d, num_svs=num_SVs, num_itrs=num_SV_itrs, eps=SN_eps
+            )
             self.linear = functools.partial(
-                layers.SNLinear, num_svs=num_SVs, num_itrs=num_SV_itrs, eps=SN_eps)
+                layers.SNLinear, num_svs=num_SVs, num_itrs=num_SV_itrs, eps=SN_eps
+            )
             self.embedding = functools.partial(
-                layers.SNEmbedding, num_svs=num_SVs, num_itrs=num_SV_itrs, eps=SN_eps)
+                layers.SNEmbedding, num_svs=num_SVs, num_itrs=num_SV_itrs, eps=SN_eps
+            )
         else:
             self.conv2d = nn.Conv2d
             self.linear = nn.Linear
@@ -499,8 +601,7 @@ class DiscriminatorBase(nn.Module):
                 # c = self.linear_ctoz(y)
                 c = y
                 if self.output_type == 'standard':
-                    o = o + torch.mean(c * self.linear_ztoc(z),
-                                       1, keepdim=True)
+                    o = o + torch.mean(c * self.linear_ztoc(z), 1, keepdim=True)
                     # o = o + torch.sum(self.linear_ctoz(c) * z , 1, keepdim=True)
                 elif self.output_type == 'standardc':  # c stands for conditional only
                     raise  # old code
@@ -508,8 +609,7 @@ class DiscriminatorBase(nn.Module):
                     o = torch.mean(self.linear_ctoz(c) * z, 1, keepdim=True)
                     # o = o + torch.sum(self.linear_ctoz(c) * z , 1, keepdim=True)
                 elif self.output_type == 'adv_l2c':  # c stands for conditional only
-                    o = -torch.pow(c - self.linear_ztoc(z),
-                                   2).mean(-1, keepdim=True)
+                    o = -torch.pow(c - self.linear_ztoc(z), 2).mean(-1, keepdim=True)
                     if self.use_sigmoid:
                         o = o + self.adv_l2c_bias
         if self.use_sigmoid:
@@ -529,13 +629,18 @@ class DiscriminatorBase(nn.Module):
         z = self.cond(h)  # (B, Z)
         o = self.out(h).view(input.size(0), 1)
         #
-        y_prime = torch.arange(self.n_conditions)[None].repeat(
-            B, 1).to(input.device)  # (B, n_conditions)
-        z_prime = z.unsqueeze(1).repeat(1, self.n_conditions, 1).view(
-            B*self.n_conditions, -1)  # (B*n_conditions, Z)
+        y_prime = (
+            torch.arange(self.n_conditions)[None].repeat(B, 1).to(input.device)
+        )  # (B, n_conditions)
+        z_prime = (
+            z.unsqueeze(1)
+            .repeat(1, self.n_conditions, 1)
+            .view(B * self.n_conditions, -1)
+        )  # (B*n_conditions, Z)
         e = self.embed(y_prime.view(-1))
-        pre_logits = torch.sum(e.mul_(z_prime), -1).view(B,
-                                                         self.n_conditions)  # (B, n_conditions)
+        pre_logits = torch.sum(e.mul_(z_prime), -1).view(
+            B, self.n_conditions
+        )  # (B, n_conditions)
         return o + pre_logits
 
     def compute_class_labels(self, input):
@@ -549,9 +654,36 @@ class Discriminator0(DiscriminatorBase):
     DCGAN
     """
 
-    def __init__(self, imgSize, nc, ndf=64, is_conditional=False, n_conditions=1, sn=False, num_SVs=1, num_SV_itrs=1, SN_eps=1e-12, index2class=None, embed_condition=True, output_type='standard', use_sigmoid=True, cdim=128):
-        super(Discriminator0, self).__init__(imgSize, nc, ndf=ndf, is_conditional=is_conditional, sn=sn, n_conditions=n_conditions,
-                                             index2class=index2class, embed_condition=embed_condition, output_type=output_type, use_sigmoid=use_sigmoid, cdim=cdim)
+    def __init__(
+        self,
+        imgSize,
+        nc,
+        ndf=64,
+        is_conditional=False,
+        n_conditions=1,
+        sn=False,
+        num_SVs=1,
+        num_SV_itrs=1,
+        SN_eps=1e-12,
+        index2class=None,
+        embed_condition=True,
+        output_type='standard',
+        use_sigmoid=True,
+        cdim=128,
+    ):
+        super(Discriminator0, self).__init__(
+            imgSize,
+            nc,
+            ndf=ndf,
+            is_conditional=is_conditional,
+            sn=sn,
+            n_conditions=n_conditions,
+            index2class=index2class,
+            embed_condition=embed_condition,
+            output_type=output_type,
+            use_sigmoid=use_sigmoid,
+            cdim=cdim,
+        )
 
         if imgSize == 256:
             layers_ = [
@@ -582,7 +714,7 @@ class Discriminator0(DiscriminatorBase):
                 self.conv2d(nc, ndf // 2, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ndf // 2),
                 nn.LeakyReLU(0.2, inplace=True),
-                self.conv2d(ndf // 2, ndf,  4, 2, 1, bias=False),
+                self.conv2d(ndf // 2, ndf, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ndf),
                 nn.LeakyReLU(0.2, inplace=True),
                 # state size. (ndf) x 32 x 32
@@ -601,7 +733,7 @@ class Discriminator0(DiscriminatorBase):
         elif imgSize == 64:
             layers_ = [
                 # input is (nc) x 64 x 64
-                self.conv2d(nc, ndf,  4, 2, 1, bias=False),
+                self.conv2d(nc, ndf, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ndf),
                 nn.LeakyReLU(0.2, inplace=True),
                 # state size. (ndf) x 32 x 32
@@ -654,15 +786,42 @@ class DiscriminatorSecret(DiscriminatorBase):
     from: https://openaccess.thecvf.com/content_CVPR_2020/supplemental/Zhang_The_Secret_Revealer_CVPR_2020_supplemental.pdf
     """
 
-    def __init__(self, imgSize, nc, ndf=64, is_conditional=False, n_conditions=1, sn=False, num_SVs=1, num_SV_itrs=1, SN_eps=1e-12, index2class=None, embed_condition=True, output_type='standard', use_sigmoid=True, cdim=128):
-        super(DiscriminatorSecret, self).__init__(imgSize, nc, ndf=ndf, is_conditional=is_conditional, sn=sn, n_conditions=n_conditions,
-                                                  index2class=index2class, embed_condition=embed_condition, output_type=output_type, use_sigmoid=use_sigmoid, cdim=cdim)
+    def __init__(
+        self,
+        imgSize,
+        nc,
+        ndf=64,
+        is_conditional=False,
+        n_conditions=1,
+        sn=False,
+        num_SVs=1,
+        num_SV_itrs=1,
+        SN_eps=1e-12,
+        index2class=None,
+        embed_condition=True,
+        output_type='standard',
+        use_sigmoid=True,
+        cdim=128,
+    ):
+        super(DiscriminatorSecret, self).__init__(
+            imgSize,
+            nc,
+            ndf=ndf,
+            is_conditional=is_conditional,
+            sn=sn,
+            n_conditions=n_conditions,
+            index2class=index2class,
+            embed_condition=embed_condition,
+            output_type=output_type,
+            use_sigmoid=use_sigmoid,
+            cdim=cdim,
+        )
 
         assert imgSize == 64
         assert ndf == 64
         layers_ = [
             # input is (nc) x 64 x 64
-            self.conv2d(3, ndf,  5, 2, 0, bias=False),
+            self.conv2d(3, ndf, 5, 2, 0, bias=False),
             nn.BatchNorm2d(ndf),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf) x 32 x 32
@@ -699,14 +858,30 @@ class DiscriminatorResNet(DiscriminatorBase):
     DCGAN
     """
 
-    def __init__(self, imgSize, nc, ndf=64, is_conditional=False, n_conditions=1, index2class=None, sn=False, embed_condition=True):
+    def __init__(
+        self,
+        imgSize,
+        nc,
+        ndf=64,
+        is_conditional=False,
+        n_conditions=1,
+        index2class=None,
+        sn=False,
+        embed_condition=True,
+    ):
         del sn  # not used
-        super(DiscriminatorResNet, self).__init__(imgSize, nc, ndf=ndf, is_conditional=is_conditional,
-                                                  n_conditions=n_conditions, index2class=index2class, embed_condition=embed_condition)
+        super(DiscriminatorResNet, self).__init__(
+            imgSize,
+            nc,
+            ndf=ndf,
+            is_conditional=is_conditional,
+            n_conditions=n_conditions,
+            index2class=index2class,
+            embed_condition=embed_condition,
+        )
         assert imgSize == 64
         self.main = ResNet10_64(imgSize, nc)
-        self.last = nn.Sequential(
-            self.linear(512, 1))
+        self.last = nn.Sequential(self.linear(512, 1))
         self.init_embed()
 
     def cond(self, h):
@@ -721,10 +896,25 @@ class DiscriminatorToy(DiscriminatorBase):
     Toy
     """
 
-    def __init__(self, imgSize, nc, ndf=64, is_conditional=False, n_conditions=1, index2class=None, sn=False):
+    def __init__(
+        self,
+        imgSize,
+        nc,
+        ndf=64,
+        is_conditional=False,
+        n_conditions=1,
+        index2class=None,
+        sn=False,
+    ):
         del sn  # not used
-        super(DiscriminatorToy, self).__init__(imgSize, nc, ndf=ndf,
-                                               is_conditional=is_conditional, n_conditions=n_conditions, index2class=index2class)
+        super(DiscriminatorToy, self).__init__(
+            imgSize,
+            nc,
+            ndf=ndf,
+            is_conditional=is_conditional,
+            n_conditions=n_conditions,
+            index2class=index2class,
+        )
 
         self.main = nn.Sequential(
             self.conv2d(nc, ndf, 1, bias=False),
@@ -732,16 +922,14 @@ class DiscriminatorToy(DiscriminatorBase):
             self.conv2d(ndf, ndf, 1, bias=False),
             nn.BatchNorm2d(ndf),
             nn.LeakyReLU(0.2, inplace=True),
-            self.conv2d(ndf, ndf,  1, bias=False),
+            self.conv2d(ndf, ndf, 1, bias=False),
             nn.BatchNorm2d(ndf),
             nn.LeakyReLU(0.2, inplace=True),
             self.conv2d(ndf, ndf, 1, bias=False),
             nn.BatchNorm2d(ndf),
             nn.LeakyReLU(0.2, inplace=True),
         )
-        self.last = nn.Sequential(
-            self.conv2d(ndf, 1, 1, bias=False)
-        )
+        self.last = nn.Sequential(self.conv2d(ndf, 1, 1, bias=False))
         self.init_embed()
 
     def cond(self, h):

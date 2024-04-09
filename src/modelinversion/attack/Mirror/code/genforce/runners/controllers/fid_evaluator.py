@@ -41,12 +41,14 @@ class FIDEvaluator(BaseController):
     def execute_after_iteration(self, runner):
         mode = runner.mode  # save runner mode.
         start_time = time.time()
-        fid_value = runner.fid(self.num,
-                               ignore_cache=self.ignore_cache,
-                               align_tf=self.align_tf)
+        fid_value = runner.fid(
+            self.num, ignore_cache=self.ignore_cache, align_tf=self.align_tf
+        )
         duration_str = format_time(time.time() - start_time)
-        log_str = (f'FID: {fid_value:.5f} at iter {runner.iter:06d} '
-                   f'({runner.seen_img / 1000:.1f} kimg). ({duration_str})')
+        log_str = (
+            f'FID: {fid_value:.5f} at iter {runner.iter:06d} '
+            f'({runner.seen_img / 1000:.1f} kimg). ({duration_str})'
+        )
         runner.logger.info(log_str)
         if runner.rank == 0:
             date = time.strftime("%Y-%m-%d %H:%M:%S")

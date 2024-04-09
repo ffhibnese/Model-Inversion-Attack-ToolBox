@@ -8,7 +8,7 @@ from .base import (
     VarienceWhiteboxOptimization,
     VarienceWhiteboxOptimizationConfig,
     BrepOptimization,
-    BrepOptimizationConfig
+    BrepOptimizationConfig,
 )
 
 from .rlb import RlbOptimization, RlbOptimizationConfig

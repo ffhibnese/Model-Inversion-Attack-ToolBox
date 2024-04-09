@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor
 
+
 def copy_or_set_(dest, source):
     """
     A workaround to respect strides of :code:`dest` when copying :code:`source`
@@ -27,43 +28,45 @@ def copy_or_set_(dest, source):
 
 
 class BaseConstraint:
-    
+
     def __init__(self) -> None:
         self.center_tensor = None
-        
+
     # @property
     # def center(self):
     #     return self.center_tensor
-    
+
     def register_center(self, tensor: Tensor):
         self.center_tensor = tensor
-    
+
     def __call__(self, tensor: Tensor, *args: Any, **kwds: Any) -> Any:
         return tensor
-    
+
+
 class MinMaxConstraint(BaseConstraint):
-    
+
     def __init__(self, min_tensor, max_tensor) -> None:
         super().__init__()
-        
+
         self.min_tensor = min_tensor
         self.max_tensor = max_tensor
-        
+
     def register_center(self, tensor: Tensor):
         pass
-        
+
     def __call__(self, tensor: Tensor, *args: Any, **kwds: Any) -> Any:
         res = torch.min(tensor, self.max_tensor)
         res = torch.max(tensor, self.min_tensor)
         return copy_or_set_(tensor, res.detach().requires_grad_(False))
-    
+
+
 class L1ballConstraint(BaseConstraint):
-    
+
     def __init__(self, bias: float) -> None:
         super().__init__()
-        
+
         self.bias = bias
-        
+
     def __call__(self, tensor: Tensor, *args: Any, **kwds: Any) -> Any:
         x = tensor
         eps = self.bias
@@ -77,4 +80,6 @@ class L1ballConstraint(BaseConstraint):
         theta = (cumsum[torch.arange(x.shape[0]), rho.cpu() - 1] - eps) / rho
         proj = (torch.abs(x) - theta.unsqueeze(1)).clamp(min=0)
         x = mask * x + (1 - mask) * proj * torch.sign(x)
-        return copy_or_set_(tensor, x.view(original_shape).detach().requires_grad_(False))
+        return copy_or_set_(
+            tensor, x.view(original_shape).detach().requires_grad_(False)
+        )

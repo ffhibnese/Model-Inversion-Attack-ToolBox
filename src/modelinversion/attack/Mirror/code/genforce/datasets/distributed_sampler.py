@@ -68,10 +68,17 @@ class DistributedSampler(Sampler):
 
     """
 
-    def __init__(self, dataset: Dataset, num_replicas: Optional[int] = None,
-                 rank: Optional[int] = None, shuffle: bool = True,
-                 seed: int = 0, drop_last: bool = False, current_iter: int = 0,
-                 repeat: int = 1000) -> None:
+    def __init__(
+        self,
+        dataset: Dataset,
+        num_replicas: Optional[int] = None,
+        rank: Optional[int] = None,
+        shuffle: bool = True,
+        seed: int = 0,
+        drop_last: bool = False,
+        current_iter: int = 0,
+        repeat: int = 1000,
+    ) -> None:
         super().__init__(None)
         if num_replicas is None:
             if not dist.is_available():
@@ -101,7 +108,6 @@ class DistributedSampler(Sampler):
         else:
             self.num_samples = math.ceil(self.dataset_length / self.num_replicas)
 
-
         self.total_size = self.num_samples * self.num_replicas
         self.shuffle = shuffle
         self.seed = seed
@@ -125,13 +131,13 @@ class DistributedSampler(Sampler):
 
         if not self.drop_last:
             # add extra samples to make it evenly divisible
-            indices += indices[:(self.total_size - len(indices))]
+            indices += indices[: (self.total_size - len(indices))]
         else:
             # remove tail of data to make it evenly divisible.
-            indices = indices[:self.total_size]
+            indices = indices[: self.total_size]
 
         # subsample
-        indices = indices[self.rank:self.total_size:self.num_replicas]
+        indices = indices[self.rank : self.total_size : self.num_replicas]
         return iter(indices)
 
     def __len__(self) -> int:
@@ -140,5 +146,6 @@ class DistributedSampler(Sampler):
     def __reset__(self, iteration: int) -> None:
         self.iter = iteration
         self.__generate_indices__()
+
 
 # pylint: enable=line-too-long

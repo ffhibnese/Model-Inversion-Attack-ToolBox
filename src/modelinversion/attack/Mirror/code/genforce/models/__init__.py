@@ -12,10 +12,20 @@ from .encoder import EncoderNet
 from .perceptual_model import PerceptualModel
 
 __all__ = [
-    'MODEL_ZOO', 'PGGANGenerator', 'PGGANDiscriminator', 'StyleGANGenerator',
-    'StyleGANDiscriminator', 'StyleGAN2Generator', 'StyleGAN2Discriminator',
-    'EncoderNet', 'PerceptualModel', 'build_generator', 'build_discriminator',
-    'build_encoder', 'build_perceptual', 'build_model'
+    'MODEL_ZOO',
+    'PGGANGenerator',
+    'PGGANDiscriminator',
+    'StyleGANGenerator',
+    'StyleGANDiscriminator',
+    'StyleGAN2Generator',
+    'StyleGAN2Discriminator',
+    'EncoderNet',
+    'PerceptualModel',
+    'build_generator',
+    'build_discriminator',
+    'build_encoder',
+    'build_perceptual',
+    'build_model',
 ]
 
 _GAN_TYPES_ALLOWED = ['pggan', 'stylegan', 'stylegan2']
@@ -35,8 +45,9 @@ def build_generator(gan_type, resolution, **kwargs):
         NotImplementedError: If the `gan_type` is not implemented.
     """
     if gan_type not in _GAN_TYPES_ALLOWED:
-        raise ValueError(f'Invalid GAN type: `{gan_type}`!\n'
-                         f'Types allowed: {_GAN_TYPES_ALLOWED}.')
+        raise ValueError(
+            f'Invalid GAN type: `{gan_type}`!\n' f'Types allowed: {_GAN_TYPES_ALLOWED}.'
+        )
 
     if gan_type == 'pggan':
         return PGGANGenerator(resolution, **kwargs)
@@ -60,8 +71,9 @@ def build_discriminator(gan_type, resolution, **kwargs):
         NotImplementedError: If the `gan_type` is not implemented.
     """
     if gan_type not in _GAN_TYPES_ALLOWED:
-        raise ValueError(f'Invalid GAN type: `{gan_type}`!\n'
-                         f'Types allowed: {_GAN_TYPES_ALLOWED}.')
+        raise ValueError(
+            f'Invalid GAN type: `{gan_type}`!\n' f'Types allowed: {_GAN_TYPES_ALLOWED}.'
+        )
 
     if gan_type == 'pggan':
         return PGGANDiscriminator(resolution, **kwargs)
@@ -85,8 +97,9 @@ def build_encoder(gan_type, resolution, **kwargs):
         NotImplementedError: If the `gan_type` is not implemented.
     """
     if gan_type not in _GAN_TYPES_ALLOWED:
-        raise ValueError(f'Invalid GAN type: `{gan_type}`!\n'
-                         f'Types allowed: {_GAN_TYPES_ALLOWED}.')
+        raise ValueError(
+            f'Invalid GAN type: `{gan_type}`!\n' f'Types allowed: {_GAN_TYPES_ALLOWED}.'
+        )
 
     if gan_type in ['stylegan', 'stylegan2']:
         return EncoderNet(resolution, **kwargs)
@@ -117,8 +130,9 @@ def build_model(gan_type, module, resolution, **kwargs):
         NotImplementedError: If the `module` is not implemented.
     """
     if module not in _MODULES_ALLOWED:
-        raise ValueError(f'Invalid module: `{module}`!\n'
-                         f'Modules allowed: {_MODULES_ALLOWED}.')
+        raise ValueError(
+            f'Invalid module: `{module}`!\n' f'Modules allowed: {_MODULES_ALLOWED}.'
+        )
 
     if module == 'generator':
         return build_generator(gan_type, resolution, **kwargs)

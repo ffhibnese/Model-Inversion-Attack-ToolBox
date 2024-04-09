@@ -12,12 +12,28 @@ from .base_controller import BaseController
 __all__ = ['ProgressScheduler']
 
 _BATCH_SIZE_SCHEDULE_DICT = {
-    4: 16, 8: 8, 16: 4, 32: 2, 64: 1, 128: 1, 256: 1, 512: 1, 1024: 1,
+    4: 16,
+    8: 8,
+    16: 4,
+    32: 2,
+    64: 1,
+    128: 1,
+    256: 1,
+    512: 1,
+    1024: 1,
 }
 _MAX_BATCH_SIZE = 64
 
 _LEARNING_RATE_SCHEDULE_DICT = {
-    4: 1, 8: 1, 16: 1, 32: 1, 64: 1, 128: 1.5, 256: 2, 512: 3, 1024: 3,
+    4: 1,
+    8: 1,
+    16: 1,
+    32: 1,
+    64: 1,
+    128: 1.5,
+    256: 2,
+    512: 3,
+    1024: 3,
 }
 
 
@@ -46,7 +62,7 @@ class ProgressScheduler(BaseController):
 
         self.lod_training_img = config.get('lod_training_img', 600_000)
         self.lod_transition_img = config.get('lod_transition_img', 600_000)
-        self.lod_duration = (self.lod_training_img + self.lod_transition_img)
+        self.lod_duration = self.lod_training_img + self.lod_transition_img
 
         # Whether to reset the optimizer state at the beginning of each phase.
         self.reset_optimizer = config.get('reset_optimizer', True)
@@ -55,7 +71,8 @@ class ProgressScheduler(BaseController):
         """Gets batch size for a particular resolution."""
         if self.batch_size_schedule:
             return self.batch_size_schedule.get(
-                f'res{resolution}', self.base_batch_size)
+                f'res{resolution}', self.base_batch_size
+            )
         batch_size_scale = _BATCH_SIZE_SCHEDULE_DICT[resolution]
         return min(_MAX_BATCH_SIZE, self.base_batch_size * batch_size_scale)
 
@@ -78,12 +95,14 @@ class ProgressScheduler(BaseController):
 
         # Add running stats for logging.
         runner.running_stats.add(
-            'kimg', log_format='7.1f', log_name='kimg', log_strategy='CURRENT')
+            'kimg', log_format='7.1f', log_name='kimg', log_strategy='CURRENT'
+        )
         runner.running_stats.add(
-            'lod', log_format='4.2f', log_name='lod', log_strategy='CURRENT')
+            'lod', log_format='4.2f', log_name='lod', log_strategy='CURRENT'
+        )
         runner.running_stats.add(
-            'minibatch', log_format='4d', log_name='minibatch',
-            log_strategy='CURRENT')
+            'minibatch', log_format='4d', log_name='minibatch', log_strategy='CURRENT'
+        )
 
         # Log progressive schedule.
         runner.logger.info(f'Progressive Schedule:')
@@ -92,10 +111,12 @@ class ProgressScheduler(BaseController):
         while res <= self.final_res:
             batch_size = self.get_batch_size(res)
             lr_scale = self.get_lr_scale(res)
-            runner.logger.info(f'  Resolution {res:4d} (lod {lod}): '
-                               f'batch size '
-                               f'{batch_size:3d} * {runner.world_size:2d}, '
-                               f'learning rate scale {lr_scale:.1f}')
+            runner.logger.info(
+                f'  Resolution {res:4d} (lod {lod}): '
+                f'batch size '
+                f'{batch_size:3d} * {runner.world_size:2d}, '
+                f'learning rate scale {lr_scale:.1f}'
+            )
             res *= 2
             lod -= 1
         assert lod == -1 and res == self.final_res * 2
@@ -115,7 +136,7 @@ class ProgressScheduler(BaseController):
         runner.total_iters = num_iters
 
     def execute_before_iteration(self, runner):
-        is_first_iter = (runner.iter - runner.start_iter == 1)
+        is_first_iter = runner.iter - runner.start_iter == 1
 
         # Adjust hyper-parameters only at some particular iteration.
         if (not is_first_iter) and (runner.iter % self.minibatch_repeats != 1):
@@ -139,21 +160,26 @@ class ProgressScheduler(BaseController):
         # Reset optimizer state if needed.
         if self.reset_optimizer:
             if int(lod) != int(pre_lod) or np.ceil(lod) != np.ceil(pre_lod):
-                runner.logger.info(f'Reset the optimizer state at '
-                                   f'iter {runner.iter:06d} (lod {lod:.6f}).')
+                runner.logger.info(
+                    f'Reset the optimizer state at '
+                    f'iter {runner.iter:06d} (lod {lod:.6f}).'
+                )
                 for name in runner.optimizers:
                     runner.optimizers[name].state.clear()
 
         # Rebuild the dataset and adjust the learing rate if needed.
         if is_first_iter or resolution != pre_resolution:
-            runner.logger.info(f'Rebuild the dataset at '
-                               f'iter {runner.iter:06d} (lod {lod:.6f}).')
+            runner.logger.info(
+                f'Rebuild the dataset at ' f'iter {runner.iter:06d} (lod {lod:.6f}).'
+            )
             runner.train_loader.overwrite_param(
-                batch_size=batch_size, resolution=resolution)
+                batch_size=batch_size, resolution=resolution
+            )
             runner.batch_size = batch_size
             for lr_name, base_lrs in self.base_lrs.items():
                 runner.lr_schedulers[lr_name].base_lrs = [
-                    lr * lr_scale for lr in base_lrs]
+                    lr * lr_scale for lr in base_lrs
+                ]
 
     def execute_after_iteration(self, runner):
         minibatch = runner.batch_size * runner.world_size

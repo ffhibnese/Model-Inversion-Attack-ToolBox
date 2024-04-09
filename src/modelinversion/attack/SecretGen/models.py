@@ -1,12 +1,16 @@
 import torch
 from torch import nn
 
+
 def dconv_bn_relu(in_dim, out_dim):
     return nn.Sequential(
-        nn.ConvTranspose2d(in_dim, out_dim, 5, 2,
-                                   padding=2, output_padding=1, bias=False),
+        nn.ConvTranspose2d(
+            in_dim, out_dim, 5, 2, padding=2, output_padding=1, bias=False
+        ),
         nn.BatchNorm2d(out_dim),
-        nn.ReLU())
+        nn.ReLU(),
+    )
+
 
 class ContextNetwork(nn.Module):
     def __init__(self):
@@ -48,11 +52,11 @@ class ContextNetwork(nn.Module):
         self.bn9 = nn.BatchNorm2d(128)
         self.act9 = nn.ReLU()
         # input_shape: (None, 128, img_h//4, img_w//4)
-        self.conv10 = nn.Conv2d(128, 128, kernel_size=3, stride=1, dilation=16, padding=16)
+        self.conv10 = nn.Conv2d(
+            128, 128, kernel_size=3, stride=1, dilation=16, padding=16
+        )
         self.bn10 = nn.BatchNorm2d(128)
         self.act10 = nn.ReLU()
-        
-        
 
     def forward(self, x):
         x = self.bn1(self.act1(self.conv1(x)))
@@ -67,18 +71,20 @@ class ContextNetwork(nn.Module):
         x = self.bn10(self.act10(self.conv10(x)))
         return x
 
+
 class IdentityGenerator(nn.Module):
 
-    def __init__(self, in_dim = 100, dim=64):
+    def __init__(self, in_dim=100, dim=64):
         super(IdentityGenerator, self).__init__()
 
         self.l1 = nn.Sequential(
             nn.Linear(in_dim, dim * 8 * 4 * 4, bias=False),
             nn.BatchNorm1d(dim * 8 * 4 * 4),
-            nn.ReLU())
+            nn.ReLU(),
+        )
         self.l2_5 = nn.Sequential(
-            dconv_bn_relu(dim * 8, dim * 4),
-            dconv_bn_relu(dim * 4, dim * 2))
+            dconv_bn_relu(dim * 8, dim * 4), dconv_bn_relu(dim * 4, dim * 2)
+        )
 
     def forward(self, x):
         y = self.l1(x)
@@ -86,10 +92,11 @@ class IdentityGenerator(nn.Module):
         y = self.l2_5(y)
         return y
 
+
 class InversionNet(nn.Module):
-    def __init__(self, out_dim = 128):
+    def __init__(self, out_dim=128):
         super(InversionNet, self).__init__()
-        
+
         # input [4, h, w]  output [256, h // 4, w // 4]
         self.ContextNetwork = ContextNetwork()
         # input [z_dim] output[128, 16, 16]
@@ -97,18 +104,21 @@ class InversionNet(nn.Module):
 
         self.dim = 128 + 128
         self.out_dim = out_dim
-        
+
         self.Dconv = nn.Sequential(
             dconv_bn_relu(self.dim, self.out_dim),
-            dconv_bn_relu(self.out_dim, self.out_dim // 2))
+            dconv_bn_relu(self.out_dim, self.out_dim // 2),
+        )
 
         self.Conv = nn.Sequential(
-            nn.Conv2d(self.out_dim // 2, self.out_dim // 4, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(
+                self.out_dim // 2, self.out_dim // 4, kernel_size=3, stride=1, padding=1
+            ),
             nn.BatchNorm2d(self.out_dim // 4),
             nn.ReLU(),
             nn.Conv2d(self.out_dim // 4, 3, kernel_size=3, stride=1, padding=1),
-            nn.Sigmoid())
-
+            nn.Sigmoid(),
+        )
 
     def forward(self, inp):
         # x.shape [4, h, w]  z.shape [100]

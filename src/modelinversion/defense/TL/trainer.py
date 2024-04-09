@@ -1,5 +1,3 @@
-
-
 import os
 from dataclasses import dataclass
 
@@ -15,18 +13,25 @@ from ..BiDO.trainer import BiDOTrainer, BiDOTrainArgs
 from ...models import ModelResult
 from ...foldermanager import FolderManager
 
+
 @dataclass
 class TLTrainArgs(BiDOTrainArgs):
     pass
 
 
 class TLTrainer(BiDOTrainer):
-    
-    def __init__(self, args: TLTrainArgs, folder_manager: FolderManager, model: Module, optimizer: Optimizer, scheduler: LRScheduler=None, **kwargs) -> None:
-        super().__init__(args, folder_manager, model, optimizer, scheduler, **kwargs)
 
+    def __init__(
+        self,
+        args: TLTrainArgs,
+        folder_manager: FolderManager,
+        model: Module,
+        optimizer: Optimizer,
+        scheduler: LRScheduler = None,
+        **kwargs
+    ) -> None:
+        super().__init__(args, folder_manager, model, optimizer, scheduler, **kwargs)
 
     def before_train_step(self):
         super().before_train_step()
         self.model.freeze_front_layers()
-    

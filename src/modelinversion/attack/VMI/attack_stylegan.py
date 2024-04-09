@@ -1,6 +1,8 @@
 # StyleGAN
 import re
-import sys; sys.path.append('../stylegan2-ada-pytorch')  # noqa: E702
+import sys
+
+sys.path.append('../stylegan2-ada-pytorch')  # noqa: E702
 
 from typing import List
 import legacy
@@ -22,7 +24,14 @@ from utils import gaussian_logp
 from csv_logger import CSVLogger, plot_csv
 from main import save_checkpoint, maybe_load_checkpoint
 from experimental import AttackExperiment
-from likelihood_model import ReparameterizedMVN, MixtureOfRMVN, MixtureOfIndependentRMVN, FlowMiner, LayeredFlowMiner, MixtureOfGMM
+from likelihood_model import (
+    ReparameterizedMVN,
+    MixtureOfRMVN,
+    MixtureOfIndependentRMVN,
+    FlowMiner,
+    LayeredFlowMiner,
+    MixtureOfGMM,
+)
 
 
 def num_range(s: str) -> List[int]:
@@ -102,8 +111,13 @@ def main(args):
     # backward compat
 
     # Experiment setup
-    experiment = AttackExperiment(args.exp_config, device, args.db,
-                                  fixed_id=args.fixed_id, run_target_feat_eval=args.run_target_feat_eval)
+    experiment = AttackExperiment(
+        args.exp_config,
+        device,
+        args.db,
+        fixed_id=args.fixed_id,
+        run_target_feat_eval=args.run_target_feat_eval,
+    )
     target_logsoftmax = experiment.target_logsoftmax
     target_dataset = experiment.target_dataset
     target_eval_runner = experiment.target_eval_runner
@@ -119,20 +133,46 @@ def main(args):
         miner = ReparameterizedMVN(G.mapping.z_dim).to(device).double()
         minegan_Gmapping = MineGAN(miner, G.mapping)
     elif args.method == 'layeredminegan':
-        miner = MixtureOfRMVN(
-            G.mapping.z_dim, G.mapping.num_ws).to(device).double()
+        miner = MixtureOfRMVN(G.mapping.z_dim, G.mapping.num_ws).to(device).double()
         minegan_Gmapping = LayeredMineGAN(miner, G.mapping)
     elif args.method == 'layeredgmm':
-        miner = MixtureOfGMM(
-            G.mapping.z_dim, args.gmm_n_components, G.mapping.num_ws).to(device).double()
+        miner = (
+            MixtureOfGMM(G.mapping.z_dim, args.gmm_n_components, G.mapping.num_ws)
+            .to(device)
+            .double()
+        )
         minegan_Gmapping = LayeredMineGAN(miner, G.mapping)
-    
+
     elif args.method == 'flow':
-        miner = FlowMiner(G.mapping.z_dim, args.flow_permutation, args.flow_K, args.flow_glow, args.flow_coupling, args.flow_L, args.flow_use_actnorm).to(device).double()
+        miner = (
+            FlowMiner(
+                G.mapping.z_dim,
+                args.flow_permutation,
+                args.flow_K,
+                args.flow_glow,
+                args.flow_coupling,
+                args.flow_L,
+                args.flow_use_actnorm,
+            )
+            .to(device)
+            .double()
+        )
         minegan_Gmapping = MineGAN(miner, G.mapping)
     elif args.method == 'layeredflow':
-        miner = LayeredFlowMiner(
-            G.mapping.z_dim, G.mapping.num_ws, args.flow_permutation, args.flow_K, args.flow_glow, args.flow_coupling, args.flow_L, args.flow_use_actnorm).to(device).double()
+        miner = (
+            LayeredFlowMiner(
+                G.mapping.z_dim,
+                G.mapping.num_ws,
+                args.flow_permutation,
+                args.flow_K,
+                args.flow_glow,
+                args.flow_coupling,
+                args.flow_L,
+                args.flow_use_actnorm,
+            )
+            .to(device)
+            .double()
+        )
         minegan_Gmapping = LayeredMineGAN(miner, G.mapping)
 
     args.l_identity = num_range(args.l_identity)
@@ -140,23 +180,26 @@ def main(args):
     identity_mask[:, args.l_identity, :] = 1
 
     # Opt
-    optimizerG = optim.SGD(miner.parameters(), lr=args.lr,
-                           momentum=0.9, weight_decay=args.wd)
+    optimizerG = optim.SGD(
+        miner.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.wd
+    )
 
     # Logging
     iteration_fieldnames = ['global_iteration', 'loss', 'train_target_acc']
-    iteration_logger = CSVLogger(every=args.log_iter_every,
-                                 fieldnames=iteration_fieldnames,
-                                 filename=os.path.join(
-                                     args.output_dir, 'iteration_log.csv'),
-                                 resume=args.resume)
-    epoch_fieldnames = ['global_iteration',
-                        'eval-acc-marginal',
-                        'eval-frechet-marginal',
-                        'eval-feature-l2-dist-marginal',
-                        'eval-feature-cos-sim-marginal',
-                        'eval-top5_acc-marginal',
-                        ]
+    iteration_logger = CSVLogger(
+        every=args.log_iter_every,
+        fieldnames=iteration_fieldnames,
+        filename=os.path.join(args.output_dir, 'iteration_log.csv'),
+        resume=args.resume,
+    )
+    epoch_fieldnames = [
+        'global_iteration',
+        'eval-acc-marginal',
+        'eval-frechet-marginal',
+        'eval-feature-l2-dist-marginal',
+        'eval-feature-cos-sim-marginal',
+        'eval-top5_acc-marginal',
+    ]
     if args.run_target_feat_eval:
         epoch_fieldnames += [
             'eval-precision@5-marginal',
@@ -164,11 +207,12 @@ def main(args):
             'eval-precision@10-marginal',
             'eval-recall@10-marginal',
         ]
-    epoch_logger = CSVLogger(every=args.log_epoch_every,
-                             fieldnames=epoch_fieldnames,
-                             filename=os.path.join(
-                                 args.output_dir, 'epoch_log.csv'),
-                             resume=args.resume)
+    epoch_logger = CSVLogger(
+        every=args.log_epoch_every,
+        fieldnames=epoch_fieldnames,
+        filename=os.path.join(args.output_dir, 'epoch_log.csv'),
+        resume=args.resume,
+    )
 
     # Check for ckpt
     ckpt = maybe_load_checkpoint(args)
@@ -185,11 +229,13 @@ def main(args):
     fixed_z_nuisance = torch.randn(100, G.z_dim).to(device).double()
     fixed_z_identity = torch.randn(100, G.z_dim).to(device).double()
 
-    attack_criterion = LabelSmoothingLoss(
-        nclass, smoothing=args.attack_labelsmooth)
+    attack_criterion = LabelSmoothingLoss(nclass, smoothing=args.attack_labelsmooth)
 
-    save_model_epochs = [int(e) for e in args.save_model_epochs.split(
-        ',')] if len(args.save_model_epochs) > 0 else []
+    save_model_epochs = (
+        [int(e) for e in args.save_model_epochs.split(',')]
+        if len(args.save_model_epochs) > 0
+        else []
+    )
 
     def sample(z_nuisance, z_identity):
         w_nuisance = G.mapping(z_nuisance, None)
@@ -198,18 +244,17 @@ def main(args):
         x = G.synthesis(w, noise_mode=noise_mode)
         return x
 
-
     if args.eval:
         sd = torch.load(args.ckpt_path)
         with torch.no_grad():
             z_nu = torch.randn(100, G.z_dim).to(device).double()
             z_id = torch.randn(100, G.z_dim).to(device).double()
             fake = sample(z_nu, z_id)
-            vutils.save_image(fake * .5 + .5, 'dbb.jpeg')
+            vutils.save_image(fake * 0.5 + 0.5, 'dbb.jpeg')
             miner.load_state_dict(sd)
             fake = sample(z_nu, z_id)
-            vutils.save_image(fake * .5 + .5, 'dba.jpeg')
-            
+            vutils.save_image(fake * 0.5 + 0.5, 'dba.jpeg')
+
         sys.exit(0)
 
     for epoch in range(start_epoch, args.epochs):
@@ -222,12 +267,17 @@ def main(args):
         save_checkpoint(args, state)
         # Save Models
         if epoch in save_model_epochs:
-            torch.save(miner.state_dict(), os.path.join(args.output_dir, f'miner_{epoch}.pt'))
+            torch.save(
+                miner.state_dict(), os.path.join(args.output_dir, f'miner_{epoch}.pt')
+            )
 
         if epoch > 0 and epoch % args.save_samples_every == 0:
             with torch.no_grad():
                 fake = sample(fixed_z_nuisance, fixed_z_identity)
-            torch.save(fake[:args.n_save_samples], os.path.join(args.output_dir, f'samples_e{epoch}.pt'))
+            torch.save(
+                fake[: args.n_save_samples],
+                os.path.join(args.output_dir, f'samples_e{epoch}.pt'),
+            )
 
         # Evaluate
         if epoch % args.eval_every == 0:
@@ -255,8 +305,10 @@ def main(args):
                 epoch_log_dict["eval-" + field + f"-{name}"] = D[field]
             epoch_logger.writerow(epoch_log_dict)
             if len(epoch_log_dict) > 1:
-                plot_csv(epoch_logger.filename, os.path.join(
-                    args.output_dir, 'epoch_plots.jpeg'))
+                plot_csv(
+                    epoch_logger.filename,
+                    os.path.join(args.output_dir, 'epoch_plots.jpeg'),
+                )
 
             # Maybe exit
             if epoch_log_dict['eval-acc-marginal'] > best_marginal_acc:
@@ -270,36 +322,48 @@ def main(args):
 
         # Visualize samples
         if epoch % args.viz_every == 0:
+
             def _viz_with_corresponding_preds(fake, fpath):
                 with torch.no_grad():
-                    preds = target_logsoftmax(fake / 2 + .5).max(1)[1]
+                    preds = target_logsoftmax(fake / 2 + 0.5).max(1)[1]
                 real_target = []
                 for c in preds.cpu():
                     real_target.append(
-                        target_dataset['X_train'][[target_dataset['Y_train'] == c]][0])
+                        target_dataset['X_train'][[target_dataset['Y_train'] == c]][0]
+                    )
                 real_target = torch.stack(real_target)
 
                 preds = target_eval_runner.get_eval_preds(fake)
                 real_eval = []
                 for c in preds.cpu():
-                    real_eval.append(target_dataset['X_train'][[
-                                     target_dataset['Y_train'] == c]][0])
+                    real_eval.append(
+                        target_dataset['X_train'][[target_dataset['Y_train'] == c]][0]
+                    )
                 real_eval = torch.stack(real_eval)
                 realgrid_target = vutils.make_grid(
-                    real_target[:100], nrow=10, padding=4, pad_value=1, normalize=True)
+                    real_target[:100], nrow=10, padding=4, pad_value=1, normalize=True
+                )
                 realgrid_eval = vutils.make_grid(
-                    real_eval[:100], nrow=10, padding=4, pad_value=1, normalize=True)
+                    real_eval[:100], nrow=10, padding=4, pad_value=1, normalize=True
+                )
                 fakegrid = vutils.make_grid(
-                    fake.cpu()[:100], nrow=10, padding=4, pad_value=1, normalize=True)
+                    fake.cpu()[:100], nrow=10, padding=4, pad_value=1, normalize=True
+                )
                 fig, axs = plt.subplots(1, 3, figsize=(20, 12))
-                axs[0].imshow(np.transpose(
-                    realgrid_eval.cpu().numpy(), (1, 2, 0)), interpolation='bilinear')
+                axs[0].imshow(
+                    np.transpose(realgrid_eval.cpu().numpy(), (1, 2, 0)),
+                    interpolation='bilinear',
+                )
                 axs[0].set_title('Real Eval pred')
-                axs[1].imshow(np.transpose(fakegrid.cpu().numpy(),
-                                           (1, 2, 0)), interpolation='bilinear')
+                axs[1].imshow(
+                    np.transpose(fakegrid.cpu().numpy(), (1, 2, 0)),
+                    interpolation='bilinear',
+                )
                 axs[1].set_title('Samples')
-                axs[2].imshow(np.transpose(realgrid_target.cpu(
-                ).numpy(), (1, 2, 0)), interpolation='bilinear')
+                axs[2].imshow(
+                    np.transpose(realgrid_target.cpu().numpy(), (1, 2, 0)),
+                    interpolation='bilinear',
+                )
                 axs[2].set_title('Real Target pred')
                 for ax in axs:
                     plt.subplot(ax)
@@ -307,15 +371,19 @@ def main(args):
                     plt.grid()
                     plt.xticks([])
                     plt.yticks([])
-                plt.savefig(fpath, bbox_inches='tight',
-                            pad_inches=0, format='jpeg')
+                plt.savefig(fpath, bbox_inches='tight', pad_inches=0, format='jpeg')
+
             # Marginal samples
             with torch.no_grad():
                 fake = sample(fixed_z_nuisance, fixed_z_identity).clamp(-1, 1)
-            _viz_with_corresponding_preds(fake,
-                                          f'{args.output_dir}/viz_sample/sample_e{epoch:03d}_marginal.jpeg')
+            _viz_with_corresponding_preds(
+                fake, f'{args.output_dir}/viz_sample/sample_e{epoch:03d}_marginal.jpeg'
+            )
             if epoch % 10 == 0:
-                torch.save(fake[:50].cpu(), os.path.join(args.output_dir, 'samples_pt', f'e{epoch:03d}.pt'))
+                torch.save(
+                    fake[:50].cpu(),
+                    os.path.join(args.output_dir, 'samples_pt', f'e{epoch:03d}.pt'),
+                )
 
         # Train loop
         miner.train()
@@ -329,9 +397,8 @@ def main(args):
             fake = sample(z_nu, z_id).clamp(-1, 1)
 
             # Compute loss
-            lsm = target_logsoftmax(fake / 2 + .5)
-            fake_y = args.fixed_id * \
-                torch.ones(args.batchSize).to(device).long()
+            lsm = target_logsoftmax(fake / 2 + 0.5)
+            fake_y = args.fixed_id * torch.ones(args.batchSize).to(device).long()
             loss_attack = 0
             if args.lambda_attack > 0:
                 loss_attack = attack_criterion(lsm, fake_y)
@@ -339,7 +406,7 @@ def main(args):
 
             loss_miner_entropy = 0
             if args.lambda_miner_entropy > 0:
-                loss_miner_entropy = - miner.entropy()
+                loss_miner_entropy = -miner.entropy()
 
             loss_kl = 0
             # if True:
@@ -348,67 +415,95 @@ def main(args):
                     mu = miner.m
                     C = miner.L @ miner.L.T
                     logdetcov = torch.logdet(C)
-                    samples = miner(torch.randn(
-                        1000, miner.nz0).to(device).double())
-                    loss_kl = -.5 * logdetcov + .5 * \
-                        (torch.norm(samples, p=2, dim=[-1])).pow(2).mean()
+                    samples = miner(torch.randn(1000, miner.nz0).to(device).double())
+                    loss_kl = (
+                        -0.5 * logdetcov
+                        + 0.5 * (torch.norm(samples, p=2, dim=[-1])).pow(2).mean()
+                    )
                 elif args.method == 'layeredminegan':
                     for mvn in miner.mvns:
                         mu = mvn.m
                         C = mvn.L @ mvn.L.T
                         logdetcov = torch.logdet(C)
-                        samples = mvn(torch.randn(
-                            1000, mvn.nz0).to(device).double())
-                        loss_kl += -.5 * logdetcov + .5 * \
-                            (torch.norm(samples, p=2, dim=[-1])).pow(2).mean()
+                        samples = mvn(torch.randn(1000, mvn.nz0).to(device).double())
+                        loss_kl += (
+                            -0.5 * logdetcov
+                            + 0.5 * (torch.norm(samples, p=2, dim=[-1])).pow(2).mean()
+                        )
                 elif args.method == 'flow':
                     # KL(Flow || N(0,1))
                     # E_{x ~ Flow}[ log Flow(x) - log N(x; 0,1)]
-                    samples = miner(torch.randn(
-                        1000, miner.nz0).to(device).double())
-                    loss_kl = torch.mean(miner.logp(
-                        samples) - gaussian_logp(torch.zeros_like(samples), torch.zeros_like(samples), samples).sum(-1))
+                    samples = miner(torch.randn(1000, miner.nz0).to(device).double())
+                    loss_kl = torch.mean(
+                        miner.logp(samples)
+                        - gaussian_logp(
+                            torch.zeros_like(samples),
+                            torch.zeros_like(samples),
+                            samples,
+                        ).sum(-1)
+                    )
                 elif args.method == 'layeredgmm':
                     for gmm in miner.gmms:
-                        samples = gmm(torch.randn(
-                            args.batchSize, gmm.nz0).to(device).double())
-                        loss_kl += torch.mean(gmm.logp(
-                            samples) - gaussian_logp(torch.zeros_like(samples), torch.zeros_like(samples), samples).sum(-1))
+                        samples = gmm(
+                            torch.randn(args.batchSize, gmm.nz0).to(device).double()
+                        )
+                        loss_kl += torch.mean(
+                            gmm.logp(samples)
+                            - gaussian_logp(
+                                torch.zeros_like(samples),
+                                torch.zeros_like(samples),
+                                samples,
+                            ).sum(-1)
+                        )
                     loss_kl /= len(miner.gmms)
                 elif args.method == 'layeredflow':
                     # 1/L * \sum_l KL(Flow_l || N(0,1))
                     for flow in miner.flow_miners:
-                        samples = flow(torch.randn(
-                            args.batchSize, flow.nz0).to(device).double())
-                        loss_kl += torch.mean(flow.logp(
-                            samples) - gaussian_logp(torch.zeros_like(samples), torch.zeros_like(samples), samples).sum(-1))
+                        samples = flow(
+                            torch.randn(args.batchSize, flow.nz0).to(device).double()
+                        )
+                        loss_kl += torch.mean(
+                            flow.logp(samples)
+                            - gaussian_logp(
+                                torch.zeros_like(samples),
+                                torch.zeros_like(samples),
+                                samples,
+                            ).sum(-1)
+                        )
                     loss_kl /= len(miner.flow_miners)
 
-            loss = (args.lambda_attack * loss_attack
-                    + args.lambda_miner_entropy * loss_miner_entropy
-                    + args.lambda_kl * loss_kl)
+            loss = (
+                args.lambda_attack * loss_attack
+                + args.lambda_miner_entropy * loss_miner_entropy
+                + args.lambda_kl * loss_kl
+            )
 
             loss.backward()
             optimizerG.step()
 
             # Logging
-            pbar.set_postfix_str(s=f'Loss: {loss.item():.2f}, Acc: {train_target_acc:.3f}', refresh=True)
+            pbar.set_postfix_str(
+                s=f'Loss: {loss.item():.2f}, Acc: {train_target_acc:.3f}', refresh=True
+            )
 
             if i % args.log_iter_every == 0:
                 stats_dict = {
                     'global_iteration': iteration_logger.time,
                     'loss': loss.item(),
-                    'train_target_acc': train_target_acc
+                    'train_target_acc': train_target_acc,
                 }
                 iteration_logger.writerow(stats_dict)
-                plot_csv(iteration_logger.filename, os.path.join(
-                    args.output_dir, 'iteration_plots.jpeg'))
+                plot_csv(
+                    iteration_logger.filename,
+                    os.path.join(args.output_dir, 'iteration_plots.jpeg'),
+                )
 
             iteration_logger.time += 1
 
 
 if __name__ == '__main__':
     import socket
+
     parser = argparse.ArgumentParser()
     # Eval
     parser.add_argument('--eval', type=int, default=0)
@@ -421,18 +516,32 @@ if __name__ == '__main__':
     parser.add_argument('--exp_config', type=str, required=True)
     parser.add_argument('--patience', type=int, default=20)
     parser.add_argument('--save_model_epochs', type=str, default='')
-    parser.add_argument('--method', type=str, default='minegan',
-                        choices=['minegan', 'layeredminegan', 'flow', 'layeredflow', 'layeredgmm'])
+    parser.add_argument(
+        '--method',
+        type=str,
+        default='minegan',
+        choices=['minegan', 'layeredminegan', 'flow', 'layeredflow', 'layeredgmm'],
+    )
     parser.add_argument('--run_target_feat_eval', type=int, default=0)
     parser.add_argument('--attack_labelsmooth', type=float, default=0)
     # Miner
     parser.add_argument('--miner_nh', type=int, default=100)
     parser.add_argument('--miner_z0', type=int, default=50)
     parser.add_argument('--miner_init_std', type=float, default=0.2)
-    parser.add_argument('--flow_permutation', type=str, default='shuffle', choices=['shuffle', 'reverse'])
+    parser.add_argument(
+        '--flow_permutation',
+        type=str,
+        default='shuffle',
+        choices=['shuffle', 'reverse'],
+    )
     parser.add_argument('--flow_K', type=int, default=5)
     parser.add_argument('--flow_glow', type=int, default=0)
-    parser.add_argument('--flow_coupling', type=str, default='additive', choices= ['additive', 'affine', 'invconv'])
+    parser.add_argument(
+        '--flow_coupling',
+        type=str,
+        default='additive',
+        choices=['additive', 'affine', 'invconv'],
+    )
     parser.add_argument('--flow_L', type=int, default=1)
     parser.add_argument('--flow_use_actnorm', type=int, default=1)
     parser.add_argument('--gmm_n_components', type=int, default=1)
@@ -444,19 +553,23 @@ if __name__ == '__main__':
     parser.add_argument('--lambda_prior', type=float, default=0)
     parser.add_argument('--lambda_miner_entropy', type=float, default=0)
     parser.add_argument('--lambda_kl', type=float, default=0)
-    parser.add_argument('--prior_model', type=str, default='disc',
-                        choices=['disc', 'lep', 'tep', '0', 'hep'])
+    parser.add_argument(
+        '--prior_model',
+        type=str,
+        default='disc',
+        choices=['disc', 'lep', 'tep', '0', 'hep'],
+    )
 
     # Optimization arguments
-    parser.add_argument('--batchSize', type=int,
-                        default=64, help='input batch size')
-    parser.add_argument('--epochs', type=int, default=1000,
-                        help='number of epochs to train for')
-    parser.add_argument('--lr', type=float, default=0.0002,
-                        help='learning rate, default=0.0002')
-    parser.add_argument('--beta1', type=float,
-                        default=0.5, help='beta1 for adam')
-    parser.add_argument('--wd', type=float, default=0., help='wd for adam')
+    parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
+    parser.add_argument(
+        '--epochs', type=int, default=1000, help='number of epochs to train for'
+    )
+    parser.add_argument(
+        '--lr', type=float, default=0.0002, help='learning rate, default=0.0002'
+    )
+    parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam')
+    parser.add_argument('--wd', type=float, default=0.0, help='wd for adam')
     parser.add_argument('--seed', type=int, default=2019, help='manual seed')
     parser.add_argument('--kl_every', type=int, default=1)
 

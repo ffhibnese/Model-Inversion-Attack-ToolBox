@@ -1,6 +1,5 @@
-
-
 import os
+
 
 def create_folder(folder):
     if os.path.exists(folder):

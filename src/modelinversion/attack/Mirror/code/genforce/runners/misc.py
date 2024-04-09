@@ -17,8 +17,10 @@ def format_time(seconds):
         ValueError: If the input `seconds` is less than 0.
     """
     if seconds < 0:
-        raise ValueError(f'Input `seconds` should be greater than or equal to '
-                         f'0, but `{seconds}` is received!')
+        raise ValueError(
+            f'Input `seconds` should be greater than or equal to '
+            f'0, but `{seconds}` is received!'
+        )
 
     # Returns seconds as float if less than 1 minute.
     if seconds < 10:

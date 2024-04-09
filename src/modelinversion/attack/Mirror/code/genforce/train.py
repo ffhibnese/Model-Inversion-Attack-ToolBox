@@ -20,30 +20,57 @@ from utils.misc import DictAction, parse_config, update_config
 def parse_args():
     """Parses arguments."""
     parser = argparse.ArgumentParser(description='Run model training.')
-    parser.add_argument('config', type=str,
-                        help='Path to the training configuration.')
-    parser.add_argument('--work_dir', type=str, required=True,
-                        help='The work directory to save logs and checkpoints.')
-    parser.add_argument('--resume_path', type=str, default=None,
-                        help='Path to the checkpoint to resume training.')
-    parser.add_argument('--weight_path', type=str, default=None,
-                        help='Path to the checkpoint to load model weights, '
-                             'but not resume other states.')
-    parser.add_argument('--seed', type=int, default=None,
-                        help='Random seed. (default: %(default)s)')
-    parser.add_argument('--launcher', type=str, default='pytorch',
-                        choices=['pytorch', 'slurm'],
-                        help='Launcher type. (default: %(default)s)')
-    parser.add_argument('--backend', type=str, default='nccl',
-                        help='Backend for distributed launcher. (default: '
-                             '%(default)s)')
-    parser.add_argument('--rank', type=int, default=-1,
-                        help='Node rank for distributed running. (default: '
-                             '%(default)s)')
-    parser.add_argument('--local_rank', type=int, default=0,
-                        help='Rank of the current node. (default: %(default)s)')
-    parser.add_argument('--options', nargs='+', action=DictAction,
-                        help='arguments in dict')
+    parser.add_argument('config', type=str, help='Path to the training configuration.')
+    parser.add_argument(
+        '--work_dir',
+        type=str,
+        required=True,
+        help='The work directory to save logs and checkpoints.',
+    )
+    parser.add_argument(
+        '--resume_path',
+        type=str,
+        default=None,
+        help='Path to the checkpoint to resume training.',
+    )
+    parser.add_argument(
+        '--weight_path',
+        type=str,
+        default=None,
+        help='Path to the checkpoint to load model weights, '
+        'but not resume other states.',
+    )
+    parser.add_argument(
+        '--seed', type=int, default=None, help='Random seed. (default: %(default)s)'
+    )
+    parser.add_argument(
+        '--launcher',
+        type=str,
+        default='pytorch',
+        choices=['pytorch', 'slurm'],
+        help='Launcher type. (default: %(default)s)',
+    )
+    parser.add_argument(
+        '--backend',
+        type=str,
+        default='nccl',
+        help='Backend for distributed launcher. (default: ' '%(default)s)',
+    )
+    parser.add_argument(
+        '--rank',
+        type=int,
+        default=-1,
+        help='Node rank for distributed running. (default: ' '%(default)s)',
+    )
+    parser.add_argument(
+        '--local_rank',
+        type=int,
+        default=0,
+        help='Rank of the current node. (default: %(default)s)',
+    )
+    parser.add_argument(
+        '--options', nargs='+', action=DictAction, help='arguments in dict'
+    )
     return parser.parse_args()
 
 
@@ -72,11 +99,13 @@ def main():
     if config.seed is not None:
         config.cudnn_deterministic = True
         torch.backends.cudnn.deterministic = True
-        warnings.warn('Random seed is set for training! '
-                      'This will turn on the CUDNN deterministic setting, '
-                      'which may slow down the training considerably! '
-                      'Unexpected behavior can be observed when resuming from '
-                      'checkpoints.')
+        warnings.warn(
+            'Random seed is set for training! '
+            'This will turn on the CUDNN deterministic setting, '
+            'which may slow down the training considerably! '
+            'Unexpected behavior can be observed when resuming from '
+            'checkpoints.'
+        )
 
     # Set launcher.
     config.is_distributed = True
@@ -104,17 +133,21 @@ def main():
     # Start training.
     runner = getattr(runners, config.runner_type)(config, logger)
     if config.resume_path:
-        runner.load(filepath=config.resume_path,
-                    running_metadata=True,
-                    learning_rate=True,
-                    optimizer=True,
-                    running_stats=False)
+        runner.load(
+            filepath=config.resume_path,
+            running_metadata=True,
+            learning_rate=True,
+            optimizer=True,
+            running_stats=False,
+        )
     if config.weight_path:
-        runner.load(filepath=config.weight_path,
-                    running_metadata=False,
-                    learning_rate=False,
-                    optimizer=False,
-                    running_stats=False)
+        runner.load(
+            filepath=config.weight_path,
+            running_metadata=False,
+            learning_rate=False,
+            optimizer=False,
+            running_stats=False,
+        )
     runner.train()
 
 

@@ -8,11 +8,18 @@ ckpt_dir = f'{root_dir}/checkpoints'
 dataset_dir = f'{root_dir}/dataset'
 defense_ckpt_dir = f'{root_dir}/checkpoints_defense'
 
+
 def get_dirs(method_name):
     work_dir = os.path.join(work_root_dir, method_name)
     result_dir = os.path.join(result_root_dir, method_name)
-    
+
     os.makedirs(work_dir, exist_ok=True)
     os.makedirs(work_dir, exist_ok=True)
-    
-    return {'work_dir': work_dir, 'result_dir': result_dir, 'ckpt_dir': ckpt_dir, 'dataset_dir': dataset_dir, 'defense_ckpt_dir': defense_ckpt_dir}
+
+    return {
+        'work_dir': work_dir,
+        'result_dir': result_dir,
+        'ckpt_dir': ckpt_dir,
+        'dataset_dir': dataset_dir,
+        'defense_ckpt_dir': defense_ckpt_dir,
+    }

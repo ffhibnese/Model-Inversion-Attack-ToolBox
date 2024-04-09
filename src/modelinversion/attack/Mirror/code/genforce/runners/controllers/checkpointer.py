@@ -7,6 +7,7 @@ from .base_controller import BaseController
 
 __all__ = ['Checkpointer']
 
+
 class Checkpointer(BaseController):
     """Defines the running controller to handle checkpoints.
 
@@ -31,8 +32,10 @@ class Checkpointer(BaseController):
     def execute_after_iteration(self, runner):
         save_dir = self._save_dir or runner.work_dir
         save_filename = f'checkpoint_iter{runner.iter:06d}.pth'
-        runner.save(filepath=os.path.join(save_dir, save_filename),
-                    running_metadata=self._save_running_metadata,
-                    learning_rate=self._save_learning_rate,
-                    optimizer=self._save_optimizer,
-                    running_stats=self._save_running_stats)
+        runner.save(
+            filepath=os.path.join(save_dir, save_filename),
+            running_metadata=self._save_running_metadata,
+            learning_rate=self._save_learning_rate,
+            optimizer=self._save_optimizer,
+            running_stats=self._save_running_stats,
+        )

@@ -23,9 +23,13 @@ class Snapshoter(BaseController):
 
     def execute_after_iteration(self, runner):
         mode = runner.mode  # save runner mode.
-        runner.synthesize(self.num,
-                          html_name=f'snapshot_{runner.iter:06d}.html',
-                          save_raw_synthesis=False)
-        runner.logger.info(f'Saving snapshot at iter {runner.iter:06d} '
-                           f'({runner.seen_img / 1000:.1f} kimg).')
+        runner.synthesize(
+            self.num,
+            html_name=f'snapshot_{runner.iter:06d}.html',
+            save_raw_synthesis=False,
+        )
+        runner.logger.info(
+            f'Saving snapshot at iter {runner.iter:06d} '
+            f'({runner.seen_img / 1000:.1f} kimg).'
+        )
         runner.set_mode(mode)  # restore runner mode.

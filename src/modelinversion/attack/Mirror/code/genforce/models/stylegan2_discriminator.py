@@ -55,16 +55,18 @@ class StyleGAN2Discriminator(nn.Module):
     (9) fmaps_max: Maximum number of feature maps in each layer. (default: 512)
     """
 
-    def __init__(self,
-                 resolution,
-                 image_channels=3,
-                 label_size=0,
-                 architecture='resnet',
-                 use_wscale=True,
-                 minibatch_std_group_size=4,
-                 minibatch_std_channels=1,
-                 fmaps_base=32 << 10,
-                 fmaps_max=512):
+    def __init__(
+        self,
+        resolution,
+        image_channels=3,
+        label_size=0,
+        architecture='resnet',
+        use_wscale=True,
+        minibatch_std_group_size=4,
+        minibatch_std_channels=1,
+        fmaps_base=32 << 10,
+        fmaps_max=512,
+    ):
         """Initializes with basic settings.
 
         Raises:
@@ -74,12 +76,16 @@ class StyleGAN2Discriminator(nn.Module):
         super().__init__()
 
         if resolution not in _RESOLUTIONS_ALLOWED:
-            raise ValueError(f'Invalid resolution: `{resolution}`!\n'
-                             f'Resolutions allowed: {_RESOLUTIONS_ALLOWED}.')
+            raise ValueError(
+                f'Invalid resolution: `{resolution}`!\n'
+                f'Resolutions allowed: {_RESOLUTIONS_ALLOWED}.'
+            )
         if architecture not in _ARCHITECTURES_ALLOWED:
-            raise ValueError(f'Invalid architecture: `{architecture}`!\n'
-                             f'Architectures allowed: '
-                             f'{_ARCHITECTURES_ALLOWED}.')
+            raise ValueError(
+                f'Invalid architecture: `{architecture}`!\n'
+                f'Architectures allowed: '
+                f'{_ARCHITECTURES_ALLOWED}.'
+            )
 
         self.init_res = _INIT_RES
         self.init_res_log2 = int(np.log2(self.init_res))
@@ -96,89 +102,119 @@ class StyleGAN2Discriminator(nn.Module):
 
         self.pth_to_tf_var_mapping = {}
         for res_log2 in range(self.final_res_log2, self.init_res_log2 - 1, -1):
-            res = 2 ** res_log2
+            res = 2**res_log2
             block_idx = self.final_res_log2 - res_log2
 
             # Input convolution layer for each resolution (if needed).
             if res_log2 == self.final_res_log2 or self.architecture == 'skip':
                 self.add_module(
                     f'input{block_idx}',
-                    ConvBlock(in_channels=self.image_channels,
-                              out_channels=self.get_nf(res),
-                              kernel_size=1,
-                              use_wscale=self.use_wscale))
+                    ConvBlock(
+                        in_channels=self.image_channels,
+                        out_channels=self.get_nf(res),
+                        kernel_size=1,
+                        use_wscale=self.use_wscale,
+                    ),
+                )
                 self.pth_to_tf_var_mapping[f'input{block_idx}.weight'] = (
-                    f'{res}x{res}/FromRGB/weight')
+                    f'{res}x{res}/FromRGB/weight'
+                )
                 self.pth_to_tf_var_mapping[f'input{block_idx}.bias'] = (
-                    f'{res}x{res}/FromRGB/bias')
+                    f'{res}x{res}/FromRGB/bias'
+                )
 
             # Convolution block for each resolution (except the last one).
             if res != self.init_res:
                 self.add_module(
                     f'layer{2 * block_idx}',
-                    ConvBlock(in_channels=self.get_nf(res),
-                              out_channels=self.get_nf(res),
-                              use_wscale=self.use_wscale))
+                    ConvBlock(
+                        in_channels=self.get_nf(res),
+                        out_channels=self.get_nf(res),
+                        use_wscale=self.use_wscale,
+                    ),
+                )
                 tf_layer0_name = 'Conv0'
                 self.add_module(
                     f'layer{2 * block_idx + 1}',
-                    ConvBlock(in_channels=self.get_nf(res),
-                              out_channels=self.get_nf(res // 2),
-                              scale_factor=2,
-                              use_wscale=self.use_wscale))
+                    ConvBlock(
+                        in_channels=self.get_nf(res),
+                        out_channels=self.get_nf(res // 2),
+                        scale_factor=2,
+                        use_wscale=self.use_wscale,
+                    ),
+                )
                 tf_layer1_name = 'Conv1_down'
 
                 if self.architecture == 'resnet':
                     layer_name = f'skip_layer{block_idx}'
                     self.add_module(
                         layer_name,
-                        ConvBlock(in_channels=self.get_nf(res),
-                                  out_channels=self.get_nf(res // 2),
-                                  kernel_size=1,
-                                  add_bias=False,
-                                  scale_factor=2,
-                                  use_wscale=self.use_wscale,
-                                  activation_type='linear'))
+                        ConvBlock(
+                            in_channels=self.get_nf(res),
+                            out_channels=self.get_nf(res // 2),
+                            kernel_size=1,
+                            add_bias=False,
+                            scale_factor=2,
+                            use_wscale=self.use_wscale,
+                            activation_type='linear',
+                        ),
+                    )
                     self.pth_to_tf_var_mapping[f'{layer_name}.weight'] = (
-                        f'{res}x{res}/Skip/weight')
+                        f'{res}x{res}/Skip/weight'
+                    )
 
             # Convolution block for last resolution.
             else:
                 self.add_module(
                     f'layer{2 * block_idx}',
-                    ConvBlock(in_channels=self.get_nf(res),
-                              out_channels=self.get_nf(res),
-                              use_wscale=self.use_wscale,
-                              minibatch_std_group_size=minibatch_std_group_size,
-                              minibatch_std_channels=minibatch_std_channels))
+                    ConvBlock(
+                        in_channels=self.get_nf(res),
+                        out_channels=self.get_nf(res),
+                        use_wscale=self.use_wscale,
+                        minibatch_std_group_size=minibatch_std_group_size,
+                        minibatch_std_channels=minibatch_std_channels,
+                    ),
+                )
                 tf_layer0_name = 'Conv'
                 self.add_module(
                     f'layer{2 * block_idx + 1}',
-                    DenseBlock(in_channels=self.get_nf(res) * res * res,
-                               out_channels=self.get_nf(res // 2),
-                               use_wscale=self.use_wscale))
+                    DenseBlock(
+                        in_channels=self.get_nf(res) * res * res,
+                        out_channels=self.get_nf(res // 2),
+                        use_wscale=self.use_wscale,
+                    ),
+                )
                 tf_layer1_name = 'Dense0'
 
             self.pth_to_tf_var_mapping[f'layer{2 * block_idx}.weight'] = (
-                f'{res}x{res}/{tf_layer0_name}/weight')
+                f'{res}x{res}/{tf_layer0_name}/weight'
+            )
             self.pth_to_tf_var_mapping[f'layer{2 * block_idx}.bias'] = (
-                f'{res}x{res}/{tf_layer0_name}/bias')
+                f'{res}x{res}/{tf_layer0_name}/bias'
+            )
             self.pth_to_tf_var_mapping[f'layer{2 * block_idx + 1}.weight'] = (
-                f'{res}x{res}/{tf_layer1_name}/weight')
+                f'{res}x{res}/{tf_layer1_name}/weight'
+            )
             self.pth_to_tf_var_mapping[f'layer{2 * block_idx + 1}.bias'] = (
-                f'{res}x{res}/{tf_layer1_name}/bias')
+                f'{res}x{res}/{tf_layer1_name}/bias'
+            )
 
             # Final dense block.
             self.add_module(
                 f'layer{2 * block_idx + 2}',
-                DenseBlock(in_channels=self.get_nf(res // 2),
-                           out_channels=max(self.label_size, 1),
-                           use_wscale=self.use_wscale,
-                           activation_type='linear'))
+                DenseBlock(
+                    in_channels=self.get_nf(res // 2),
+                    out_channels=max(self.label_size, 1),
+                    use_wscale=self.use_wscale,
+                    activation_type='linear',
+                ),
+            )
             self.pth_to_tf_var_mapping[f'layer{2 * block_idx + 2}.weight'] = (
-                f'Output/weight')
+                f'Output/weight'
+            )
             self.pth_to_tf_var_mapping[f'layer{2 * block_idx + 2}.bias'] = (
-                f'Output/bias')
+                f'Output/bias'
+            )
 
         if self.architecture == 'skip':
             self.downsample = DownsamplingLayer()
@@ -190,24 +226,30 @@ class StyleGAN2Discriminator(nn.Module):
     def forward(self, image, label=None, **_unused_kwargs):
         expected_shape = (self.image_channels, self.resolution, self.resolution)
         if image.ndim != 4 or image.shape[1:] != expected_shape:
-            raise ValueError(f'The input tensor should be with shape '
-                             f'[batch_size, channel, height, width], where '
-                             f'`channel` equals to {self.image_channels}, '
-                             f'`height`, `width` equal to {self.resolution}!\n'
-                             f'But `{image.shape}` is received!')
+            raise ValueError(
+                f'The input tensor should be with shape '
+                f'[batch_size, channel, height, width], where '
+                f'`channel` equals to {self.image_channels}, '
+                f'`height`, `width` equal to {self.resolution}!\n'
+                f'But `{image.shape}` is received!'
+            )
         if self.label_size:
             if label is None:
-                raise ValueError(f'Model requires an additional label '
-                                 f'(with size {self.label_size}) as inputs, '
-                                 f'but no label is received!')
+                raise ValueError(
+                    f'Model requires an additional label '
+                    f'(with size {self.label_size}) as inputs, '
+                    f'but no label is received!'
+                )
             batch_size = image.shape[0]
             if label.ndim != 2 or label.shape != (batch_size, self.label_size):
-                raise ValueError(f'Input label should be with shape '
-                                 f'[batch_size, label_size], where '
-                                 f'`batch_size` equals to that of '
-                                 f'images ({image.shape[0]}) and '
-                                 f'`label_size` equals to {self.label_size}!\n'
-                                 f'But `{label.shape}` is received!')
+                raise ValueError(
+                    f'Input label should be with shape '
+                    f'[batch_size, label_size], where '
+                    f'`batch_size` equals to that of '
+                    f'images ({image.shape[0]}) and '
+                    f'`label_size` equals to {self.label_size}!\n'
+                    f'But `{label.shape}` is received!'
+                )
 
         x = self.input0(image)
         for res_log2 in range(self.final_res_log2, self.init_res_log2 - 1, -1):
@@ -242,14 +284,14 @@ class MiniBatchSTDLayer(nn.Module):
             return x
         ng = min(self.group_size, x.shape[0])
         nc = self.new_channels
-        temp_c = x.shape[1] // nc                               # [NCHW]
+        temp_c = x.shape[1] // nc  # [NCHW]
         y = x.view(ng, -1, nc, temp_c, x.shape[2], x.shape[3])  # [GMncHW]
-        y = y - torch.mean(y, dim=0, keepdim=True)              # [GMncHW]
-        y = torch.mean(y ** 2, dim=0)                           # [MncHW]
-        y = torch.sqrt(y + self.epsilon)                        # [MncHW]
-        y = torch.mean(y, dim=[2, 3, 4], keepdim=True)          # [Mn111]
-        y = torch.mean(y, dim=2)                                # [Mn11]
-        y = y.repeat(ng, 1, x.shape[2], x.shape[3])             # [NnHW]
+        y = y - torch.mean(y, dim=0, keepdim=True)  # [GMncHW]
+        y = torch.mean(y**2, dim=0)  # [MncHW]
+        y = torch.sqrt(y + self.epsilon)  # [MncHW]
+        y = torch.mean(y, dim=[2, 3, 4], keepdim=True)  # [Mn111]
+        y = torch.mean(y, dim=2)  # [Mn11]
+        y = y.repeat(ng, 1, x.shape[2], x.shape[3])  # [NnHW]
         return torch.cat([x, y], dim=1)
 
 
@@ -280,8 +322,12 @@ class DownsamplingLayer(nn.Module):
         self.register_buffer('kernel', torch.from_numpy(kernel))
         self.kernel = self.kernel.flip(0, 1)
         padding = kernel.shape[2] - scale_factor + extra_padding
-        self.padding = ((padding + 1) // 2, padding // 2,
-                        (padding + 1) // 2, padding // 2)
+        self.padding = (
+            (padding + 1) // 2,
+            padding // 2,
+            (padding + 1) // 2,
+            padding // 2,
+        )
 
     def forward(self, x):
         assert x.ndim == 4
@@ -301,19 +347,21 @@ class ConvBlock(nn.Module):
     layer in sequence.
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 kernel_size=3,
-                 add_bias=True,
-                 scale_factor=1,
-                 filtering_kernel=(1, 3, 3, 1),
-                 use_wscale=True,
-                 wscale_gain=_WSCALE_GAIN,
-                 lr_mul=1.0,
-                 activation_type='lrelu',
-                 minibatch_std_group_size=0,
-                 minibatch_std_channels=1):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size=3,
+        add_bias=True,
+        scale_factor=1,
+        filtering_kernel=(1, 3, 3, 1),
+        use_wscale=True,
+        wscale_gain=_WSCALE_GAIN,
+        lr_mul=1.0,
+        activation_type='lrelu',
+        minibatch_std_group_size=0,
+        minibatch_std_channels=1,
+    ):
         """Initializes with block settings.
 
         Args:
@@ -343,16 +391,17 @@ class ConvBlock(nn.Module):
 
         if minibatch_std_group_size > 1:
             in_channels = in_channels + minibatch_std_channels
-            self.mbstd = MiniBatchSTDLayer(group_size=minibatch_std_group_size,
-                                           new_channels=minibatch_std_channels)
+            self.mbstd = MiniBatchSTDLayer(
+                group_size=minibatch_std_group_size, new_channels=minibatch_std_channels
+            )
         else:
             self.mbstd = nn.Identity()
 
         if scale_factor > 1:
             extra_padding = kernel_size - scale_factor
-            self.filter = DownsamplingLayer(scale_factor=1,
-                                            kernel=filtering_kernel,
-                                            extra_padding=extra_padding)
+            self.filter = DownsamplingLayer(
+                scale_factor=1, kernel=filtering_kernel, extra_padding=extra_padding
+            )
             self.stride = scale_factor
             self.padding = 0  # Padding is done in `DownsamplingLayer`.
         else:
@@ -368,8 +417,7 @@ class ConvBlock(nn.Module):
             self.weight = nn.Parameter(torch.randn(*weight_shape) / lr_mul)
             self.wscale = wscale * lr_mul
         else:
-            self.weight = nn.Parameter(
-                torch.randn(*weight_shape) * wscale / lr_mul)
+            self.weight = nn.Parameter(torch.randn(*weight_shape) * wscale / lr_mul)
             self.wscale = lr_mul
 
         if add_bias:
@@ -385,19 +433,18 @@ class ConvBlock(nn.Module):
             self.activate = nn.LeakyReLU(negative_slope=0.2, inplace=True)
             self.activate_scale = np.sqrt(2.0)
         else:
-            raise NotImplementedError(f'Not implemented activation function: '
-                                      f'`{activation_type}`!')
+            raise NotImplementedError(
+                f'Not implemented activation function: ' f'`{activation_type}`!'
+            )
 
     def forward(self, x):
         x = self.mbstd(x)
         x = self.filter(x)
         weight = self.weight * self.wscale
         bias = self.bias * self.bscale if self.bias is not None else None
-        x = F.conv2d(x,
-                     weight=weight,
-                     bias=bias,
-                     stride=self.stride,
-                     padding=self.padding)
+        x = F.conv2d(
+            x, weight=weight, bias=bias, stride=self.stride, padding=self.padding
+        )
         x = self.activate(x) * self.activate_scale
         return x
 
@@ -408,14 +455,16 @@ class DenseBlock(nn.Module):
     Basically, this block executes fully-connected layer and activation layer.
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 add_bias=True,
-                 use_wscale=True,
-                 wscale_gain=_WSCALE_GAIN,
-                 lr_mul=1.0,
-                 activation_type='lrelu'):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        add_bias=True,
+        use_wscale=True,
+        wscale_gain=_WSCALE_GAIN,
+        lr_mul=1.0,
+        activation_type='lrelu',
+    ):
         """Initializes with block settings.
 
         Args:
@@ -439,8 +488,7 @@ class DenseBlock(nn.Module):
             self.weight = nn.Parameter(torch.randn(*weight_shape) / lr_mul)
             self.wscale = wscale * lr_mul
         else:
-            self.weight = nn.Parameter(
-                torch.randn(*weight_shape) * wscale / lr_mul)
+            self.weight = nn.Parameter(torch.randn(*weight_shape) * wscale / lr_mul)
             self.wscale = lr_mul
 
         if add_bias:
@@ -456,8 +504,9 @@ class DenseBlock(nn.Module):
             self.activate = nn.LeakyReLU(negative_slope=0.2, inplace=True)
             self.activate_scale = np.sqrt(2.0)
         else:
-            raise NotImplementedError(f'Not implemented activation function: '
-                                      f'`{activation_type}`!')
+            raise NotImplementedError(
+                f'Not implemented activation function: ' f'`{activation_type}`!'
+            )
 
     def forward(self, x):
         if x.ndim != 2:

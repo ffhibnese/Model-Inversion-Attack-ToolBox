@@ -15,7 +15,7 @@ import dnnlib.tflib as tflib
 from metrics import metric_base
 from training import misc
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 classifier_urls = [
     'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-00-male.pkl',
@@ -60,12 +60,14 @@ classifier_urls = [
     'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-39-wearing-necktie.pkl',
 ]
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+
 
 def prob_normalize(p):
     p = np.asarray(p).astype(np.float32)
     assert len(p.shape) == 2
     return p / np.sum(p)
+
 
 def mutual_information(p):
     p = prob_normalize(p)
@@ -78,8 +80,9 @@ def mutual_information(p):
             p_xy = p[x][y]
             p_y = py[y]
             if p_xy > 0.0:
-                result += p_xy * np.log2(p_xy / (p_x * p_y)) # get bits as output
+                result += p_xy * np.log2(p_xy / (p_x * p_y))  # get bits as output
     return result
+
 
 def entropy(p):
     p = prob_normalize(p)
@@ -91,17 +94,24 @@ def entropy(p):
                 result -= p_xy * np.log2(p_xy)
     return result
 
+
 def conditional_entropy(p):
     # H(Y|X) where X corresponds to axis 0, Y to axis 1
     # i.e., How many bits of additional information are needed to where we are on axis 1 if we know where we are on axis 0?
     p = prob_normalize(p)
-    y = np.sum(p, axis=0, keepdims=True) # marginalize to calculate H(Y)
-    return max(0.0, entropy(y) - mutual_information(p)) # can slip just below 0 due to FP inaccuracies, clean those up.
+    y = np.sum(p, axis=0, keepdims=True)  # marginalize to calculate H(Y)
+    return max(
+        0.0, entropy(y) - mutual_information(p)
+    )  # can slip just below 0 due to FP inaccuracies, clean those up.
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+
 
 class LS(metric_base.MetricBase):
-    def __init__(self, num_samples, num_keep, attrib_indices, minibatch_per_gpu, **kwargs):
+    def __init__(
+        self, num_samples, num_keep, attrib_indices, minibatch_per_gpu, **kwargs
+    ):
         assert num_keep <= num_samples
         super().__init__(**kwargs)
         self.num_samples = num_samples
@@ -119,19 +129,33 @@ class LS(metric_base.MetricBase):
                 Gs_clone = Gs.clone()
 
                 # Generate images.
-                latents = tf.random_normal([self.minibatch_per_gpu] + Gs_clone.input_shape[1:])
+                latents = tf.random_normal(
+                    [self.minibatch_per_gpu] + Gs_clone.input_shape[1:]
+                )
                 labels = self._get_random_labels_tf(self.minibatch_per_gpu)
-                dlatents = Gs_clone.components.mapping.get_output_for(latents, labels, **Gs_kwargs)
+                dlatents = Gs_clone.components.mapping.get_output_for(
+                    latents, labels, **Gs_kwargs
+                )
                 images = Gs_clone.get_output_for(latents, None, **Gs_kwargs)
 
                 # Downsample to 256x256. The attribute classifiers were built for 256x256.
                 if images.shape[2] > 256:
                     factor = images.shape[2] // 256
-                    images = tf.reshape(images, [-1, images.shape[1], images.shape[2] // factor, factor, images.shape[3] // factor, factor])
+                    images = tf.reshape(
+                        images,
+                        [
+                            -1,
+                            images.shape[1],
+                            images.shape[2] // factor,
+                            factor,
+                            images.shape[3] // factor,
+                            factor,
+                        ],
+                    )
                     images = tf.reduce_mean(images, axis=[3, 5])
 
                 # Run classifier for each attribute.
-                result_dict = dict(latents=latents, dlatents=dlatents[:,-1])
+                result_dict = dict(latents=latents, dlatents=dlatents[:, -1])
                 for attrib_idx in self.attrib_indices:
                     classifier = misc.load_pkl(classifier_urls[attrib_idx])
                     logits = classifier.get_output_for(images, None)
@@ -144,15 +168,20 @@ class LS(metric_base.MetricBase):
         for begin in range(0, self.num_samples, minibatch_size):
             self._report_progress(begin, self.num_samples)
             results += tflib.run(result_expr)
-        results = {key: np.concatenate([value[key] for value in results], axis=0) for key in results[0].keys()}
+        results = {
+            key: np.concatenate([value[key] for value in results], axis=0)
+            for key in results[0].keys()
+        }
 
         # Calculate conditional entropy for each attribute.
         conditional_entropies = defaultdict(list)
         for attrib_idx in self.attrib_indices:
             # Prune the least confident samples.
             pruned_indices = list(range(self.num_samples))
-            pruned_indices = sorted(pruned_indices, key=lambda i: -np.max(results[attrib_idx][i]))
-            pruned_indices = pruned_indices[:self.num_keep]
+            pruned_indices = sorted(
+                pruned_indices, key=lambda i: -np.max(results[attrib_idx][i])
+            )
+            pruned_indices = pruned_indices[: self.num_keep]
 
             # Fit SVM to the remaining samples.
             svm_targets = np.argmax(results[attrib_idx][pruned_indices], axis=1)
@@ -164,15 +193,29 @@ class LS(metric_base.MetricBase):
                     svm.score(svm_inputs, svm_targets)
                     svm_outputs = svm.predict(svm_inputs)
                 except:
-                    svm_outputs = svm_targets # assume perfect prediction
+                    svm_outputs = svm_targets  # assume perfect prediction
 
                 # Calculate conditional entropy.
-                p = [[np.mean([case == (row, col) for case in zip(svm_outputs, svm_targets)]) for col in (0, 1)] for row in (0, 1)]
+                p = [
+                    [
+                        np.mean(
+                            [
+                                case == (row, col)
+                                for case in zip(svm_outputs, svm_targets)
+                            ]
+                        )
+                        for col in (0, 1)
+                    ]
+                    for row in (0, 1)
+                ]
                 conditional_entropies[space].append(conditional_entropy(p))
 
         # Calculate separability scores.
-        scores = {key: 2**np.sum(values) for key, values in conditional_entropies.items()}
+        scores = {
+            key: 2 ** np.sum(values) for key, values in conditional_entropies.items()
+        }
         self._report_result(scores['latents'], suffix='_z')
         self._report_result(scores['dlatents'], suffix='_w')
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------

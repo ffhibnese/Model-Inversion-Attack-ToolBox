@@ -4,12 +4,22 @@ import torch.nn.functional as F
 import torch.nn.init as init
 from torch.nn import Parameter
 
+
 class LinearWeightNorm(torch.nn.Module):
-    def __init__(self, in_features, out_features, bias=True, weight_scale=None, weight_init_stdv=0.1):
+    def __init__(
+        self,
+        in_features,
+        out_features,
+        bias=True,
+        weight_scale=None,
+        weight_init_stdv=0.1,
+    ):
         super(LinearWeightNorm, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
-        self.weight = Parameter(torch.randn(out_features, in_features) * weight_init_stdv)
+        self.weight = Parameter(
+            torch.randn(out_features, in_features) * weight_init_stdv
+        )
         if bias:
             self.bias = Parameter(torch.zeros(out_features))
         else:
@@ -21,14 +31,25 @@ class LinearWeightNorm(torch.nn.Module):
             self.weight_scale = 1
 
     def forward(self, x):
-        W = self.weight * self.weight_scale / torch.sqrt(torch.sum(self.weight ** 2, dim=1, keepdim=True))
+        W = (
+            self.weight
+            * self.weight_scale
+            / torch.sqrt(torch.sum(self.weight**2, dim=1, keepdim=True))
+        )
         return F.linear(x, W, self.bias)
 
     def __repr__(self):
-        return self.__class__.__name__ + '(' \
-               + 'in_features=' + str(self.in_features) \
-               + ', out_features=' + str(self.out_features) \
-               + ', weight_scale=' + str(self.weight_scale) + ')'
+        return (
+            self.__class__.__name__
+            + '('
+            + 'in_features='
+            + str(self.in_features)
+            + ', out_features='
+            + str(self.out_features)
+            + ', weight_scale='
+            + str(self.weight_scale)
+            + ')'
+        )
 
 
 class MinibatchDiscrimination(nn.Module):
@@ -51,7 +72,7 @@ class MinibatchDiscrimination(nn.Module):
         M_T = M.permute(1, 0, 2, 3)  # Nx1xBxC
         norm = torch.abs(M - M_T).sum(3)  # NxNxB
         expnorm = torch.exp(-norm)
-        o_b = (expnorm.sum(0) - 1)  # NxB, subtract self distance
+        o_b = expnorm.sum(0) - 1  # NxB, subtract self distance
         if self.mean:
             o_b /= x.size(0) - 1
 
@@ -70,7 +91,8 @@ class MinibatchDiscriminator(nn.Module):
                 # Since there is no effective implementation of LayerNorm,
                 # we use InstanceNorm2d instead of LayerNorm here.
                 nn.InstanceNorm2d(out_dim, affine=True),
-                nn.LeakyReLU(0.2))
+                nn.LeakyReLU(0.2),
+            )
 
         self.layer1 = conv_ln_lrelu(in_dim, dim, 5, 2, 2)
         self.layer2 = conv_ln_lrelu(dim, dim * 2, 5, 2, 2)
@@ -110,7 +132,8 @@ class Discriminator(nn.Module):
                 # Since there is no effective implementation of LayerNorm,
                 # we use InstanceNorm2d instead of LayerNorm here.
                 nn.InstanceNorm2d(out_dim, affine=True),
-                nn.LeakyReLU(0.2))
+                nn.LeakyReLU(0.2),
+            )
 
         self.layer1 = conv_ln_lrelu(in_dim, dim, 5, 2, 2)
         self.layer2 = conv_ln_lrelu(dim, dim * 2, 5, 2, 2)
@@ -163,7 +186,8 @@ class DGWGAN32(nn.Module):
                 # Since there is no effective implementation of LayerNorm,
                 # we use InstanceNorm2d instead of LayerNorm here.
                 nn.InstanceNorm2d(out_dim, affine=True),
-                nn.LeakyReLU(0.2))
+                nn.LeakyReLU(0.2),
+            )
 
         self.layer1 = nn.Sequential(nn.Conv2d(in_dim, dim, 5, 2, 2), nn.LeakyReLU(0.2))
         self.layer2 = conv_ln_lrelu(dim, dim * 2)
@@ -189,14 +213,17 @@ class DGWGAN(nn.Module):
                 # Since there is no effective implementation of LayerNorm,
                 # we use InstanceNorm2d instead of LayerNorm here.
                 nn.InstanceNorm2d(out_dim, affine=True),
-                nn.LeakyReLU(0.2))
+                nn.LeakyReLU(0.2),
+            )
 
         self.ls = nn.Sequential(
-            nn.Conv2d(in_dim, dim, 5, 2, 2), nn.LeakyReLU(0.2),
+            nn.Conv2d(in_dim, dim, 5, 2, 2),
+            nn.LeakyReLU(0.2),
             conv_ln_lrelu(dim, dim * 2),
             conv_ln_lrelu(dim * 2, dim * 4),
             conv_ln_lrelu(dim * 4, dim * 8),
-            nn.Conv2d(dim * 8, 1, 4))
+            nn.Conv2d(dim * 8, 1, 4),
+        )
 
     def forward(self, x):
         y = self.ls(x)
@@ -214,7 +241,8 @@ class DLWGAN(nn.Module):
                 # Since there is no effective implementation of LayerNorm,
                 # we use InstanceNorm2d instead of LayerNorm here.
                 nn.InstanceNorm2d(out_dim, affine=True),
-                nn.LeakyReLU(0.2))
+                nn.LeakyReLU(0.2),
+            )
 
         self.layer1 = nn.Sequential(nn.Conv2d(in_dim, dim, 5, 2, 2), nn.LeakyReLU(0.2))
         self.layer2 = conv_ln_lrelu(dim, dim * 2)
@@ -240,7 +268,7 @@ class MyDiscriminator(nn.Module):
             nn.Linear(256, 128),
             nn.ReLU(),
             nn.Linear(128, 1),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         ]
         self.model = nn.Sequential(*model)
 
@@ -270,7 +298,7 @@ class MyDiscriminator2(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*8) x 4 x 4
             nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, input):

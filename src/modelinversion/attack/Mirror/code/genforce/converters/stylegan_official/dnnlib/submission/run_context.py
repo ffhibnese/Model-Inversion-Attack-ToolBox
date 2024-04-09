@@ -32,7 +32,12 @@ class RunContext(object):
         max_epoch: Optional cached value for the max_epoch variable used in update.
     """
 
-    def __init__(self, submit_config: submit.SubmitConfig, config_module: types.ModuleType = None, max_epoch: Any = None):
+    def __init__(
+        self,
+        submit_config: submit.SubmitConfig,
+        config_module: types.ModuleType = None,
+        max_epoch: Any = None,
+    ):
         self.submit_config = submit_config
         self.should_stop_flag = False
         self.has_closed = False
@@ -44,13 +49,35 @@ class RunContext(object):
         # pretty print the all the relevant content of the config module to a text file
         if config_module is not None:
             with open(os.path.join(submit_config.run_dir, "config.txt"), "w") as f:
-                filtered_dict = {k: v for k, v in config_module.__dict__.items() if not k.startswith("_") and not isinstance(v, (types.ModuleType, types.FunctionType, types.LambdaType, submit.SubmitConfig, type))}
-                pprint.pprint(filtered_dict, stream=f, indent=4, width=200, compact=False)
+                filtered_dict = {
+                    k: v
+                    for k, v in config_module.__dict__.items()
+                    if not k.startswith("_")
+                    and not isinstance(
+                        v,
+                        (
+                            types.ModuleType,
+                            types.FunctionType,
+                            types.LambdaType,
+                            submit.SubmitConfig,
+                            type,
+                        ),
+                    )
+                }
+                pprint.pprint(
+                    filtered_dict, stream=f, indent=4, width=200, compact=False
+                )
 
         # write out details about the run to a text file
-        self.run_txt_data = {"task_name": submit_config.task_name, "host_name": submit_config.host_name, "start_time": datetime.datetime.now().isoformat(sep=" ")}
+        self.run_txt_data = {
+            "task_name": submit_config.task_name,
+            "host_name": submit_config.host_name,
+            "start_time": datetime.datetime.now().isoformat(sep=" "),
+        }
         with open(os.path.join(submit_config.run_dir, "run.txt"), "w") as f:
-            pprint.pprint(self.run_txt_data, stream=f, indent=4, width=200, compact=False)
+            pprint.pprint(
+                self.run_txt_data, stream=f, indent=4, width=200, compact=False
+            )
 
     def __enter__(self) -> "RunContext":
         return self
@@ -94,6 +121,8 @@ class RunContext(object):
             # update the run.txt with stopping time
             self.run_txt_data["stop_time"] = datetime.datetime.now().isoformat(sep=" ")
             with open(os.path.join(self.submit_config.run_dir, "run.txt"), "w") as f:
-                pprint.pprint(self.run_txt_data, stream=f, indent=4, width=200, compact=False)
+                pprint.pprint(
+                    self.run_txt_data, stream=f, indent=4, width=200, compact=False
+                )
 
             self.has_closed = True

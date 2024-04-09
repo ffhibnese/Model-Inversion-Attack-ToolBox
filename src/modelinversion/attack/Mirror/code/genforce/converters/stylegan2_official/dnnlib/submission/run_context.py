@@ -20,6 +20,7 @@ from . import submit
 # Singleton RunContext
 _run_context = None
 
+
 class RunContext(object):
     """Helper class for managing the run/training loop.
 
@@ -32,7 +33,9 @@ class RunContext(object):
         config_module: (deprecated) The whole config module that is used for the current run.
     """
 
-    def __init__(self, submit_config: submit.SubmitConfig, config_module: types.ModuleType = None):
+    def __init__(
+        self, submit_config: submit.SubmitConfig, config_module: types.ModuleType = None
+    ):
         global _run_context
         # Only a single RunContext can be alive
         assert _run_context is None
@@ -50,9 +53,15 @@ class RunContext(object):
             print("RunContext.config_module parameter support has been removed.")
 
         # write out details about the run to a text file
-        self.run_txt_data = {"task_name": submit_config.task_name, "host_name": submit_config.host_name, "start_time": datetime.datetime.now().isoformat(sep=" ")}
+        self.run_txt_data = {
+            "task_name": submit_config.task_name,
+            "host_name": submit_config.host_name,
+            "start_time": datetime.datetime.now().isoformat(sep=" "),
+        }
         with open(os.path.join(submit_config.run_dir, "run.txt"), "w") as f:
-            pprint.pprint(self.run_txt_data, stream=f, indent=4, width=200, compact=False)
+            pprint.pprint(
+                self.run_txt_data, stream=f, indent=4, width=200, compact=False
+            )
 
     def __enter__(self) -> "RunContext":
         return self
@@ -94,7 +103,9 @@ class RunContext(object):
             # update the run.txt with stopping time
             self.run_txt_data["stop_time"] = datetime.datetime.now().isoformat(sep=" ")
             with open(os.path.join(self.submit_config.run_dir, "run.txt"), "w") as f:
-                pprint.pprint(self.run_txt_data, stream=f, indent=4, width=200, compact=False)
+                pprint.pprint(
+                    self.run_txt_data, stream=f, indent=4, width=200, compact=False
+                )
             self.has_closed = True
 
             # detach the global singleton
@@ -105,6 +116,7 @@ class RunContext(object):
     @staticmethod
     def get():
         import dnnlib
+
         if _run_context is not None:
             return _run_context
         return RunContext(dnnlib.submit_config)

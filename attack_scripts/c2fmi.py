@@ -47,15 +47,12 @@ if __name__ == "__main__":
         gan_path=gan_name,
         emb_path=emb_name,
         p2f_pth=p2f_name,
-        
         ckpt_dir=ckpt_dir,
         dataset_dir=dataset_dir,
         result_dir=result_dir,
         cache_dir=work_dir,
-        
         dataset_name=dataset_name,
         gan_dataset_name=gan_dataset_name,
-        
         batch_size=batch_size,
         target_labels=target_labels,
         device=device,

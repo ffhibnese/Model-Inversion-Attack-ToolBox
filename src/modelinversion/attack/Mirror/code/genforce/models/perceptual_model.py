@@ -71,11 +71,13 @@ class PerceptualModel(nn.Module):
     NOTE: The three fully connected layers on top of the model are dropped.
     """
 
-    def __init__(self,
-                 output_layer_idx=23,
-                 min_val=-1.0,
-                 max_val=1.0,
-                 pretrained_weight_path=None):
+    def __init__(
+        self,
+        output_layer_idx=23,
+        min_val=-1.0,
+        max_val=1.0,
+        pretrained_weight_path=None,
+    ):
         """Defines the network structure.
 
         Args:
@@ -88,39 +90,43 @@ class PerceptualModel(nn.Module):
                 (default: None)
         """
         super().__init__()
-        self.vgg16 = nn.Sequential(OrderedDict({
-            'layer0': nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
-            'layer1': nn.ReLU(inplace=True),
-            'layer2': nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
-            'layer3': nn.ReLU(inplace=True),
-            'layer4': nn.MaxPool2d(kernel_size=2, stride=2),
-            'layer5': nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
-            'layer6': nn.ReLU(inplace=True),
-            'layer7': nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
-            'layer8': nn.ReLU(inplace=True),
-            'layer9': nn.MaxPool2d(kernel_size=2, stride=2),
-            'layer10': nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
-            'layer11': nn.ReLU(inplace=True),
-            'layer12': nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
-            'layer13': nn.ReLU(inplace=True),
-            'layer14': nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
-            'layer15': nn.ReLU(inplace=True),
-            'layer16': nn.MaxPool2d(kernel_size=2, stride=2),
-            'layer17': nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
-            'layer18': nn.ReLU(inplace=True),
-            'layer19': nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
-            'layer20': nn.ReLU(inplace=True),
-            'layer21': nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
-            'layer22': nn.ReLU(inplace=True),
-            'layer23': nn.MaxPool2d(kernel_size=2, stride=2),
-            'layer24': nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
-            'layer25': nn.ReLU(inplace=True),
-            'layer26': nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
-            'layer27': nn.ReLU(inplace=True),
-            'layer28': nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
-            'layer29': nn.ReLU(inplace=True),
-            'layer30': nn.MaxPool2d(kernel_size=2, stride=2),
-        }))
+        self.vgg16 = nn.Sequential(
+            OrderedDict(
+                {
+                    'layer0': nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
+                    'layer1': nn.ReLU(inplace=True),
+                    'layer2': nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+                    'layer3': nn.ReLU(inplace=True),
+                    'layer4': nn.MaxPool2d(kernel_size=2, stride=2),
+                    'layer5': nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+                    'layer6': nn.ReLU(inplace=True),
+                    'layer7': nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+                    'layer8': nn.ReLU(inplace=True),
+                    'layer9': nn.MaxPool2d(kernel_size=2, stride=2),
+                    'layer10': nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
+                    'layer11': nn.ReLU(inplace=True),
+                    'layer12': nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
+                    'layer13': nn.ReLU(inplace=True),
+                    'layer14': nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
+                    'layer15': nn.ReLU(inplace=True),
+                    'layer16': nn.MaxPool2d(kernel_size=2, stride=2),
+                    'layer17': nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
+                    'layer18': nn.ReLU(inplace=True),
+                    'layer19': nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
+                    'layer20': nn.ReLU(inplace=True),
+                    'layer21': nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
+                    'layer22': nn.ReLU(inplace=True),
+                    'layer23': nn.MaxPool2d(kernel_size=2, stride=2),
+                    'layer24': nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
+                    'layer25': nn.ReLU(inplace=True),
+                    'layer26': nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
+                    'layer27': nn.ReLU(inplace=True),
+                    'layer28': nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
+                    'layer29': nn.ReLU(inplace=True),
+                    'layer30': nn.MaxPool2d(kernel_size=2, stride=2),
+                }
+            )
+        )
         self.output_layer_idx = output_layer_idx
         self.min_val = min_val
         self.max_val = max_val
@@ -130,7 +136,8 @@ class PerceptualModel(nn.Module):
         self.pretrained_weight_path = pretrained_weight_path
         if os.path.isfile(self.pretrained_weight_path):
             self.vgg16.load_state_dict(
-                torch.load(self.pretrained_weight_path, map_location='cpu'))
+                torch.load(self.pretrained_weight_path, map_location='cpu')
+            )
         else:
             warnings.warn('No pre-trained weights found for perceptual model!')
 

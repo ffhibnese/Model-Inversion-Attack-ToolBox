@@ -26,13 +26,16 @@ from tensorboardX import SummaryWriter
 
 ld_input_size, cn_input_size = 32, 64
 
+
 def freeze(net):
     for p in net.parameters():
-        p.requires_grad_(False) 
+        p.requires_grad_(False)
+
 
 def unfreeze(net):
     for p in net.parameters():
-        p.requires_grad_(True) 
+        p.requires_grad_(True)
+
 
 def loadnet(net):
     CNet = ContextNetwork().cuda()
@@ -46,10 +49,10 @@ def loadnet(net):
     ckp_i = torch.load(i_path)
     load_my_state_dict(CNet, ckp_c['state_dict'])
     load_my_state_dict(IdenG, ckp_i['state_dict'])
-    
+
     own_state = net.state_dict()
     C_list, I_list = [], []
-    
+
     for n, p in CNet.named_parameters():
         C_list.append([n, p])
     pos = 0
@@ -58,7 +61,7 @@ def loadnet(net):
             print(name)
             own_state[name].copy_(C_list[pos][1].data)
             pos += 1
-    
+
     for n, p in IdenG.named_parameters():
         I_list.append([n, p])
     pos = 0
@@ -72,9 +75,9 @@ def loadnet(net):
 def test_model(test_set, net, iter_times):
     global mpv
     with torch.no_grad():
-        #print(len(test_set))
+        # print(len(test_set))
         x = sample_random_batch(test_set, batch_size=32).to(device)
-        
+
         img_size, bs = x.size(2), x.size(0)
         mask = get_mask(img_size, bs, opt.mask)
         x_mask = x - x * mask + mpv * mask
@@ -91,6 +94,7 @@ def test_model(test_set, net, iter_times):
         imgpath = os.path.join(result_img_dir, 'm1_step%d.png' % iter_times)
         save_tensor_images(imgs, imgpath, nrow=bs)
 
+
 def gradient_penalty_dl(x, y):
     # interpolation
     shape = [x.size(0)] + [1] * (x.dim() - 1)
@@ -100,10 +104,13 @@ def gradient_penalty_dl(x, y):
     z.requires_grad = True
 
     __, o = DL(z)
-    g = grad(o, z, grad_outputs = torch.ones(o.size()).cuda(), create_graph = True)[0].view(z.size(0), -1)
-    gp = ((g.norm(p = 2, dim = 1) - 1) ** 2).mean()
+    g = grad(o, z, grad_outputs=torch.ones(o.size()).cuda(), create_graph=True)[0].view(
+        z.size(0), -1
+    )
+    gp = ((g.norm(p=2, dim=1) - 1) ** 2).mean()
 
     return gp
+
 
 def gradient_penalty_dg(x, y):
     # interpolation
@@ -112,18 +119,32 @@ def gradient_penalty_dg(x, y):
     z = x + alpha * (y - x)
     z = z.cuda()
     z.requires_grad = True
-    
+
     __, o = DG(z)
-    g = grad(o, z, grad_outputs = torch.ones(o.size()).cuda(), create_graph = True)[0].view(z.size(0), -1)
-    gp = ((g.norm(p = 2, dim = 1) - 1) ** 2).mean()
+    g = grad(o, z, grad_outputs=torch.ones(o.size()).cuda(), create_graph=True)[0].view(
+        z.size(0), -1
+    )
+    gp = ((g.norm(p=2, dim=1) - 1) ** 2).mean()
 
     return gp
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', type=str, default='vgg16', choices=['resnet152', 'vgg16', 'ir50', 'ViT-B_16'], help='type of model to use')
+parser.add_argument(
+    '--name',
+    type=str,
+    default='vgg16',
+    choices=['resnet152', 'vgg16', 'ir50', 'ViT-B_16'],
+    help='type of model to use',
+)
 parser.add_argument('--bb', action='store_true', help='whether blackbox access')
-parser.add_argument('--mask', type=str, default='center', choices=['center', 'face'], help='type of mask')
+parser.add_argument(
+    '--mask',
+    type=str,
+    default='center',
+    choices=['center', 'face'],
+    help='type of mask',
+)
 opt = parser.parse_args()
 print(opt)
 
@@ -187,7 +208,6 @@ data_set, data_loader = init_dataloader(batch_size, split='pub')
 test_set, test_loader = init_dataloader(batch_size, split='pub-dev')
 
 
-
 # ================================================
 # Training Phase 1
 # ================================================
@@ -203,14 +223,14 @@ DG = DGWGAN().cuda()
 # Net.load_state_dict(torch.load(osp.join(result_model_dir, 'Inversion_xxx.tar'))['state_dict'])
 
 Net = torch.nn.DataParallel(Net)
-DL = torch.nn.DataParallel(DL)#.cuda()
-DG = torch.nn.DataParallel(DG)#.cuda()
+DL = torch.nn.DataParallel(DL)  # .cuda()
+DG = torch.nn.DataParallel(DG)  # .cuda()
 
 dl_optimizer = torch.optim.Adam(DL.parameters(), lr=lr, betas=(0.5, 0.999))
 dg_optimizer = torch.optim.Adam(DG.parameters(), lr=lr, betas=(0.5, 0.999))
-net_optimizer = Adam(Net.parameters(), lr=lr, betas=(0.5,0.999))
+net_optimizer = Adam(Net.parameters(), lr=lr, betas=(0.5, 0.999))
 
-#print(Net)
+# print(Net)
 
 # loadnet(Net)
 
@@ -227,9 +247,13 @@ if not opt.bb:
         V = VisionTransformer(CONFIGS[opt.name], num_classes=num_classes)
 
     if opt.bb:
-        V.load_state_dict(torch.load(osp.join('premodels', f'{opt.name}-pub.tar'))['state_dict'])
+        V.load_state_dict(
+            torch.load(osp.join('premodels', f'{opt.name}-pub.tar'))['state_dict']
+        )
     else:
-        V.load_state_dict(torch.load(osp.join('premodels', f'{opt.name}-pri.tar'))['state_dict'])
+        V.load_state_dict(
+            torch.load(osp.join('premodels', f'{opt.name}-pri.tar'))['state_dict']
+        )
 else:
     V = FaceNet(num_classes=num_classes)
     V.feature.load_state_dict(torch.load('premodels/ir50.pth'))
@@ -256,7 +280,7 @@ total_iter = 0
 writer = SummaryWriter(log_dir=osp.join("logs", f'{opt.name}_stage1'))
 
 for epoch in epoch_bar:
-    
+
     dl = AverageMeter()
     dg = AverageMeter()
     gan = AverageMeter()
@@ -276,11 +300,11 @@ for epoch in epoch_bar:
             continue
 
         # train dl
-        
+
         freeze(DG)
         freeze(Net)
         unfreeze(DL)
-        
+
         mask = get_mask(img_size, bs, opt.mask)
         x_mask = x - x * mask + mpv * mask
         inp = torch.cat((x_mask, mask), dim=1)
@@ -288,33 +312,30 @@ for epoch in epoch_bar:
         output = Net((inp, z))
         output = x - x * mask + output * mask
 
-        hole_area = gen_hole_area((ld_input_size, ld_input_size), (x.shape[3], x.shape[2]))
+        hole_area = gen_hole_area(
+            (ld_input_size, ld_input_size), (x.shape[3], x.shape[2])
+        )
         fake_crop = crop(output, hole_area)
         real_crop = crop(x, hole_area)
 
         __, r_logit = DL(real_crop)
         __, f_logit = DL(fake_crop)
         wd = r_logit.mean() - f_logit.mean()  # Wasserstein-1 Distance
-        
+
         gp = gradient_penalty_dl(fake_crop.data, real_crop.data)
-        dl_loss = - wd + gp * 10.0
+        dl_loss = -wd + gp * 10.0
         dl.update(dl_loss.detach().cpu().numpy(), bs)
-        
+
         dl_optimizer.zero_grad()
         dl_loss.backward()
         dl_optimizer.step()
-        
-        
-        
 
-        
-        #train dg
-        
+        # train dg
+
         freeze(DL)
         freeze(Net)
         unfreeze(DG)
 
-        
         mask = get_mask(img_size, bs, opt.mask)
         x_mask = x - x * mask + mpv * mask
         inp = torch.cat((x_mask, mask), dim=1)
@@ -325,19 +346,16 @@ for epoch in epoch_bar:
         __, r_logit = DG(x)
         __, f_logit = DG(output)
         wd = r_logit.mean() - f_logit.mean()  # Wasserstein-1 Distance
-        
+
         gp = gradient_penalty_dg(x.data, output.data)
-        dg_loss = - wd + gp * 10.0
+        dg_loss = -wd + gp * 10.0
         dg.update(dg_loss.detach().cpu().numpy(), bs)
 
         dg_optimizer.zero_grad()
         dg_loss.backward()
         dg_optimizer.step()
-        
-        
-        
+
         # train G
-        
 
         freeze(DL)
         freeze(DG)
@@ -350,13 +368,15 @@ for epoch in epoch_bar:
         output1 = Net((inp, z1))
         output1 = x - x * mask + output1 * mask
 
-        hole_area = gen_hole_area((ld_input_size, ld_input_size), (x.shape[3], x.shape[2]))
+        hole_area = gen_hole_area(
+            (ld_input_size, ld_input_size), (x.shape[3], x.shape[2])
+        )
         fake_crop = crop(output1, hole_area)
-        
+
         fl1, logit_dl = DL(fake_crop)
         fg1, logit_dg = DG(output1)
         # calculate g_loss
-        gan_loss = (- logit_dl.mean() - logit_dg.mean()) / 2
+        gan_loss = (-logit_dl.mean() - logit_dg.mean()) / 2
         re_loss = completion_network_loss(x, output1, mask)
 
         z2 = torch.randn(bs, z_dim).cuda()
@@ -378,28 +398,42 @@ for epoch in epoch_bar:
         re.update(re_loss.detach().cpu().numpy(), bs)
         if not opt.bb:
             diff.update(diff_loss.detach().cpu().numpy(), bs)
-        
-        pbar.set_description("gan_loss:{:.3f}, re_loss:{:.3f}, diff_loss:{:.3f}".format(gan_loss, re_loss, diff_loss))
+
+        pbar.set_description(
+            "gan_loss:{:.3f}, re_loss:{:.3f}, diff_loss:{:.3f}".format(
+                gan_loss, re_loss, diff_loss
+            )
+        )
 
         net_optimizer.zero_grad()
         loss.backward()
         net_optimizer.step()
 
-        writer.add_scalars('G', {'loss': loss, 'gan_loss': gan_loss, 'diff_loss': diff_loss}, total_iter)
+        writer.add_scalars(
+            'G',
+            {'loss': loss, 'gan_loss': gan_loss, 'diff_loss': diff_loss},
+            total_iter,
+        )
         writer.add_scalars('D', {'D_global': dg_loss, 'D_local': dl_loss}, total_iter)
 
         total_iter += 1
-        
 
     interval = time.time() - st
     st = time.time()
     test_model(test_set, Net, epoch)
-    epoch_bar.set_description("Epoch:{}\tTime:{:.2f}\tgan:{:.2f}\tre:{:.2f}\tdiff:{:.2f}".format(
-        epoch, interval, float(gan.avg), float(re.avg), float(diff.avg)
-        ))       
-    
-    torch.save({'state_dict':Net.module.state_dict()}, result_model_dir + '/' + "Inversion_xxx.tar")
-    torch.save({'state_dict':DG.module.state_dict()}, result_model_dir + '/' + "DG_xxx.tar")
-    torch.save({'state_dict':DL.module.state_dict()}, result_model_dir + '/' + "DL_xxx.tar")
+    epoch_bar.set_description(
+        "Epoch:{}\tTime:{:.2f}\tgan:{:.2f}\tre:{:.2f}\tdiff:{:.2f}".format(
+            epoch, interval, float(gan.avg), float(re.avg), float(diff.avg)
+        )
+    )
 
-    
+    torch.save(
+        {'state_dict': Net.module.state_dict()},
+        result_model_dir + '/' + "Inversion_xxx.tar",
+    )
+    torch.save(
+        {'state_dict': DG.module.state_dict()}, result_model_dir + '/' + "DG_xxx.tar"
+    )
+    torch.save(
+        {'state_dict': DL.module.state_dict()}, result_model_dir + '/' + "DL_xxx.tar"
+    )

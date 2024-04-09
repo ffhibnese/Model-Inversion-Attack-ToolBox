@@ -1,4 +1,6 @@
-import sys; sys.path.append('../stylegan2-ada-pytorch')
+import sys
+
+sys.path.append('../stylegan2-ada-pytorch')
 import legacy
 import dnnlib
 import os
@@ -7,6 +9,7 @@ import argparse
 import torchvision.utils as vutils
 from evaluate_samples_chestxray import load_class_balanced_real_data
 from fid import run_fid
+
 device = 'cuda:0'
 
 
@@ -23,7 +26,6 @@ with torch.no_grad():
     w_nuisance = G.mapping(z_nuisance, None)
     x = G.synthesis(w_nuisance, noise_mode=noise_mode)
 vutils.save_image(x, 'cdb.jpeg', normalize=True)
-
 
 
 # FID

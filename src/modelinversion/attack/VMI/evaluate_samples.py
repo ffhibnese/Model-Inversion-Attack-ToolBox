@@ -38,8 +38,7 @@ def _load_real_cache():
 
 
 def _load_samples_pt(args, fprefix):
-    fake, fake_y = torch.load(
-        f'{fprefix}.pt')
+    fake, fake_y = torch.load(f'{fprefix}.pt')
     assert len(fake) == len(fake_y)
     return (fake, fake_y)
 
@@ -56,6 +55,7 @@ def add_color_border(x, ratio=0.05, c=[0, 1, 0]):
         xp[0] = c[0]
         xp[1] = c[1]
         xp[2] = c[2]
+
     set_color(x[:, :, :B])
     set_color(x[:, :, -B:])
     set_color(x[:, :B, :])
@@ -98,7 +98,7 @@ def main(args):
 
         prcd_runner = PRCD(
             lambda x: run_feature_extractor(postprocess(x.cuda())),
-            target_x[target_y == id]
+            target_x[target_y == id],
         )
         fake_c = fake[fake_y == id]
         D = prcd_runner.evaluate(fake_c)
@@ -112,7 +112,8 @@ def main(args):
 
     # Evaluation Accuracy
     evaluation_classifier = PretrainedInsightFaceClassifier(
-        'cuda:0', pad=bool(args.eval_cls_pad))
+        'cuda:0', pad=bool(args.eval_cls_pad)
+    )
 
     acc_results = {}
     top5_acc_results = {}
@@ -146,20 +147,24 @@ def main(args):
     df = pandas.DataFrame({fname: results})
     df.to_csv(f'results/stats/evaluate_samples/nclass{args.nclass}/{fname}.csv')
     acc_df = pandas.DataFrame({fname: acc_results})
-    acc_df.to_csv(f'results/stats/evaluate_samples/nclass{args.nclass}/{fname}-accs.csv')
+    acc_df.to_csv(
+        f'results/stats/evaluate_samples/nclass{args.nclass}/{fname}-accs.csv'
+    )
     acc_df = pandas.DataFrame({fname: top5_acc_results})
-    acc_df.to_csv(f'results/stats/evaluate_samples/nclass{args.nclass}/{fname}-t5accs.csv')
+    acc_df.to_csv(
+        f'results/stats/evaluate_samples/nclass{args.nclass}/{fname}-t5accs.csv'
+    )
 
 
 def compute_entropy(p, epsilon=1e-4):
-    p = p * (1 - epsilon) + .5 * epsilon
-    return - p * torch.log(p)
+    p = p * (1 - epsilon) + 0.5 * epsilon
+    return -p * torch.log(p)
 
 
 def compute_kl(p, q, epsilon=1e-4):
     # Avoid 0
-    p = p * (1 - epsilon) + .5 * epsilon
-    q = q * (1 - epsilon) + .5 * epsilon
+    p = p * (1 - epsilon) + 0.5 * epsilon
+    q = q * (1 - epsilon) + 0.5 * epsilon
     return torch.mean(p * (torch.log(p) - torch.log(q)))
 
 
@@ -179,24 +184,25 @@ def main_plot(args):
         for id in range(id_start, id_start + args.every_nclass):
             mask = fake_y == id
             if mask.float().sum() == 0:  # Blank Image Placeholder
-                ims.append(torch.zeros(args.nperclass,
-                                       3, 64, 64).to(fake.device))
+                ims.append(torch.zeros(args.nperclass, 3, 64, 64).to(fake.device))
             else:
-                ims.append(fake[mask][:args.nperclass])
+                ims.append(fake[mask][: args.nperclass])
         ims = torch.cat(ims)
 
         # Plot
-        fig, ax = plt.subplots(1, 1, figsize=(
-            args.nperclass, args.every_nclass))
+        fig, ax = plt.subplots(1, 1, figsize=(args.nperclass, args.every_nclass))
         imgrid = vutils.make_grid(
-            ims, nrow=args.nperclass, padding=2, pad_value=0, normalize=True)
+            ims, nrow=args.nperclass, padding=2, pad_value=0, normalize=True
+        )
         imgrid = imgrid.cpu().numpy()
         im = np.transpose(imgrid, (1, 2, 0))
         ax.imshow(im, interpolation='bilinear')
         # Style
         plt.xticks([])
         plt.yticks([])
-        impath = f"results/eval-sample-viz/{fname}/id{id_start}-{id_start+args.every_nclass}"
+        impath = (
+            f"results/eval-sample-viz/{fname}/id{id_start}-{id_start+args.every_nclass}"
+        )
         plt.savefig(impath, bbox_inches='tight')
 
 
@@ -211,10 +217,12 @@ if __name__ == '__main__':
     }
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--name', type=str, required=True,
-                        choices=list(all_sample_choices.keys()))
-    parser.add_argument('--eval_what', type=str,
-                        default='stats', choices=['stats', 'plot'])
+    parser.add_argument(
+        '--name', type=str, required=True, choices=list(all_sample_choices.keys())
+    )
+    parser.add_argument(
+        '--eval_what', type=str, default='stats', choices=['stats', 'plot']
+    )
     parser.add_argument('--samples_pt_prefix', type=str)
     parser.add_argument('--nclass', type=int, default=100)
     parser.add_argument('--nperclass', type=int, default=5)

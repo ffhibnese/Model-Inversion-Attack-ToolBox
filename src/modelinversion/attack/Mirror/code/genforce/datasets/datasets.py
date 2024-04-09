@@ -19,6 +19,7 @@ from .transforms import normalize_image
 
 try:
     import turbojpeg
+
     BASE_DIR = os.path.dirname(os.path.relpath(__file__))
     LIBRARY_NAME = 'libturbojpeg.so.0'
     LIBRARY_PATH = os.path.join(BASE_DIR, LIBRARY_NAME)
@@ -37,6 +38,7 @@ class ZipLoader(object):
     This is a static class, which is used to solve the problem that different
     data workers can not share the same memory.
     """
+
     files = dict()
 
     @staticmethod
@@ -63,6 +65,7 @@ class LmdbLoader(object):
     This is a static class, which is used to solve lmdb loading error
     when num_workers > 0
     """
+
     files = dict()
 
     @staticmethod
@@ -70,16 +73,19 @@ class LmdbLoader(object):
         """Fetches a lmdb file"""
         lmdb_files = LmdbLoader.files
         if 'env' not in lmdb_files:
-            env = lmdb.open(file_path,
-                            max_readers=1,
-                            readonly=True,
-                            lock=False,
-                            readahead=False,
-                            meminit=False)
+            env = lmdb.open(
+                file_path,
+                max_readers=1,
+                readonly=True,
+                lock=False,
+                readahead=False,
+                meminit=False,
+            )
             with env.begin(write=False) as txn:
                 num_samples = txn.stat()['entries']
             cache_file = '_cache_' + ''.join(
-                c for c in file_path if c in string.ascii_letters)
+                c for c in file_path if c in string.ascii_letters
+            )
             if os.path.isfile(cache_file):
                 keys = pickle.load(open(cache_file, "rb"))
             else:
@@ -114,17 +120,20 @@ class BaseDataset(Dataset):
     NOTE: The loaded data will be returned as a directory, where there must be
     a key `image`.
     """
-    def __init__(self,
-                 root_dir,
-                 resolution,
-                 data_format='dir',
-                 image_list_path=None,
-                 mirror=0.0,
-                 progressive_resize=True,
-                 crop_resize_resolution=-1,
-                 transform=normalize_image,
-                 transform_kwargs=None,
-                 **_unused_kwargs):
+
+    def __init__(
+        self,
+        root_dir,
+        resolution,
+        data_format='dir',
+        image_list_path=None,
+        mirror=0.0,
+        progressive_resize=True,
+        crop_resize_resolution=-1,
+        transform=normalize_image,
+        transform_kwargs=None,
+        **_unused_kwargs,
+    ):
         """Initializes the dataset.
 
         Args:
@@ -149,8 +158,10 @@ class BaseDataset(Dataset):
             NotImplementedError: If the input `data_format` is not implemented.
         """
         if data_format.lower() not in _FORMATS_ALLOWED:
-            raise ValueError(f'Invalid data format `{data_format}`!\n'
-                             f'Supported formats: {_FORMATS_ALLOWED}.')
+            raise ValueError(
+                f'Invalid data format `{data_format}`!\n'
+                f'Supported formats: {_FORMATS_ALLOWED}.'
+            )
 
         self.root_dir = root_dir
         self.resolution = resolution
@@ -182,13 +193,17 @@ class BaseDataset(Dataset):
             self.num_samples = len(self.metas)
         elif self.data_format == 'zip':
             zip_file = ZipLoader.get_zipfile(self.root_dir)
-            image_paths = [f for f in zip_file.namelist()
-                           if ('.jpg' in f or '.jpeg' in f or '.png' in f)]
+            image_paths = [
+                f
+                for f in zip_file.namelist()
+                if ('.jpg' in f or '.jpeg' in f or '.png' in f)
+            ]
             self.image_paths = sorted(image_paths)
             self.num_samples = len(self.image_paths)
         else:
-            raise NotImplementedError(f'Not implemented data format '
-                                      f'`{self.data_format}`!')
+            raise NotImplementedError(
+                f'Not implemented data format ' f'`{self.data_format}`!'
+            )
 
     def __len__(self):
         return self.num_samples
@@ -215,8 +230,9 @@ class BaseDataset(Dataset):
             image_path = self.image_paths[idx]
             image = ZipLoader.get_image(self.root_dir, image_path)
         else:
-            raise NotImplementedError(f'Not implemented data format '
-                                      f'`{self.data_format}`!')
+            raise NotImplementedError(
+                f'Not implemented data format ' f'`{self.data_format}`!'
+            )
 
         image = image[:, :, ::-1]  # Converts BGR (cv2) to RGB.
 

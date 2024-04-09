@@ -10,6 +10,7 @@ import os
 import sys
 import pickle
 import warnings
+
 warnings.filterwarnings('ignore', category=FutureWarning)
 
 # pylint: disable=wrong-import-position
@@ -17,11 +18,13 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 import torch
+
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 from models import build_model
 from utils.visualizer import HtmlPageVisualizer
 from utils.visualizer import postprocess_image
+
 # pylint: enable=wrong-import-position
 
 __all__ = ['convert_pggan_weight']
@@ -32,11 +35,9 @@ BASE_DIR = os.path.dirname(os.path.relpath(__file__))
 CODE_PATH = os.path.join(BASE_DIR, OFFICIAL_CODE_DIR)
 
 
-def convert_pggan_weight(tf_weight_path,
-                         pth_weight_path,
-                         test_num=10,
-                         save_test_image=False,
-                         verbose=False):
+def convert_pggan_weight(
+    tf_weight_path, pth_weight_path, test_num=10, save_test_image=False, verbose=False
+):
     """Converts the pre-trained PGGAN weights.
 
     Args:
@@ -64,12 +65,14 @@ def convert_pggan_weight(tf_weight_path,
 
     print(f'Converting TensorFlow weights (G) to PyTorch version ...')
     G_vars = dict(G.__getstate__()['variables'])
-    G_pth = build_model(gan_type=GAN_TPYE,
-                        module='generator',
-                        resolution=resolution,
-                        z_space_dim=z_space_dim,
-                        label_size=label_size,
-                        image_channels=image_channels)
+    G_pth = build_model(
+        gan_type=GAN_TPYE,
+        module='generator',
+        resolution=resolution,
+        z_space_dim=z_space_dim,
+        label_size=label_size,
+        image_channels=image_channels,
+    )
     G_state_dict = G_pth.state_dict()
     for pth_var_name, tf_var_name in G_pth.pth_to_tf_var_mapping.items():
         assert tf_var_name in G_vars
@@ -89,12 +92,14 @@ def convert_pggan_weight(tf_weight_path,
 
     print(f'Converting TensorFlow weights (Gs) to PyTorch version ...')
     Gs_vars = dict(Gs.__getstate__()['variables'])
-    Gs_pth = build_model(gan_type=GAN_TPYE,
-                         module='generator',
-                         resolution=resolution,
-                         z_space_dim=z_space_dim,
-                         label_size=label_size,
-                         image_channels=image_channels)
+    Gs_pth = build_model(
+        gan_type=GAN_TPYE,
+        module='generator',
+        resolution=resolution,
+        z_space_dim=z_space_dim,
+        label_size=label_size,
+        image_channels=image_channels,
+    )
     Gs_state_dict = Gs_pth.state_dict()
     for pth_var_name, tf_var_name in Gs_pth.pth_to_tf_var_mapping.items():
         assert tf_var_name in Gs_vars
@@ -104,8 +109,7 @@ def convert_pggan_weight(tf_weight_path,
         var = torch.from_numpy(np.array(Gs_vars[tf_var_name]))
         if 'weight' in tf_var_name:
             if 'Dense' in tf_var_name:
-                var = var.view(
-                    var.shape[0], -1, Gs_pth.init_res, Gs_pth.init_res)
+                var = var.view(var.shape[0], -1, Gs_pth.init_res, Gs_pth.init_res)
                 var = var.permute(1, 0, 2, 3).flip(2, 3)
             else:
                 var = var.permute(3, 2, 0, 1)
@@ -115,11 +119,13 @@ def convert_pggan_weight(tf_weight_path,
 
     print(f'Converting TensorFlow weights (D) to PyTorch version ...')
     D_vars = dict(D.__getstate__()['variables'])
-    D_pth = build_model(gan_type=GAN_TPYE,
-                        module='discriminator',
-                        resolution=resolution,
-                        label_size=label_size,
-                        image_channels=image_channels)
+    D_pth = build_model(
+        gan_type=GAN_TPYE,
+        module='discriminator',
+        resolution=resolution,
+        label_size=label_size,
+        image_channels=image_channels,
+    )
     D_state_dict = D_pth.state_dict()
     for pth_var_name, tf_var_name in D_pth.pth_to_tf_var_mapping.items():
         assert tf_var_name in D_vars

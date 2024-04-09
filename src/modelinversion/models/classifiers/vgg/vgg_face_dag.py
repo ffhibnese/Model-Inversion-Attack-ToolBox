@@ -11,44 +11,83 @@ from .. import BaseTargetModel
     FROM MIRROR
 """
 
+
 class Vgg_face_dag(BaseTargetModel):
 
     def __init__(self, use_dropout=False):
         super(Vgg_face_dag, self).__init__()
-        self.meta = {'mean': [129.186279296875, 104.76238250732422, 93.59396362304688],
-                     'std': [1, 1, 1],
-                     'imageSize': [224, 224, 3]}
-        self.conv1_1 = nn.Conv2d(3, 64, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1))
+        self.meta = {
+            'mean': [129.186279296875, 104.76238250732422, 93.59396362304688],
+            'std': [1, 1, 1],
+            'imageSize': [224, 224, 3],
+        }
+        self.conv1_1 = nn.Conv2d(
+            3, 64, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1)
+        )
         self.relu1_1 = nn.ReLU(inplace=True)
-        self.conv1_2 = nn.Conv2d(64, 64, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1))
+        self.conv1_2 = nn.Conv2d(
+            64, 64, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1)
+        )
         self.relu1_2 = nn.ReLU(inplace=True)
-        self.pool1 = nn.MaxPool2d(kernel_size=[2, 2], stride=[2, 2], padding=0, dilation=1, ceil_mode=False)
-        self.conv2_1 = nn.Conv2d(64, 128, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1))
+        self.pool1 = nn.MaxPool2d(
+            kernel_size=[2, 2], stride=[2, 2], padding=0, dilation=1, ceil_mode=False
+        )
+        self.conv2_1 = nn.Conv2d(
+            64, 128, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1)
+        )
         self.relu2_1 = nn.ReLU(inplace=True)
-        self.conv2_2 = nn.Conv2d(128, 128, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1))
+        self.conv2_2 = nn.Conv2d(
+            128, 128, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1)
+        )
         self.relu2_2 = nn.ReLU(inplace=True)
-        self.pool2 = nn.MaxPool2d(kernel_size=[2, 2], stride=[2, 2], padding=0, dilation=1, ceil_mode=False)
-        self.conv3_1 = nn.Conv2d(128, 256, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1))
+        self.pool2 = nn.MaxPool2d(
+            kernel_size=[2, 2], stride=[2, 2], padding=0, dilation=1, ceil_mode=False
+        )
+        self.conv3_1 = nn.Conv2d(
+            128, 256, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1)
+        )
         self.relu3_1 = nn.ReLU(inplace=True)
-        self.conv3_2 = nn.Conv2d(256, 256, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1))
+        self.conv3_2 = nn.Conv2d(
+            256, 256, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1)
+        )
         self.relu3_2 = nn.ReLU(inplace=True)
-        self.conv3_3 = nn.Conv2d(256, 256, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1))
+        self.conv3_3 = nn.Conv2d(
+            256, 256, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1)
+        )
         self.relu3_3 = nn.ReLU(inplace=True)
-        self.pool3 = nn.MaxPool2d(kernel_size=[2, 2], stride=[2, 2], padding=0, dilation=1, ceil_mode=False)
-        self.conv4_1 = nn.Conv2d(256, 512, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1))
+        self.pool3 = nn.MaxPool2d(
+            kernel_size=[2, 2], stride=[2, 2], padding=0, dilation=1, ceil_mode=False
+        )
+        self.conv4_1 = nn.Conv2d(
+            256, 512, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1)
+        )
         self.relu4_1 = nn.ReLU(inplace=True)
-        self.conv4_2 = nn.Conv2d(512, 512, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1))
+        self.conv4_2 = nn.Conv2d(
+            512, 512, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1)
+        )
         self.relu4_2 = nn.ReLU(inplace=True)
-        self.conv4_3 = nn.Conv2d(512, 512, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1))
+        self.conv4_3 = nn.Conv2d(
+            512, 512, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1)
+        )
         self.relu4_3 = nn.ReLU(inplace=True)
-        self.pool4 = nn.MaxPool2d(kernel_size=[2, 2], stride=[2, 2], padding=0, dilation=1, ceil_mode=False)
-        self.conv5_1 = nn.Conv2d(512, 512, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1))
+        self.pool4 = nn.MaxPool2d(
+            kernel_size=[2, 2], stride=[2, 2], padding=0, dilation=1, ceil_mode=False
+        )
+        self.conv5_1 = nn.Conv2d(
+            512, 512, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1)
+        )
         self.relu5_1 = nn.ReLU(inplace=True)
-        self.conv5_2 = nn.Conv2d(512, 512, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1))
+        self.conv5_2 = nn.Conv2d(
+            512, 512, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1)
+        )
         self.relu5_2 = nn.ReLU(inplace=True)
-        self.conv5_3 = nn.Conv2d(512, 512, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1))
+        self.conv5_3 = nn.Conv2d(
+            512, 512, kernel_size=[3, 3], stride=(1, 1), padding=(1, 1)
+        )
         self.relu5_3 = nn.ReLU(inplace=True)
-        self.pool5 = nn.MaxPool2d(kernel_size=[2, 2], stride=[2, 2], padding=0, dilation=1, ceil_mode=False)
+        self.pool5 = nn.MaxPool2d(
+            kernel_size=[2, 2], stride=[2, 2], padding=0, dilation=1, ceil_mode=False
+        )
         self.fc6 = nn.Linear(in_features=25088, out_features=4096, bias=True)
         self.relu6 = nn.ReLU(inplace=True)
         self.dropout6 = nn.Dropout(p=0.5)
@@ -62,13 +101,19 @@ class Vgg_face_dag(BaseTargetModel):
         if self.use_dropout:
             fc_dropout_probs = {1: 0.6, 2: 0.5}
             conv_dropout_probs = {1: 0.5, 2: 0.2, 3: 0.2, 4: 0.1, 5: 0.1}
-            self.fc_dropouts = {k: partial(nn.functional.dropout, p=v) for k, v in fc_dropout_probs.items()}
-            self.conv_dropouts = {k: nn.Dropout2d(v) for k, v in conv_dropout_probs.items()}
+            self.fc_dropouts = {
+                k: partial(nn.functional.dropout, p=v)
+                for k, v in fc_dropout_probs.items()
+            }
+            self.conv_dropouts = {
+                k: nn.Dropout2d(v) for k, v in conv_dropout_probs.items()
+            }
 
-            print(f'fc_dropout_probs: {fc_dropout_probs}\n'
-                  f'conv_dropout_probs: {conv_dropout_probs}'
-                  )
-            
+            print(
+                f'fc_dropout_probs: {fc_dropout_probs}\n'
+                f'conv_dropout_probs: {conv_dropout_probs}'
+            )
+
     def get_feature_dim(self):
         return 4096
 
@@ -78,9 +123,13 @@ class Vgg_face_dag(BaseTargetModel):
                 x.training = True
 
             k = random.randint(1, 5)
-            conv_dropout_layers = set(random.choices(range(1, 7), k=k))  # 6 means no dropout
+            conv_dropout_layers = set(
+                random.choices(range(1, 7), k=k)
+            )  # 6 means no dropout
             k = 2  # random.randint(1, 2)
-            fc_dropout_layers = set(random.choices(range(1, 4), k=k))  # 3 means no dropout
+            fc_dropout_layers = set(
+                random.choices(range(1, 4), k=k)
+            )  # 3 means no dropout
 
             conv_dropout = self.conv_dropouts[len(conv_dropout_layers)]
 

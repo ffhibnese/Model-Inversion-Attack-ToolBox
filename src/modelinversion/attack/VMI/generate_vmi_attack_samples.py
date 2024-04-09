@@ -1,5 +1,15 @@
-import sys; sys.path.append('../stylegan2-ada-pytorch')
-from attack_stylegan import ReparameterizedMVN, MineGAN, num_range, MixtureOfRMVN, LayeredMineGAN, LayeredFlowMiner, FlowMiner
+import sys
+
+sys.path.append('../stylegan2-ada-pytorch')
+from attack_stylegan import (
+    ReparameterizedMVN,
+    MineGAN,
+    num_range,
+    MixtureOfRMVN,
+    LayeredMineGAN,
+    LayeredFlowMiner,
+    FlowMiner,
+)
 import legacy
 import dnnlib
 import os
@@ -71,8 +81,11 @@ for id in range(0, 100):
         miner = FlowMiner(G.mapping.z_dim, 'shuffle', 50).to(device).double()
         minegan_Gmapping = MineGAN(miner, G.mapping)
     elif method == 'layeredflow':
-        miner = LayeredFlowMiner(
-            G.mapping.z_dim, G.mapping.num_ws, 'shuffle', 50).to(device).double()
+        miner = (
+            LayeredFlowMiner(G.mapping.z_dim, G.mapping.num_ws, 'shuffle', 50)
+            .to(device)
+            .double()
+        )
         miner.eval()
         minegan_Gmapping = LayeredMineGAN(miner, G.mapping)
 
@@ -99,4 +112,7 @@ ys = torch.cat(ys)
 fname = 'stylegan-attack-with-labels-id0-100'
 
 # save images
-torch.save((all_imgs.clamp(-1, 1).detach().cpu(), ys), os.path.join('results/images_pt/', f'{fname}.pt'))
+torch.save(
+    (all_imgs.clamp(-1, 1).detach().cpu(), ys),
+    os.path.join('results/images_pt/', f'{fname}.pt'),
+)

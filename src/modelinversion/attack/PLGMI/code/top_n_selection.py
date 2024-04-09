@@ -50,7 +50,7 @@ from tqdm import tqdm
 #         self.dataset_dir = dataset_dir
 #         self.transform = transform
 #         self.images = []
-        
+
 #         for label in os.listdir(dataset_dir):
 #             label_dir = os.path.join(dataset_dir, label)
 #             for img_name in os.listdir(label_dir):
@@ -114,7 +114,9 @@ from tqdm import tqdm
 #         return len(self.images)
 
 
-def top_n_selection_impl(T, target_name, dataset_name, data_loader, cache_dir, top_n, num_classes, device):
+def top_n_selection_impl(
+    T, target_name, dataset_name, data_loader, cache_dir, top_n, num_classes, device
+):
     """
     Top-n selection strategy.
     :param args: top-n, save_path
@@ -123,10 +125,10 @@ def top_n_selection_impl(T, target_name, dataset_name, data_loader, cache_dir, t
     :return:
     """
     print("=> start inference ...")
-    
+
     save_dir = os.path.join(cache_dir, 'top_n_selection', dataset_name, target_name)
     os.makedirs(save_dir, exist_ok=True)
-    
+
     all_images_prob = None
     all_images_path = None
     # get the predict confidence of each image in the public data
@@ -178,11 +180,14 @@ def top_n_selection_impl(T, target_name, dataset_name, data_loader, cache_dir, t
             if not os.path.exists(ori_save_path):
                 os.makedirs(ori_save_path)
 
-            new_image_path = os.path.join(ori_save_path, str(ccc) + '_' + str(q_prob) + '.png')
+            new_image_path = os.path.join(
+                ori_save_path, str(ccc) + '_' + str(q_prob) + '.png'
+            )
 
             shutil.copy(q_image_path, new_image_path)
             ccc += 1
-            
+
+
 # parser = ArgumentParser(description='Reclassify the public dataset with the target model')
 # parser.add_argument('--model', default='VGG16', help='VGG16 | IR152 | FaceNet64')
 # parser.add_argument('--data_name', type=str, default='celeba', help='celeba | ffhq | facescrub')
@@ -193,15 +198,23 @@ def top_n_selection_impl(T, target_name, dataset_name, data_loader, cache_dir, t
 # args = parser.parse_args()
 
 
-
 # print(args)
 
 from ...foldermanager import FolderManager
 
-def top_n_selection(target_name, dataset_name, folder_manager: FolderManager, top_n=30, num_classes=1000, batch_size=64, device='cuda'):
+
+def top_n_selection(
+    target_name,
+    dataset_name,
+    folder_manager: FolderManager,
+    top_n=30,
+    num_classes=1000,
+    batch_size=64,
+    device='cuda',
+):
     print("=> load target model ...")
     print(f'device: {device}')
-        
+
     # if target_name.startswith("vgg16"):
     #     T = VGG16(1000)
     #     path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'VGG16_88.26.tar')
@@ -213,29 +226,45 @@ def top_n_selection(target_name, dataset_name, folder_manager: FolderManager, to
     #     path_T = os.path.join(ckpt_dir, 'target_eval', 'celeba', 'FaceNet64_88.50.tar')
     # T = (T).to(device)
     T = get_model(target_name, dataset_name, device=device)
-    
+
     folder_manager.load_target_model_state_dict(T, dataset_name, target_name, device)
     T.eval()
 
     print("=> load public dataset ...")
     if dataset_name == 'celeba':
-    #     re_size = 64
-    #     crop_size = 108
-    #     offset_height = (218 - crop_size) // 2
-    #     offset_width = (178 - crop_size) // 2
-    #     crop = lambda x: x[:, offset_height:offset_height + crop_size, offset_width:offset_width + crop_size]
-    #     celeba_transform = transforms.Compose([
-    #         transforms.ToTensor(),
-    #         transforms.Lambda(crop),
-    #         transforms.ToPILImage(),
-    #         transforms.Resize((re_size, re_size)),
-    #         transforms.ToTensor()
-    #     ])
+        #     re_size = 64
+        #     crop_size = 108
+        #     offset_height = (218 - crop_size) // 2
+        #     offset_width = (178 - crop_size) // 2
+        #     crop = lambda x: x[:, offset_height:offset_height + crop_size, offset_width:offset_width + crop_size]
+        #     celeba_transform = transforms.Compose([
+        #         transforms.ToTensor(),
+        #         transforms.Lambda(crop),
+        #         transforms.ToPILImage(),
+        #         transforms.Resize((re_size, re_size)),
+        #         transforms.ToTensor()
+        #     ])
         # data_set = ImageFolder(os.path.join(dataset_dir, 'celeba', 'split','public'))
-        data_set = ImageFolder(os.path.join(folder_manager.config.dataset_dir, 'celeba', 'split','public'), transform=transforms.ToTensor())
+        data_set = ImageFolder(
+            os.path.join(
+                folder_manager.config.dataset_dir, 'celeba', 'split', 'public'
+            ),
+            transform=transforms.ToTensor(),
+        )
         data_loader = data.DataLoader(data_set, shuffle=False, batch_size=batch_size)
-        
-    top_n_selection_impl(T, target_name, dataset_name, data_loader, folder_manager.config.cache_dir, top_n, num_classes, device=device)
+
+    top_n_selection_impl(
+        T,
+        target_name,
+        dataset_name,
+        data_loader,
+        folder_manager.config.cache_dir,
+        top_n,
+        num_classes,
+        device=device,
+    )
+
+
 # elif args.data_name == 'ffhq':
 #     re_size = 64
 #     crop_size = 88
@@ -268,5 +297,3 @@ def top_n_selection(target_name, dataset_name, folder_manager: FolderManager, to
 #     data_set = PublicFaceScrub(file_path='data_files/facescrub_ganset.txt',
 #                                img_root='datasets/facescrub', transform=faceScrub_transform)
 #     data_loader = data.DataLoader(data_set, batch_size=350)
-
-

@@ -39,19 +39,27 @@ from torch import Tensor
 from torchvision.models.utils import load_state_dict_from_url
 
 
-__all__ = ['build_inception_model', 'Inception3', 'inception_v3', 'InceptionOutputs', '_InceptionOutputs']
+__all__ = [
+    'build_inception_model',
+    'Inception3',
+    'inception_v3',
+    'InceptionOutputs',
+    '_InceptionOutputs',
+]
 
 model_urls = {
     # Inception v3 ported from TensorFlow
     'inception_v3_google': 'https://download.pytorch.org/models/inception_v3_google-1a9a5a14.pth',
-
     # Inception v3 ported from http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tgz
     # This model is provided by https://github.com/mseitzer/pytorch-fid
-    'tf_inception_v3': 'https://github.com/mseitzer/pytorch-fid/releases/download/fid_weights/pt_inception-2015-12-05-6726825d.pth'
+    'tf_inception_v3': 'https://github.com/mseitzer/pytorch-fid/releases/download/fid_weights/pt_inception-2015-12-05-6726825d.pth',
 }
 
 InceptionOutputs = namedtuple('InceptionOutputs', ['logits', 'aux_logits'])
-InceptionOutputs.__annotations__ = {'logits': torch.Tensor, 'aux_logits': Optional[torch.Tensor]}
+InceptionOutputs.__annotations__ = {
+    'logits': torch.Tensor,
+    'aux_logits': Optional[torch.Tensor],
+}
 
 # Script annotations failed with _GoogleNetOutputs = namedtuple ...
 # _InceptionOutputs set here for backwards compat
@@ -76,10 +84,12 @@ def build_inception_model(align_tf=True):
     else:
         num_classes = 1000
         model_url = model_urls['inception_v3_google']
-    model = Inception3(num_classes=num_classes,
-                       aux_logits=False,
-                       transform_input=False,
-                       align_tf=align_tf)
+    model = Inception3(
+        num_classes=num_classes,
+        aux_logits=False,
+        transform_input=False,
+        align_tf=align_tf,
+    )
     state_dict = load_state_dict_from_url(model_url)
     model.load_state_dict(state_dict, strict=False)
     model.eval()
@@ -113,8 +123,9 @@ def inception_v3(pretrained=False, progress=True, **kwargs):
         else:
             original_aux_logits = True
         model = Inception3(**kwargs)
-        state_dict = load_state_dict_from_url(model_urls['inception_v3_google'],
-                                              progress=progress)
+        state_dict = load_state_dict_from_url(
+            model_urls['inception_v3_google'], progress=progress
+        )
         model.load_state_dict(state_dict)
         if not original_aux_logits:
             model.aux_logits = False
@@ -126,13 +137,25 @@ def inception_v3(pretrained=False, progress=True, **kwargs):
 
 class Inception3(nn.Module):
 
-    def __init__(self, num_classes=1000, aux_logits=True, transform_input=False,
-                 inception_blocks=None, init_weights=True, align_tf=True):
+    def __init__(
+        self,
+        num_classes=1000,
+        aux_logits=True,
+        transform_input=False,
+        inception_blocks=None,
+        init_weights=True,
+        align_tf=True,
+    ):
         super(Inception3, self).__init__()
         if inception_blocks is None:
             inception_blocks = [
-                BasicConv2d, InceptionA, InceptionB, InceptionC,
-                InceptionD, InceptionE, InceptionAux
+                BasicConv2d,
+                InceptionA,
+                InceptionB,
+                InceptionC,
+                InceptionD,
+                InceptionE,
+                InceptionAux,
             ]
         assert len(inception_blocks) == 7
         conv_block = inception_blocks[0]
@@ -169,9 +192,12 @@ class Inception3(nn.Module):
             for m in self.modules():
                 if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
                     import scipy.stats as stats
+
                     stddev = m.stddev if hasattr(m, 'stddev') else 0.1
                     X = stats.truncnorm(-2, 2, scale=stddev)
-                    values = torch.as_tensor(X.rvs(m.weight.numel()), dtype=m.weight.dtype)
+                    values = torch.as_tensor(
+                        X.rvs(m.weight.numel()), dtype=m.weight.dtype
+                    )
                     values = values.view(m.weight.size())
                     with torch.no_grad():
                         m.weight.copy_(values)
@@ -295,8 +321,13 @@ class InceptionA(nn.Module):
         branch3x3dbl = self.branch3x3dbl_2(branch3x3dbl)
         branch3x3dbl = self.branch3x3dbl_3(branch3x3dbl)
 
-        branch_pool = F.avg_pool2d(x, kernel_size=3, stride=1, padding=1,
-                                   count_include_pad=self.pool_include_padding)
+        branch_pool = F.avg_pool2d(
+            x,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            count_include_pad=self.pool_include_padding,
+        )
         branch_pool = self.branch_pool(branch_pool)
 
         outputs = [branch1x1, branch5x5, branch3x3dbl, branch_pool]
@@ -371,8 +402,13 @@ class InceptionC(nn.Module):
         branch7x7dbl = self.branch7x7dbl_4(branch7x7dbl)
         branch7x7dbl = self.branch7x7dbl_5(branch7x7dbl)
 
-        branch_pool = F.avg_pool2d(x, kernel_size=3, stride=1, padding=1,
-                                   count_include_pad=self.pool_include_padding)
+        branch_pool = F.avg_pool2d(
+            x,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            count_include_pad=self.pool_include_padding,
+        )
         branch_pool = self.branch_pool(branch_pool)
 
         outputs = [branch1x1, branch7x7, branch7x7dbl, branch_pool]
@@ -417,7 +453,9 @@ class InceptionD(nn.Module):
 
 class InceptionE(nn.Module):
 
-    def __init__(self, in_channels, conv_block=None, align_tf=False, use_max_pool=False):
+    def __init__(
+        self, in_channels, conv_block=None, align_tf=False, use_max_pool=False
+    ):
         super(InceptionE, self).__init__()
         if conv_block is None:
             conv_block = BasicConv2d
@@ -457,8 +495,13 @@ class InceptionE(nn.Module):
         if self.use_max_pool:
             branch_pool = F.max_pool2d(x, kernel_size=3, stride=1, padding=1)
         else:
-            branch_pool = F.avg_pool2d(x, kernel_size=3, stride=1, padding=1,
-                                       count_include_pad=self.pool_include_padding)
+            branch_pool = F.avg_pool2d(
+                x,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                count_include_pad=self.pool_include_padding,
+            )
         branch_pool = self.branch_pool(branch_pool)
 
         outputs = [branch1x1, branch3x3, branch3x3dbl, branch_pool]
@@ -510,6 +553,7 @@ class BasicConv2d(nn.Module):
         x = self.conv(x)
         x = self.bn(x)
         return F.relu(x, inplace=True)
+
 
 # pylint: enable=line-too-long
 # pylint: enable=missing-function-docstring

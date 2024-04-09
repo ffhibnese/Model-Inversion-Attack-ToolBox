@@ -13,17 +13,26 @@ from ...utils import traverse_module, OutputHook, BaseHook
 from ...foldermanager import FolderManager
 from ..base import BaseTrainArgs, BaseTrainer
 
+
 @dataclass
 class LSTrainArgs(BaseTrainArgs):
-    
+
     coef_label_smoothing: float = 0.1
-    
-    
+
+
 class LSTrainer(BaseTrainer):
-    
-    def __init__(self, args: LSTrainArgs, folder_manager: FolderManager, model: BaseTargetModel, optimizer: Optimizer, lr_scheduler: LRScheduler = None, **kwargs) -> None:
+
+    def __init__(
+        self,
+        args: LSTrainArgs,
+        folder_manager: FolderManager,
+        model: BaseTargetModel,
+        optimizer: Optimizer,
+        lr_scheduler: LRScheduler = None,
+        **kwargs
+    ) -> None:
         super().__init__(args, folder_manager, model, optimizer, lr_scheduler, **kwargs)
-        
+
     def _neg_label_smoothing(self, inputs, labels):
         ls = self.args.coef_label_smoothing
         confidence = 1.0 - ls
@@ -33,10 +42,9 @@ class LSTrainer(BaseTrainer):
         smooth_loss = -logprobs.mean(dim=-1)
         loss = confidence * nll_loss + ls * smooth_loss
         return torch.mean(loss, dim=0).sum()
-        
-        
+
     def calc_loss(self, inputs: torch.Tensor, result: ModelResult, labels: LongTensor):
         res = result.result
         bs = len(inputs)
-        
+
         return self._neg_label_smoothing(res, labels)

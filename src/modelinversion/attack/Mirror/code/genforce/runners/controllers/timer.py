@@ -30,13 +30,11 @@ class Timer(BaseController):
         self.time = time.time()
 
     def setup(self, runner):
+        runner.running_stats.add('data_time', log_format='time', log_name='data time')
+        runner.running_stats.add('iter_time', log_format='time', log_name='iter time')
         runner.running_stats.add(
-            'data_time', log_format='time', log_name='data time')
-        runner.running_stats.add(
-            'iter_time', log_format='time', log_name='iter time')
-        runner.running_stats.add(
-            'run_time', log_format='time', log_name='run time',
-            log_strategy='CURRENT')
+            'run_time', log_format='time', log_name='run time', log_strategy='CURRENT'
+        )
         self.time = time.time()
         runner.start_time = self.time
 

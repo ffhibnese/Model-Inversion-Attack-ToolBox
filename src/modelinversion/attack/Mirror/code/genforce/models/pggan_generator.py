@@ -48,16 +48,18 @@ class PGGANGenerator(nn.Module):
     (9) fmaps_max: Maximum number of feature maps in each layer. (default: 512)
     """
 
-    def __init__(self,
-                 resolution,
-                 z_space_dim=512,
-                 image_channels=3,
-                 final_tanh=False,
-                 label_size=0,
-                 fused_scale=False,
-                 use_wscale=True,
-                 fmaps_base=16 << 10,
-                 fmaps_max=512):
+    def __init__(
+        self,
+        resolution,
+        z_space_dim=512,
+        image_channels=3,
+        final_tanh=False,
+        label_size=0,
+        fused_scale=False,
+        use_wscale=True,
+        fmaps_base=16 << 10,
+        fmaps_max=512,
+    ):
         """Initializes with basic settings.
 
         Raises:
@@ -66,8 +68,10 @@ class PGGANGenerator(nn.Module):
         super().__init__()
 
         if resolution not in _RESOLUTIONS_ALLOWED:
-            raise ValueError(f'Invalid resolution: `{resolution}`!\n'
-                             f'Resolutions allowed: {_RESOLUTIONS_ALLOWED}.')
+            raise ValueError(
+                f'Invalid resolution: `{resolution}`!\n'
+                f'Resolutions allowed: {_RESOLUTIONS_ALLOWED}.'
+            )
 
         self.init_res = _INIT_RES
         self.init_res_log2 = int(np.log2(self.init_res))
@@ -90,59 +94,77 @@ class PGGANGenerator(nn.Module):
         self.pth_to_tf_var_mapping = {'lod': 'lod'}
 
         for res_log2 in range(self.init_res_log2, self.final_res_log2 + 1):
-            res = 2 ** res_log2
+            res = 2**res_log2
             block_idx = res_log2 - self.init_res_log2
 
             # First convolution layer for each resolution.
             if res == self.init_res:
                 self.add_module(
                     f'layer{2 * block_idx}',
-                    ConvBlock(in_channels=self.z_space_dim + self.label_size,
-                              out_channels=self.get_nf(res),
-                              kernel_size=self.init_res,
-                              padding=self.init_res - 1,
-                              use_wscale=self.use_wscale))
+                    ConvBlock(
+                        in_channels=self.z_space_dim + self.label_size,
+                        out_channels=self.get_nf(res),
+                        kernel_size=self.init_res,
+                        padding=self.init_res - 1,
+                        use_wscale=self.use_wscale,
+                    ),
+                )
                 tf_layer_name = 'Dense'
             else:
                 self.add_module(
                     f'layer{2 * block_idx}',
-                    ConvBlock(in_channels=self.get_nf(res // 2),
-                              out_channels=self.get_nf(res),
-                              upsample=True,
-                              fused_scale=self.fused_scale,
-                              use_wscale=self.use_wscale))
+                    ConvBlock(
+                        in_channels=self.get_nf(res // 2),
+                        out_channels=self.get_nf(res),
+                        upsample=True,
+                        fused_scale=self.fused_scale,
+                        use_wscale=self.use_wscale,
+                    ),
+                )
                 tf_layer_name = 'Conv0_up' if self.fused_scale else 'Conv0'
             self.pth_to_tf_var_mapping[f'layer{2 * block_idx}.weight'] = (
-                f'{res}x{res}/{tf_layer_name}/weight')
+                f'{res}x{res}/{tf_layer_name}/weight'
+            )
             self.pth_to_tf_var_mapping[f'layer{2 * block_idx}.bias'] = (
-                f'{res}x{res}/{tf_layer_name}/bias')
+                f'{res}x{res}/{tf_layer_name}/bias'
+            )
 
             # Second convolution layer for each resolution.
             self.add_module(
                 f'layer{2 * block_idx + 1}',
-                ConvBlock(in_channels=self.get_nf(res),
-                          out_channels=self.get_nf(res),
-                          use_wscale=self.use_wscale))
+                ConvBlock(
+                    in_channels=self.get_nf(res),
+                    out_channels=self.get_nf(res),
+                    use_wscale=self.use_wscale,
+                ),
+            )
             tf_layer_name = 'Conv' if res == self.init_res else 'Conv1'
             self.pth_to_tf_var_mapping[f'layer{2 * block_idx + 1}.weight'] = (
-                f'{res}x{res}/{tf_layer_name}/weight')
+                f'{res}x{res}/{tf_layer_name}/weight'
+            )
             self.pth_to_tf_var_mapping[f'layer{2 * block_idx + 1}.bias'] = (
-                f'{res}x{res}/{tf_layer_name}/bias')
+                f'{res}x{res}/{tf_layer_name}/bias'
+            )
 
             # Output convolution layer for each resolution.
             self.add_module(
                 f'output{block_idx}',
-                ConvBlock(in_channels=self.get_nf(res),
-                          out_channels=self.image_channels,
-                          kernel_size=1,
-                          padding=0,
-                          use_wscale=self.use_wscale,
-                          wscale_gain=1.0,
-                          activation_type='linear'))
+                ConvBlock(
+                    in_channels=self.get_nf(res),
+                    out_channels=self.image_channels,
+                    kernel_size=1,
+                    padding=0,
+                    use_wscale=self.use_wscale,
+                    wscale_gain=1.0,
+                    activation_type='linear',
+                ),
+            )
             self.pth_to_tf_var_mapping[f'output{block_idx}.weight'] = (
-                f'ToRGB_lod{self.final_res_log2 - res_log2}/weight')
+                f'ToRGB_lod{self.final_res_log2 - res_log2}/weight'
+            )
             self.pth_to_tf_var_mapping[f'output{block_idx}.bias'] = (
-                f'ToRGB_lod{self.final_res_log2 - res_log2}/bias')
+                f'ToRGB_lod{self.final_res_log2 - res_log2}/bias'
+            )
 
         self.upsample = UpsamplingLayer()
         self.final_activate = nn.Tanh() if self.final_tanh else nn.Identity()
@@ -153,30 +175,38 @@ class PGGANGenerator(nn.Module):
 
     def forward(self, z, label=None, lod=None, **_unused_kwargs):
         if z.ndim != 2 or z.shape[1] != self.z_space_dim:
-            raise ValueError(f'Input latent code should be with shape '
-                             f'[batch_size, latent_dim], where '
-                             f'`latent_dim` equals to {self.z_space_dim}!\n'
-                             f'But `{z.shape}` is received!')
+            raise ValueError(
+                f'Input latent code should be with shape '
+                f'[batch_size, latent_dim], where '
+                f'`latent_dim` equals to {self.z_space_dim}!\n'
+                f'But `{z.shape}` is received!'
+            )
         z = self.layer0.pixel_norm(z)
         if self.label_size:
             if label is None:
-                raise ValueError(f'Model requires an additional label '
-                                 f'(with size {self.label_size}) as input, '
-                                 f'but no label is received!')
+                raise ValueError(
+                    f'Model requires an additional label '
+                    f'(with size {self.label_size}) as input, '
+                    f'but no label is received!'
+                )
             if label.ndim != 2 or label.shape != (z.shape[0], self.label_size):
-                raise ValueError(f'Input label should be with shape '
-                                 f'[batch_size, label_size], where '
-                                 f'`batch_size` equals to that of '
-                                 f'latent codes ({z.shape[0]}) and '
-                                 f'`label_size` equals to {self.label_size}!\n'
-                                 f'But `{label.shape}` is received!')
+                raise ValueError(
+                    f'Input label should be with shape '
+                    f'[batch_size, label_size], where '
+                    f'`batch_size` equals to that of '
+                    f'latent codes ({z.shape[0]}) and '
+                    f'`label_size` equals to {self.label_size}!\n'
+                    f'But `{label.shape}` is received!'
+                )
             z = torch.cat((z, label), dim=1)
 
         lod = self.lod.cpu().tolist() if lod is None else lod
         if lod + self.init_res_log2 > self.final_res_log2:
-            raise ValueError(f'Maximum level-of-detail (lod) is '
-                             f'{self.final_res_log2 - self.init_res_log2}, '
-                             f'but `{lod}` is received!')
+            raise ValueError(
+                f'Maximum level-of-detail (lod) is '
+                f'{self.final_res_log2 - self.init_res_log2}, '
+                f'but `{lod}` is received!'
+            )
 
         x = z.view(z.shape[0], self.z_space_dim + self.label_size, 1, 1)
         for res_log2 in range(self.init_res_log2, self.final_res_log2 + 1):
@@ -189,8 +219,9 @@ class PGGANGenerator(nn.Module):
                 image = self.__getattr__(f'output{block_idx}')(x)
             elif current_lod < lod < current_lod + 1:
                 alpha = np.ceil(lod) - lod
-                image = (self.__getattr__(f'output{block_idx}')(x) * alpha +
-                         self.upsample(image) * (1 - alpha))
+                image = self.__getattr__(f'output{block_idx}')(
+                    x
+                ) * alpha + self.upsample(image) * (1 - alpha)
             elif lod >= current_lod + 1:
                 image = self.upsample(image)
         image = self.final_activate(image)
@@ -211,7 +242,7 @@ class PixelNormLayer(nn.Module):
         self.eps = epsilon
 
     def forward(self, x):
-        norm = torch.sqrt(torch.mean(x ** 2, dim=1, keepdim=True) + self.eps)
+        norm = torch.sqrt(torch.mean(x**2, dim=1, keepdim=True) + self.eps)
         return x / norm
 
 
@@ -239,18 +270,20 @@ class ConvBlock(nn.Module):
     layer (if needed), convolutional layer, and activation layer in sequence.
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 kernel_size=3,
-                 stride=1,
-                 padding=1,
-                 add_bias=True,
-                 upsample=False,
-                 fused_scale=False,
-                 use_wscale=True,
-                 wscale_gain=_WSCALE_GAIN,
-                 activation_type='lrelu'):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size=3,
+        stride=1,
+        padding=1,
+        add_bias=True,
+        upsample=False,
+        fused_scale=False,
+        use_wscale=True,
+        wscale_gain=_WSCALE_GAIN,
+        activation_type='lrelu',
+    ):
         """Initializes with block settings.
 
         Args:
@@ -312,8 +345,9 @@ class ConvBlock(nn.Module):
         elif activation_type == 'lrelu':
             self.activate = nn.LeakyReLU(negative_slope=0.2, inplace=True)
         else:
-            raise NotImplementedError(f'Not implemented activation function: '
-                                      f'`{activation_type}`!')
+            raise NotImplementedError(
+                f'Not implemented activation function: ' f'`{activation_type}`!'
+            )
 
     def forward(self, x):
         x = self.pixel_norm(x)
@@ -321,18 +355,26 @@ class ConvBlock(nn.Module):
         weight = self.weight * self.wscale
         if self.use_conv2d_transpose:
             weight = F.pad(weight, (1, 1, 1, 1, 0, 0, 0, 0), 'constant', 0.0)
-            weight = (weight[:, :, 1:, 1:] + weight[:, :, :-1, 1:] +
-                      weight[:, :, 1:, :-1] + weight[:, :, :-1, :-1])
-            x = F.conv_transpose2d(x,
-                                   weight=weight,
-                                   bias=self.bias,
-                                   stride=self.stride,
-                                   padding=self.padding)
+            weight = (
+                weight[:, :, 1:, 1:]
+                + weight[:, :, :-1, 1:]
+                + weight[:, :, 1:, :-1]
+                + weight[:, :, :-1, :-1]
+            )
+            x = F.conv_transpose2d(
+                x,
+                weight=weight,
+                bias=self.bias,
+                stride=self.stride,
+                padding=self.padding,
+            )
         else:
-            x = F.conv2d(x,
-                         weight=weight,
-                         bias=self.bias,
-                         stride=self.stride,
-                         padding=self.padding)
+            x = F.conv2d(
+                x,
+                weight=weight,
+                bias=self.bias,
+                stride=self.stride,
+                padding=self.padding,
+            )
         x = self.activate(x)
         return x

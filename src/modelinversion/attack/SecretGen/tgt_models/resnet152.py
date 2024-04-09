@@ -4,7 +4,7 @@ import torchvision
 
 
 class ResNet152(nn.Module):
-    def __init__(self, num_classes = 1000, vis=False):
+    def __init__(self, num_classes=1000, vis=False):
         super(ResNet152, self).__init__()
         self.vis = vis
         model = torchvision.models.resnet152(pretrained=True)
@@ -12,12 +12,12 @@ class ResNet152(nn.Module):
         self.feat_dim = 2048
         self.num_of_classes = num_classes
         self.fc_layer = nn.Sequential(
-            nn.Linear(self.feat_dim, self.num_of_classes),
-            nn.Softmax(dim = 1))
+            nn.Linear(self.feat_dim, self.num_of_classes), nn.Softmax(dim=1)
+        )
 
     def classifier(self, x):
         out = self.fc_layer(x)
-        __, iden = torch.max(out, dim = 1)
+        __, iden = torch.max(out, dim=1)
         return out, iden
 
     def forward(self, x):
@@ -31,7 +31,7 @@ class ResNet152(nn.Module):
                 x = module(x)
                 out.append(torch.flatten(x, 1))
             return out
-                
+
         feature = self.feature(x)
         feature = feature.contiguous().view(feature.size(0), -1)
         out, iden = self.classifier(feature)

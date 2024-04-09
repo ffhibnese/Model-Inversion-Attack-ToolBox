@@ -19,9 +19,12 @@ import sys
 # PYTHONPATH should have been set so that the run_dir/src is in it
 import dnnlib
 
+
 def main():
     if not len(sys.argv) >= 4:
-        raise RuntimeError("This script needs three arguments: run_dir, task_name and host_name!")
+        raise RuntimeError(
+            "This script needs three arguments: run_dir, task_name and host_name!"
+        )
 
     run_dir = str(sys.argv[1])
     task_name = str(sys.argv[2])
@@ -40,6 +43,7 @@ def main():
     submit_config.host_name = host_name
 
     dnnlib.submission.submit.run_wrapper(submit_config)
+
 
 if __name__ == "__main__":
     main()

@@ -8,21 +8,25 @@ class Generator(nn.Module):
 
         def dconv_bn_relu(in_dim, out_dim):
             return nn.Sequential(
-                nn.ConvTranspose2d(in_dim, out_dim, 5, 2,
-                                   padding=2, output_padding=1, bias=False),
+                nn.ConvTranspose2d(
+                    in_dim, out_dim, 5, 2, padding=2, output_padding=1, bias=False
+                ),
                 nn.BatchNorm2d(out_dim),
-                nn.ReLU())
+                nn.ReLU(),
+            )
 
         self.l1 = nn.Sequential(
             nn.Linear(in_dim, dim * 8 * 4 * 4, bias=False),
             nn.BatchNorm1d(dim * 8 * 4 * 4),
-            nn.ReLU())
+            nn.ReLU(),
+        )
         self.l2_5 = nn.Sequential(
             dconv_bn_relu(dim * 8, dim * 4),
             dconv_bn_relu(dim * 4, dim * 2),
             dconv_bn_relu(dim * 2, dim),
             nn.ConvTranspose2d(dim, 3, 5, 2, padding=2, output_padding=1),
-            nn.Sigmoid())
+            nn.Sigmoid(),
+        )
 
     def forward(self, x):
         y = self.l1(x)
@@ -37,20 +41,24 @@ class GeneratorMNIST(nn.Module):
 
         def dconv_bn_relu(in_dim, out_dim):
             return nn.Sequential(
-                nn.ConvTranspose2d(in_dim, out_dim, 5, 2,
-                                   padding=2, output_padding=1, bias=False),
+                nn.ConvTranspose2d(
+                    in_dim, out_dim, 5, 2, padding=2, output_padding=1, bias=False
+                ),
                 nn.BatchNorm2d(out_dim),
-                nn.ReLU())
+                nn.ReLU(),
+            )
 
         self.l1 = nn.Sequential(
             nn.Linear(in_dim, dim * 4 * 4 * 4, bias=False),
             nn.BatchNorm1d(dim * 4 * 4 * 4),
-            nn.ReLU())
+            nn.ReLU(),
+        )
         self.l2_5 = nn.Sequential(
             dconv_bn_relu(dim * 4, dim * 2),
             dconv_bn_relu(dim * 2, dim),
             nn.ConvTranspose2d(dim, 1, 5, 2, padding=2, output_padding=1),
-            nn.Sigmoid())
+            nn.Sigmoid(),
+        )
 
     def forward(self, x):
         y = self.l1(x)
@@ -99,7 +107,9 @@ class CompletionNetwork(nn.Module):
         self.bn9 = nn.BatchNorm2d(128)
         self.act9 = nn.ReLU()
         # input_shape: (None, 256, img_h//4, img_w//4)
-        self.conv10 = nn.Conv2d(128, 128, kernel_size=3, stride=1, dilation=16, padding=16)
+        self.conv10 = nn.Conv2d(
+            128, 128, kernel_size=3, stride=1, dilation=16, padding=16
+        )
         self.bn10 = nn.BatchNorm2d(128)
         self.act10 = nn.ReLU()
         # input_shape: (None, 256, img_h//4, img_w//4)
@@ -154,10 +164,12 @@ class CompletionNetwork(nn.Module):
 
 def dconv_bn_relu(in_dim, out_dim):
     return nn.Sequential(
-        nn.ConvTranspose2d(in_dim, out_dim, 5, 2,
-                           padding=2, output_padding=1, bias=False),
+        nn.ConvTranspose2d(
+            in_dim, out_dim, 5, 2, padding=2, output_padding=1, bias=False
+        ),
         nn.BatchNorm2d(out_dim),
-        nn.ReLU())
+        nn.ReLU(),
+    )
 
 
 class ContextNetwork(nn.Module):
@@ -200,7 +212,9 @@ class ContextNetwork(nn.Module):
         self.bn9 = nn.BatchNorm2d(128)
         self.act9 = nn.ReLU()
         # input_shape: (None, 128, img_h//4, img_w//4)
-        self.conv10 = nn.Conv2d(128, 128, kernel_size=3, stride=1, dilation=16, padding=16)
+        self.conv10 = nn.Conv2d(
+            128, 128, kernel_size=3, stride=1, dilation=16, padding=16
+        )
         self.bn10 = nn.BatchNorm2d(128)
         self.act10 = nn.ReLU()
 
@@ -226,10 +240,11 @@ class IdentityGenerator(nn.Module):
         self.l1 = nn.Sequential(
             nn.Linear(in_dim, dim * 8 * 4 * 4, bias=False),
             nn.BatchNorm1d(dim * 8 * 4 * 4),
-            nn.ReLU())
+            nn.ReLU(),
+        )
         self.l2_5 = nn.Sequential(
-            dconv_bn_relu(dim * 8, dim * 4),
-            dconv_bn_relu(dim * 4, dim * 2))
+            dconv_bn_relu(dim * 8, dim * 4), dconv_bn_relu(dim * 4, dim * 2)
+        )
 
     def forward(self, x):
         y = self.l1(x)
@@ -252,14 +267,18 @@ class InversionNet(nn.Module):
 
         self.Dconv = nn.Sequential(
             dconv_bn_relu(self.dim, self.out_dim),
-            dconv_bn_relu(self.out_dim, self.out_dim // 2))
+            dconv_bn_relu(self.out_dim, self.out_dim // 2),
+        )
 
         self.Conv = nn.Sequential(
-            nn.Conv2d(self.out_dim // 2, self.out_dim // 4, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(
+                self.out_dim // 2, self.out_dim // 4, kernel_size=3, stride=1, padding=1
+            ),
             nn.BatchNorm2d(self.out_dim // 4),
             nn.ReLU(),
             nn.Conv2d(self.out_dim // 4, 3, kernel_size=3, stride=1, padding=1),
-            nn.Sigmoid())
+            nn.Sigmoid(),
+        )
 
     def forward(self, inp):
         # x.shape [4, h, w]  z.shape [100]

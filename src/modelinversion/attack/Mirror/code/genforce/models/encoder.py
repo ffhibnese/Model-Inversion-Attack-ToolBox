@@ -19,55 +19,70 @@ _RESOLUTIONS_ALLOWED = [8, 16, 32, 64, 128, 256, 512, 1024]
 # Final resolution.
 _FINAL_RES = 4
 
+
 class BasicBlock(nn.Module):
     """Implementation of ResNet BasicBlock."""
 
     expansion = 1
 
-    def __init__(self,
-                 inplanes,
-                 planes,
-                 base_width=64,
-                 stride=1,
-                 groups=1,
-                 dilation=1,
-                 norm_layer=None,
-                 downsample=None):
+    def __init__(
+        self,
+        inplanes,
+        planes,
+        base_width=64,
+        stride=1,
+        groups=1,
+        dilation=1,
+        norm_layer=None,
+        downsample=None,
+    ):
         super().__init__()
         if base_width != 64:
-            raise ValueError(f'BasicBlock of ResNet only supports '
-                             f'`base_width=64`, but {base_width} received!')
+            raise ValueError(
+                f'BasicBlock of ResNet only supports '
+                f'`base_width=64`, but {base_width} received!'
+            )
         if stride not in [1, 2]:
-            raise ValueError(f'BasicBlock of ResNet only supports `stride=1` '
-                             f'and `stride=2`, but {stride} received!')
+            raise ValueError(
+                f'BasicBlock of ResNet only supports `stride=1` '
+                f'and `stride=2`, but {stride} received!'
+            )
         if groups != 1:
-            raise ValueError(f'BasicBlock of ResNet only supports `groups=1`, '
-                             f'but {groups} received!')
+            raise ValueError(
+                f'BasicBlock of ResNet only supports `groups=1`, '
+                f'but {groups} received!'
+            )
         if dilation != 1:
-            raise ValueError(f'BasicBlock of ResNet only supports '
-                             f'`dilation=1`, but {dilation} received!')
+            raise ValueError(
+                f'BasicBlock of ResNet only supports '
+                f'`dilation=1`, but {dilation} received!'
+            )
 
         self.stride = stride
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
-        self.conv1 = nn.Conv2d(in_channels=inplanes,
-                               out_channels=planes,
-                               kernel_size=3,
-                               stride=stride,
-                               padding=1,
-                               groups=1,
-                               dilation=1,
-                               bias=False)
+        self.conv1 = nn.Conv2d(
+            in_channels=inplanes,
+            out_channels=planes,
+            kernel_size=3,
+            stride=stride,
+            padding=1,
+            groups=1,
+            dilation=1,
+            bias=False,
+        )
         self.bn1 = norm_layer(planes)
         self.relu = nn.ReLU(inplace=True)
-        self.conv2 = nn.Conv2d(in_channels=planes,
-                               out_channels=planes,
-                               kernel_size=3,
-                               stride=1,
-                               padding=1,
-                               groups=1,
-                               dilation=1,
-                               bias=False)
+        self.conv2 = nn.Conv2d(
+            in_channels=planes,
+            out_channels=planes,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            groups=1,
+            dilation=1,
+            bias=False,
+        )
         self.bn2 = norm_layer(planes)
         self.downsample = downsample
 
@@ -90,50 +105,60 @@ class Bottleneck(nn.Module):
 
     expansion = 4
 
-    def __init__(self,
-                 inplanes,
-                 planes,
-                 base_width=64,
-                 stride=1,
-                 groups=1,
-                 dilation=1,
-                 norm_layer=None,
-                 downsample=None):
+    def __init__(
+        self,
+        inplanes,
+        planes,
+        base_width=64,
+        stride=1,
+        groups=1,
+        dilation=1,
+        norm_layer=None,
+        downsample=None,
+    ):
         super().__init__()
         if stride not in [1, 2]:
-            raise ValueError(f'Bottlenet of ResNet only supports `stride=1` '
-                             f'and `stride=2`, but {stride} received!')
+            raise ValueError(
+                f'Bottlenet of ResNet only supports `stride=1` '
+                f'and `stride=2`, but {stride} received!'
+            )
 
         width = int(planes * (base_width / 64)) * groups
         self.stride = stride
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
-        self.conv1 = nn.Conv2d(in_channels=inplanes,
-                               out_channels=width,
-                               kernel_size=1,
-                               stride=1,
-                               padding=0,
-                               dilation=1,
-                               groups=1,
-                               bias=False)
+        self.conv1 = nn.Conv2d(
+            in_channels=inplanes,
+            out_channels=width,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            dilation=1,
+            groups=1,
+            bias=False,
+        )
         self.bn1 = norm_layer(width)
-        self.conv2 = nn.Conv2d(in_channels=width,
-                               out_channels=width,
-                               kernel_size=3,
-                               stride=stride,
-                               padding=dilation,
-                               groups=groups,
-                               dilation=dilation,
-                               bias=False)
+        self.conv2 = nn.Conv2d(
+            in_channels=width,
+            out_channels=width,
+            kernel_size=3,
+            stride=stride,
+            padding=dilation,
+            groups=groups,
+            dilation=dilation,
+            bias=False,
+        )
         self.bn2 = norm_layer(width)
-        self.conv3 = nn.Conv2d(in_channels=width,
-                               out_channels=planes * self.expansion,
-                               kernel_size=1,
-                               stride=1,
-                               padding=0,
-                               dilation=1,
-                               groups=1,
-                               bias=False)
+        self.conv3 = nn.Conv2d(
+            in_channels=width,
+            out_channels=planes * self.expansion,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            dilation=1,
+            groups=1,
+            bias=False,
+        )
         self.bn3 = norm_layer(planes * self.expansion)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
@@ -183,16 +208,24 @@ class FPN(nn.Module):
         self.feature_conv_list = nn.ModuleList()
         for i in range(self.num_levels):
             in_channels = pyramid_channels[i]
-            self.lateral_conv_list.append(nn.Conv2d(in_channels=in_channels,
-                                                    out_channels=out_channels,
-                                                    kernel_size=3,
-                                                    padding=1,
-                                                    bias=True))
-            self.feature_conv_list.append(nn.Conv2d(in_channels=out_channels,
-                                                    out_channels=out_channels,
-                                                    kernel_size=3,
-                                                    padding=1,
-                                                    bias=True))
+            self.lateral_conv_list.append(
+                nn.Conv2d(
+                    in_channels=in_channels,
+                    out_channels=out_channels,
+                    kernel_size=3,
+                    padding=1,
+                    bias=True,
+                )
+            )
+            self.feature_conv_list.append(
+                nn.Conv2d(
+                    in_channels=out_channels,
+                    out_channels=out_channels,
+                    kernel_size=3,
+                    padding=1,
+                    bias=True,
+                )
+            )
 
     def forward(self, inputs):
         if len(inputs) != self.num_levels:
@@ -206,10 +239,9 @@ class FPN(nn.Module):
         # Fusion, starting from `top_level`.
         for i in range(self.num_levels - 1, 0, -1):
             scale_factor = laterals[i - 1].shape[2] // laterals[i].shape[2]
-            laterals[i - 1] = (laterals[i - 1] +
-                               F.interpolate(laterals[i],
-                                             mode='nearest',
-                                             scale_factor=scale_factor))
+            laterals[i - 1] = laterals[i - 1] + F.interpolate(
+                laterals[i], mode='nearest', scale_factor=scale_factor
+            )
 
         # Get outputs.
         outputs = []
@@ -243,11 +275,15 @@ class SAM(nn.Module):
         self.fusion_conv_list = nn.ModuleList()
         for i in range(self.num_levels):
             in_channels = pyramid_channels[i]
-            self.fusion_conv_list.append(nn.Conv2d(in_channels=in_channels,
-                                                   out_channels=out_channels,
-                                                   kernel_size=3,
-                                                   padding=1,
-                                                   bias=True))
+            self.fusion_conv_list.append(
+                nn.Conv2d(
+                    in_channels=in_channels,
+                    out_channels=out_channels,
+                    kernel_size=3,
+                    padding=1,
+                    bias=True,
+                )
+            )
 
     def forward(self, inputs):
         if len(inputs) != self.num_levels:
@@ -283,6 +319,7 @@ class CodeHead(nn.Module):
         latent = self.norm(latent)
 
         return latent.flatten(start_dim=1)
+
 
 class EncoderNet(nn.Module):
     """Define the ResNet-based encoder network for GAN inversion.
@@ -324,38 +361,44 @@ class EncoderNet(nn.Module):
     """
 
     arch_settings = {
-        18: (BasicBlock,  [2, 2, 2, 2]),
-        34: (BasicBlock,  [3, 4, 6, 3]),
-        50: (Bottleneck,  [3, 4, 6, 3]),
+        18: (BasicBlock, [2, 2, 2, 2]),
+        34: (BasicBlock, [3, 4, 6, 3]),
+        50: (Bottleneck, [3, 4, 6, 3]),
         101: (Bottleneck, [3, 4, 23, 3]),
-        152: (Bottleneck, [3, 8, 36, 3])
+        152: (Bottleneck, [3, 8, 36, 3]),
     }
 
-    def __init__(self,
-                 resolution,
-                 latent_dim,
-                 num_latents_per_head,
-                 image_channels=3,
-                 network_depth=18,
-                 inplanes=64,
-                 groups=1,
-                 width_per_group=64,
-                 replace_stride_with_dilation=None,
-                 norm_layer=nn.BatchNorm2d,
-                 max_channels=512,
-                 use_fpn=True,
-                 fpn_channels=512,
-                 use_sam=True,
-                 sam_channels=512):
+    def __init__(
+        self,
+        resolution,
+        latent_dim,
+        num_latents_per_head,
+        image_channels=3,
+        network_depth=18,
+        inplanes=64,
+        groups=1,
+        width_per_group=64,
+        replace_stride_with_dilation=None,
+        norm_layer=nn.BatchNorm2d,
+        max_channels=512,
+        use_fpn=True,
+        fpn_channels=512,
+        use_sam=True,
+        sam_channels=512,
+    ):
         super().__init__()
 
         if resolution not in _RESOLUTIONS_ALLOWED:
-            raise ValueError(f'Invalid resolution: `{resolution}`!\n'
-                             f'Resolutions allowed: {_RESOLUTIONS_ALLOWED}.')
+            raise ValueError(
+                f'Invalid resolution: `{resolution}`!\n'
+                f'Resolutions allowed: {_RESOLUTIONS_ALLOWED}.'
+            )
         if network_depth not in self.arch_settings:
-            raise ValueError(f'Invalid network depth: `{network_depth}`!\n'
-                             f'Options allowed: '
-                             f'{list(self.arch_settings.keys())}.')
+            raise ValueError(
+                f'Invalid network depth: `{network_depth}`!\n'
+                f'Options allowed: '
+                f'{list(self.arch_settings.keys())}.'
+            )
         if isinstance(latent_dim, int):
             latent_dim = [latent_dim]
         assert isinstance(latent_dim, (list, tuple))
@@ -391,12 +434,14 @@ class EncoderNet(nn.Module):
             replace_stride_with_dilation = [False] * self.num_stages
 
         # Backbone.
-        self.conv1 = nn.Conv2d(in_channels=self.image_channels,
-                               out_channels=self.inplanes,
-                               kernel_size=7,
-                               stride=2,
-                               padding=3,
-                               bias=False)
+        self.conv1 = nn.Conv2d(
+            in_channels=self.image_channels,
+            out_channels=self.inplanes,
+            kernel_size=7,
+            stride=2,
+            padding=3,
+            bias=False,
+        )
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -407,17 +452,23 @@ class EncoderNet(nn.Module):
             num_blocks = num_blocks_per_stage[i - 1]
             stride = 1 if i == 1 else 2
             dilate = replace_stride_with_dilation[i - 1]
-            self.add_module(f'layer{i}',
-                            self._make_stage(block_fn=block_fn,
-                                             planes=channels,
-                                             num_blocks=num_blocks,
-                                             stride=stride,
-                                             dilate=dilate))
+            self.add_module(
+                f'layer{i}',
+                self._make_stage(
+                    block_fn=block_fn,
+                    planes=channels,
+                    num_blocks=num_blocks,
+                    stride=stride,
+                    dilate=dilate,
+                ),
+            )
             self.stage_channels.append(channels)
 
         if self.num_heads > len(self.stage_channels):
-            raise ValueError(f'Number of task heads is larger than number of '
-                             f'stages! Please reduce the number of heads.')
+            raise ValueError(
+                f'Number of task heads is larger than number of '
+                f'stages! Please reduce the number of heads.'
+            )
 
         # Task-head.
         if self.num_heads == 1:
@@ -425,16 +476,18 @@ class EncoderNet(nn.Module):
             self.use_sam = False
 
         if self.use_fpn:
-            fpn_pyramid_channels = self.stage_channels[-self.num_heads:]
-            self.fpn = FPN(pyramid_channels=fpn_pyramid_channels,
-                           out_channels=self.fpn_channels)
+            fpn_pyramid_channels = self.stage_channels[-self.num_heads :]
+            self.fpn = FPN(
+                pyramid_channels=fpn_pyramid_channels, out_channels=self.fpn_channels
+            )
         if self.use_sam:
             if use_fpn:
                 sam_pyramid_channels = [self.fpn_channels] * self.num_heads
             else:
-                sam_pyramid_channels = self.stage_channels[-self.num_heads:]
-            self.sam = SAM(pyramid_channels=sam_pyramid_channels,
-                           out_channels=self.sam_channels)
+                sam_pyramid_channels = self.stage_channels[-self.num_heads :]
+            self.sam = SAM(
+                pyramid_channels=sam_pyramid_channels, out_channels=self.sam_channels
+            )
 
         self.head_list = nn.ModuleList()
         for head_idx in range(self.num_heads):
@@ -449,12 +502,16 @@ class EncoderNet(nn.Module):
 
             # Parse out_channels.
             start_latent_idx = sum(self.num_latents_per_head[:head_idx])
-            end_latent_idx = sum(self.num_latents_per_head[:head_idx + 1])
+            end_latent_idx = sum(self.num_latents_per_head[: head_idx + 1])
             out_channels = sum(self.latent_dim[start_latent_idx:end_latent_idx])
 
-            self.head_list.append(CodeHead(in_channels=in_channels,
-                                           out_channels=out_channels,
-                                           norm_layer=self.norm_layer))
+            self.head_list.append(
+                CodeHead(
+                    in_channels=in_channels,
+                    out_channels=out_channels,
+                    norm_layer=self.norm_layer,
+                )
+            )
 
     def _make_stage(self, block_fn, planes, num_blocks, stride=1, dilate=False):
         norm_layer = self.norm_layer
@@ -465,36 +522,46 @@ class EncoderNet(nn.Module):
             stride = 1
         if stride != 1 or self.inplanes != planes * block_fn.expansion:
             downsample = nn.Sequential(
-                nn.Conv2d(in_channels=self.inplanes,
-                          out_channels=planes * block_fn.expansion,
-                          kernel_size=1,
-                          stride=stride,
-                          padding=0,
-                          dilation=1,
-                          groups=1,
-                          bias=False),
+                nn.Conv2d(
+                    in_channels=self.inplanes,
+                    out_channels=planes * block_fn.expansion,
+                    kernel_size=1,
+                    stride=stride,
+                    padding=0,
+                    dilation=1,
+                    groups=1,
+                    bias=False,
+                ),
                 norm_layer(planes * block_fn.expansion),
             )
 
         blocks = []
-        blocks.append(block_fn(inplanes=self.inplanes,
-                               planes=planes,
-                               base_width=self.base_width,
-                               stride=stride,
-                               groups=self.groups,
-                               dilation=previous_dilation,
-                               norm_layer=norm_layer,
-                               downsample=downsample))
+        blocks.append(
+            block_fn(
+                inplanes=self.inplanes,
+                planes=planes,
+                base_width=self.base_width,
+                stride=stride,
+                groups=self.groups,
+                dilation=previous_dilation,
+                norm_layer=norm_layer,
+                downsample=downsample,
+            )
+        )
         self.inplanes = planes * block_fn.expansion
         for _ in range(1, num_blocks):
-            blocks.append(block_fn(inplanes=self.inplanes,
-                                   planes=planes,
-                                   base_width=self.base_width,
-                                   stride=1,
-                                   groups=self.groups,
-                                   dilation=self.dilation,
-                                   norm_layer=norm_layer,
-                                   downsample=None))
+            blocks.append(
+                block_fn(
+                    inplanes=self.inplanes,
+                    planes=planes,
+                    base_width=self.base_width,
+                    stride=1,
+                    groups=self.groups,
+                    dilation=self.dilation,
+                    norm_layer=norm_layer,
+                    downsample=None,
+                )
+            )
 
         return nn.Sequential(*blocks)
 
@@ -508,7 +575,7 @@ class EncoderNet(nn.Module):
         for i in range(1, self.num_stages + 1):
             x = getattr(self, f'layer{i}')(x)
             features.append(x)
-        features = features[-self.num_heads:]
+        features = features[-self.num_heads :]
 
         if self.use_fpn:
             features = self.fpn(features)
@@ -523,7 +590,7 @@ class EncoderNet(nn.Module):
         for head_idx in range(self.num_heads):
             codes = self.head_list[head_idx](features[head_idx])
             start_latent_idx = sum(self.num_latents_per_head[:head_idx])
-            end_latent_idx = sum(self.num_latents_per_head[:head_idx + 1])
+            end_latent_idx = sum(self.num_latents_per_head[: head_idx + 1])
             split_size = self.latent_dim[start_latent_idx:end_latent_idx]
             outputs.extend(torch.split(codes, split_size, dim=1))
         max_dim = max(self.latent_dim)

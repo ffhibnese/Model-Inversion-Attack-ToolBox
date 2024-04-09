@@ -4,7 +4,7 @@ import os
 import pandas
 
 
-class CSVLogger():
+class CSVLogger:
     def __init__(self, every, fieldnames, filename='log.csv', resume=False):
         # If resume, first check if file already exists
         if not os.path.exists(filename):
@@ -65,5 +65,10 @@ def plot_csv(csv_path, fig_path):
         plt.title(k)
         plt.grid()
         plt.tight_layout()
-        plt.savefig(os.path.join(os.path.dirname(fig_path), f'_{k}.jpeg'), bbox_inches='tight', pad_inches=0, format='jpeg')
+        plt.savefig(
+            os.path.join(os.path.dirname(fig_path), f'_{k}.jpeg'),
+            bbox_inches='tight',
+            pad_inches=0,
+            format='jpeg',
+        )
     plt.close(fig)

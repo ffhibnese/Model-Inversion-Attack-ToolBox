@@ -11,6 +11,12 @@ from .snapshoter import Snapshoter
 from .timer import Timer
 
 __all__ = [
-    'CacheCleaner', 'Checkpointer', 'FIDEvaluator', 'LRScheduler',
-    'ProgressScheduler', 'RunningLogger', 'Snapshoter', 'Timer'
+    'CacheCleaner',
+    'Checkpointer',
+    'FIDEvaluator',
+    'LRScheduler',
+    'ProgressScheduler',
+    'RunningLogger',
+    'Snapshoter',
+    'Timer',
 ]

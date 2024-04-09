@@ -10,9 +10,14 @@ import torch.nn.functional as F
 
 
 __all__ = [
-    'crop_resize_image', 'progressive_resize_image', 'resize_image',
-    'normalize_image', 'normalize_latent_code', 'ImageResizing',
-    'ImageNormalization', 'LatentCodeNormalization',
+    'crop_resize_image',
+    'progressive_resize_image',
+    'resize_image',
+    'normalize_image',
+    'normalize_latent_code',
+    'ImageResizing',
+    'ImageNormalization',
+    'LatentCodeNormalization',
 ]
 
 
@@ -31,16 +36,22 @@ def crop_resize_image(image, size):
         ValueError: If the input `image` is not with shape [H, W, C].
     """
     if not isinstance(image, np.ndarray):
-        raise TypeError(f'Input image should be with type `numpy.ndarray`, '
-                        f'but `{type(image)}` is received!')
+        raise TypeError(
+            f'Input image should be with type `numpy.ndarray`, '
+            f'but `{type(image)}` is received!'
+        )
     if image.ndim != 3:
-        raise ValueError(f'Input image should be with shape [H, W, C], '
-                         f'but `{image.shape}` is received!')
+        raise ValueError(
+            f'Input image should be with shape [H, W, C], '
+            f'but `{image.shape}` is received!'
+        )
 
     height, width, channel = image.shape
     short_side = min(height, width)
-    image = image[(height - short_side) // 2:(height + short_side) // 2,
-                  (width - short_side) // 2:(width + short_side) // 2]
+    image = image[
+        (height - short_side) // 2 : (height + short_side) // 2,
+        (width - short_side) // 2 : (width + short_side) // 2,
+    ]
     pil_image = PIL.Image.fromarray(image)
     pil_image = pil_image.resize((size, size), PIL.Image.ANTIALIAS)
     image = np.asarray(pil_image)
@@ -69,11 +80,15 @@ def progressive_resize_image(image, size):
         ValueError: If the input `image` is not with shape [H, W, C].
     """
     if not isinstance(image, np.ndarray):
-        raise TypeError(f'Input image should be with type `numpy.ndarray`, '
-                        f'but `{type(image)}` is received!')
+        raise TypeError(
+            f'Input image should be with type `numpy.ndarray`, '
+            f'but `{type(image)}` is received!'
+        )
     if image.ndim != 3:
-        raise ValueError(f'Input image should be with shape [H, W, C], '
-                         f'but `{image.shape}` is received!')
+        raise ValueError(
+            f'Input image should be with shape [H, W, C], '
+            f'but `{image.shape}` is received!'
+        )
 
     height, width, channel = image.shape
     assert height == width
@@ -81,8 +96,7 @@ def progressive_resize_image(image, size):
     num_iters = int(np.log2(height) - np.log2(size))
     for _ in range(num_iters):
         height = max(height // 2, size)
-        image = cv2.resize(image, (height, height),
-                           interpolation=cv2.INTER_LINEAR)
+        image = cv2.resize(image, (height, height), interpolation=cv2.INTER_LINEAR)
     assert image.shape == (size, size, channel)
     return image
 
@@ -106,11 +120,15 @@ def resize_image(image, size):
         ValueError: If the input `image` is not with shape [C, H, W].
     """
     if not isinstance(image, torch.Tensor):
-        raise TypeError(f'Input image should be with type `torch.Tensor`, '
-                        f'but `{type(image)}` is received!')
+        raise TypeError(
+            f'Input image should be with type `torch.Tensor`, '
+            f'but `{type(image)}` is received!'
+        )
     if image.ndim != 3:
-        raise ValueError(f'Input image should be with shape [C, H, W], '
-                         f'but `{image.shape}` is received!')
+        raise ValueError(
+            f'Input image should be with shape [C, H, W], '
+            f'but `{image.shape}` is received!'
+        )
 
     image = F.adaptive_avg_pool2d(image.unsqueeze(0), size).squeeze(0)
     return image
@@ -132,8 +150,10 @@ def normalize_image(image, mean=127.5, std=127.5):
         TypeError: If the input `image` is not with type `torch.Tensor`.
     """
     if not isinstance(image, torch.Tensor):
-        raise TypeError(f'Input image should be with type `torch.Tensor`, '
-                        f'but `{type(image)}` is received!')
+        raise TypeError(
+            f'Input image should be with type `torch.Tensor`, '
+            f'but `{type(image)}` is received!'
+        )
     out = (image - mean) / std
     return out
 
@@ -156,14 +176,16 @@ def normalize_latent_code(latent_code, adjust_norm=True):
         TypeError: If the input `latent_code` is not with type `torch.Tensor`.
     """
     if not isinstance(latent_code, torch.Tensor):
-        raise TypeError(f'Input latent code should be with type '
-                        f'`torch.Tensor`, but `{type(latent_code)}` is '
-                        f'received!')
+        raise TypeError(
+            f'Input latent code should be with type '
+            f'`torch.Tensor`, but `{type(latent_code)}` is '
+            f'received!'
+        )
     dim = latent_code.shape[-1]
     norm = latent_code.pow(2).sum(-1, keepdim=True).pow(0.5)
     out = latent_code / norm
     if adjust_norm:
-        out = out * (dim ** 0.5)
+        out = out * (dim**0.5)
     return out
 
 

@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 import argparse
 from tqdm import tqdm
 from dataloader import CelebAVirtual, CelebA, FaceScrub
+
 # from tensorboardX import SummaryWriter
 import os.path as osp
 import os
@@ -42,6 +43,7 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
+
 g = torch.Generator()
 g.manual_seed(0)
 
@@ -54,9 +56,15 @@ print(len(trainset))
 print(len(devset))
 print(len(testset))
 
-trainloader = DataLoader(trainset, opt.batch_size, shuffle=True, worker_init_fn=seed_worker, generator=g)
-devloader = DataLoader(devset, opt.batch_size, shuffle=False, worker_init_fn=seed_worker, generator=g)
-testloader = DataLoader(testset, opt.batch_size, shuffle=False, worker_init_fn=seed_worker, generator=g)
+trainloader = DataLoader(
+    trainset, opt.batch_size, shuffle=True, worker_init_fn=seed_worker, generator=g
+)
+devloader = DataLoader(
+    devset, opt.batch_size, shuffle=False, worker_init_fn=seed_worker, generator=g
+)
+testloader = DataLoader(
+    testset, opt.batch_size, shuffle=False, worker_init_fn=seed_worker, generator=g
+)
 
 ce_loss = nn.CrossEntropyLoss()
 nll_loss = nn.NLLLoss()
@@ -66,6 +74,7 @@ scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=opt.max_epoch)
 
 train_step = 0
 test_step = 0
+
 
 def train(epoch):
     global train_step
@@ -88,7 +97,7 @@ def train(epoch):
         optimizer.step()
 
         total += targets.size(0)
-        correct += len(iden[iden==targets])
+        correct += len(iden[iden == targets])
 
         progress_bar.set_description(f'train loss: {loss:.4f}')
 
@@ -101,6 +110,7 @@ def train(epoch):
 
 
 best_acc = 0
+
 
 @torch.no_grad()
 def dev(epoch):
@@ -121,13 +131,13 @@ def dev(epoch):
         loss = nll_loss(out, targets)
 
         total += targets.size(0)
-        correct += len(iden[iden==targets])
+        correct += len(iden[iden == targets])
 
         progress_bar.set_description(f'test loss: {loss:.4f}')
 
         # writer.add_scalar('test loss', loss, test_step)
         test_step += 1
-    
+
     acc = 100 * correct / total
     # writer.add_scalar('test acc', acc, epoch)
 
@@ -138,11 +148,13 @@ def dev(epoch):
     if acc > best_acc:
         best_acc = acc
         torch.save(state, f'./checkpoint/{opt.name}_{opt.test_data}.tar')
-    
+
 
 @torch.no_grad()
 def test():
-    net.load_state_dict(torch.load(f'./checkpoint/{opt.name}_{opt.test_data}.tar')['state_dict'])
+    net.load_state_dict(
+        torch.load(f'./checkpoint/{opt.name}_{opt.test_data}.tar')['state_dict']
+    )
     net.eval()
     correct = 0
     correct_top5 = 0
@@ -156,15 +168,21 @@ def test():
 
             _, pred_outputs, iden = net(inputs)
             total += targets.size(0)
-            correct += len(iden[iden==targets])
+            correct += len(iden[iden == targets])
 
             pred_class_top5 = torch.topk(pred_outputs, k=5, dim=-1).indices
             gt_class_idx = targets.unsqueeze(-1).repeat(1, 5)
-            correct_top5 += int(torch.sum((torch.sum((gt_class_idx == pred_class_top5), dim=1) > 0), dim=0))
-        
+            correct_top5 += int(
+                torch.sum(
+                    (torch.sum((gt_class_idx == pred_class_top5), dim=1) > 0), dim=0
+                )
+            )
+
             acc = correct / total
             acc_top5 = correct_top5 / total
-            progress_bar.set_description('test acc: {:.3f}, test acc top5: {:.3f}'.format(acc, acc_top5))
+            progress_bar.set_description(
+                'test acc: {:.3f}, test acc top5: {:.3f}'.format(acc, acc_top5)
+            )
 
 
 # os.makedirs('checkpoint', exist_ok=True)

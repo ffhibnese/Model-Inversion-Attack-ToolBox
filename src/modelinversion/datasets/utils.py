@@ -76,6 +76,7 @@ from ..utils import walk_imgs, batch_apply
 #     def __len__(self):
 #         return self.length
 
+
 # Copied from https://github.com/naoto0804/pytorch-AdaIN/blob/master/sampler.py#L5-L15
 def InfiniteSampler(n):
     # i = 0
@@ -99,53 +100,63 @@ class InfiniteSamplerWrapper(torch.utils.data.sampler.Sampler):
         return iter(InfiniteSampler(self.num_samples))
 
     def __len__(self):
-        return 2 ** 31
+        return 2**31
+
 
 class ClassSubset(Subset):
-    
-    def __init__(self, dataset: DatasetFolder, target_class: int | Sequence[int]) -> None:
-        
+
+    def __init__(
+        self, dataset: DatasetFolder, target_class: int | Sequence[int]
+    ) -> None:
+
         if isinstance(target_class, int):
-            target_class = set((target_class, ))
+            target_class = set((target_class,))
         else:
             target_class = set(target_class)
-        
+
         targets = dataset.targets
         if dataset.target_transform is not None:
             targets = [dataset.target_transform(target) for target in dataset.targets]
-            
+
         indices = [i for i, c in enumerate(targets) if c in target_class]
         super().__init__(dataset, indices)
-        
+
+
 def top_k_selection(
-        top_k: int,
-        src_dataset_path: str,
-        dst_dataset_path: str,
-        batch_size: int,
-        target_model: BaseImageClassifier, 
-        num_classes: int,
-        device: torch.device, 
-        create_aug_images_fn: Optional[Callable]=None,
-        copy_or_move = 'copy'
-    ):
-    
+    top_k: int,
+    src_dataset_path: str,
+    dst_dataset_path: str,
+    batch_size: int,
+    target_model: BaseImageClassifier,
+    num_classes: int,
+    device: torch.device,
+    create_aug_images_fn: Optional[Callable] = None,
+    copy_or_move='copy',
+):
+
     src_paths = walk_imgs(src_dataset_path)
     labels = list(range(num_classes))
-    
+
     if len(src_paths) < top_k:
-        raise RuntimeError(f'Find top-{top_k} images, but the src dataset only contains {len(src_paths)} images.')
-    
+        raise RuntimeError(
+            f'Find top-{top_k} images, but the src dataset only contains {len(src_paths)} images.'
+        )
+
     def score_calculate(paths: list[str]):
         totensor = ToTensor()
         imgs = [totensor(Image.open(p)) for p in paths]
         imgs = torch.stack(imgs, dim=0)
-        
-        return cross_image_augment_scores(target_model, device, create_aug_images_fn, imgs)
-    
-    scores = batch_apply(score_calculate, src_paths, batch_size=batch_size, use_tqdm=True)
-    
+
+        return cross_image_augment_scores(
+            target_model, device, create_aug_images_fn, imgs
+        )
+
+    scores = batch_apply(
+        score_calculate, src_paths, batch_size=batch_size, use_tqdm=True
+    )
+
     transfer_fn = shutil.copy if copy_or_move == 'copy' else shutil.move
-    
+
     for label in tqdm(labels):
         dst_dir = os.path.join(dst_dataset_path, f'{label}')
         os.makedirs(dst_dir, exist_ok=True)
@@ -157,4 +168,3 @@ def top_k_selection(
             filename = os.path.split(src_path)[1]
             dst_path = os.path.join(dst_dir, filename)
             transfer_fn(src_path, dst_path)
-            
