@@ -155,8 +155,8 @@ if __name__ == '__main__':
         save_optimized_images=True,
         save_final_images=False,
         eval_metrics=[accuracy_metric, distance_metric, fid_prdc_metric],
-        eval_optimized_result=False,
-        eval_final_result=True,
+        eval_optimized_result=True,
+        eval_final_result=False,
     )
 
     attacker = ImageClassifierAttacker(attack_config)
