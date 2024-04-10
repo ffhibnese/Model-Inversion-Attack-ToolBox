@@ -37,44 +37,44 @@ def file_transfer(src_path, dst_path, mode=COPY):
         raise RuntimeError(f'Invalid mode {mode}')
 
 
-def preprocess_facescrub(src_path, dst_path, mode=COPY, split_seed=42):
-    root_actors = os.path.join(src_path, 'actors/faces')
-    root_actresses = os.path.join(src_path, 'actresses/faces')
+# def preprocess_facescrub(src_path, dst_path, mode=COPY, split_seed=42):
+#     root_actors = os.path.join(src_path, 'actors/faces')
+#     root_actresses = os.path.join(src_path, 'actresses/faces')
 
-    classes_actors, folders_actors = find_classes_folder(root_actors)
-    classes_actoresses, folders_actoresses = find_classes_folder(root_actresses)
-    classes = classes_actors + classes_actoresses
-    folders = folders_actors + folders_actoresses
+#     classes_actors, folders_actors = find_classes_folder(root_actors)
+#     classes_actoresses, folders_actoresses = find_classes_folder(root_actresses)
+#     classes = classes_actors + classes_actoresses
+#     folders = folders_actors + folders_actoresses
 
-    files = []
+#     files = []
 
-    for i, folder in enumerate(tqdm(folders, leave=False)):
-        # classname = classes[i]
-        filenames = sorted(
-            [name for name in os.listdir(folder) if name.endswith(IMG_EXTENSIONS)]
-        )
-        for fname in filenames:
-            files.append([i, folder, fname])
+#     for i, folder in enumerate(tqdm(folders, leave=False)):
+#         # classname = classes[i]
+#         filenames = sorted(
+#             [name for name in os.listdir(folder) if name.endswith(IMG_EXTENSIONS)]
+#         )
+#         for fname in filenames:
+#             files.append([i, folder, fname])
 
-    indices = list(range(len(files)))
-    np.random.RandomState(split_seed).shuffle(indices)
+#     indices = list(range(len(files)))
+#     np.random.RandomState(split_seed).shuffle(indices)
 
-    training_set_size = int(0.9 * len(indices))
-    train_idx = indices[:training_set_size]
-    test_idx = indices[training_set_size:]
+#     training_set_size = int(0.9 * len(indices))
+#     train_idx = indices[:training_set_size]
+#     test_idx = indices[training_set_size:]
 
-    for split, indices in zip(['train', 'test'], [train_idx, test_idx]):
-        root_path = os.path.join(dst_path, split)
-        for idx in tqdm(indices, leave=False):
-            i, src_folder, fname = files[idx]
-            src_img_path = os.path.join(src_folder, fname)
-            dst_class_dir = os.path.join(root_path, f'{i}')
-            os.makedirs(dst_class_dir, exist_ok=True)
-            dst_img_path = os.path.join(dst_class_dir, fname)
-            # print(src_img_path)
-            # print(dst_img_path)
-            # exit()
-            file_transfer(src_img_path, dst_img_path, mode=mode)
+#     for split, indices in zip(['train', 'test'], [train_idx, test_idx]):
+#         root_path = os.path.join(dst_path, split)
+#         for idx in tqdm(indices, leave=False):
+#             i, src_folder, fname = files[idx]
+#             src_img_path = os.path.join(src_folder, fname)
+#             dst_class_dir = os.path.join(root_path, f'{i}')
+#             os.makedirs(dst_class_dir, exist_ok=True)
+#             dst_img_path = os.path.join(dst_class_dir, fname)
+#             # print(src_img_path)
+#             # print(dst_img_path)
+#             # exit()
+#             file_transfer(src_img_path, dst_img_path, mode=mode)
 
 
 class _CelebaTransform:
@@ -99,9 +99,10 @@ class _CelebaTransform:
         )
 
     def trans(self, src_path, dst_path):
-        img = Image.open(src_path)
-        img = self.transform(img)
-        img.save(dst_path)
+        if os.path.exists(src_path):
+            img = Image.open(src_path)
+            img = self.transform(img)
+            img.save(dst_path)
 
 
 def split(raw_img_dir, split_file_path, dst_dir, trans):
@@ -114,8 +115,14 @@ def split(raw_img_dir, split_file_path, dst_dir, trans):
 
             src_path = os.path.join(raw_img_dir, f'{s}')
             dst_label_dir = os.path.join(dst_dir, f'{label}')
+            # print(dst_dir)
+            # print(dst_label_dir)
+            # exit()
             os.makedirs(dst_label_dir, exist_ok=True)
-            dst_path = os.path.join(dst_label_dir, s[:-3] + 'png')
+
+            if '/' in s:
+                s = s.split('/')[-1]
+            dst_path = os.path.join(dst_label_dir, s[: s.rfind('.')] + '.png')
 
             trans.trans(src_path, dst_path)
 
@@ -128,9 +135,9 @@ def preprocess_celeba64(src_path, dst_path, split_files_path):
 
     split_files = [os.path.join(split_files_path, filename) for filename in split_files]
 
-    dst_dirs = ['private/train', 'private/test', 'split/public']
+    dst_dirs = ['private_train', 'private_test', 'public']
 
-    dst_dirs = [os.path.join(dst_path, filename) for filename in split_files]
+    dst_dirs = [os.path.join(dst_path, filename) for filename in dst_dirs]
 
     for dst_dir, split_file_dir in zip(dst_dirs, split_files):
         split(src_path, split_file_dir, dst_dir, trans=trans)
@@ -144,12 +151,49 @@ def preprocess_celeba224(src_path, dst_path, split_files_path, mode=COPY):
 
     split_files = [os.path.join(split_files_path, filename) for filename in split_files]
 
-    dst_dirs = ['private/train', 'private/test', 'split/public']
+    dst_dirs = ['private_train', 'private_test', 'public']
 
-    dst_dirs = [os.path.join(dst_path, filename) for filename in split_files]
+    dst_dirs = [os.path.join(dst_path, filename) for filename in dst_dirs]
 
     for dst_dir, split_file_dir in zip(dst_dirs, split_files):
         split(src_path, split_file_dir, dst_dir, trans)
+
+
+class _Facescrub224Transform:
+
+    def __init__(self) -> None:
+        self.transform = Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Resize((224, 224)),
+                transforms.ToPILImage(),
+            ]
+        )
+
+    def trans(self, src_path, dst_path):
+        if os.path.exists(src_path):
+            img = Image.open(src_path)
+            img = self.transform(img)
+            # print(img.mode)
+            img.save(dst_path)
+            # exit()
+        # else:
+        #     print('aa')
+
+
+def preprocess_facescrub224(src_path, dst_path, split_files_path):
+    trans = _Facescrub224Transform()
+
+    split_files = ['private_train.txt', 'private_test.txt']
+
+    split_files = [os.path.join(split_files_path, filename) for filename in split_files]
+
+    dst_dirs = ['private_train', 'private_test']
+
+    dst_dirs = [os.path.join(dst_path, filename) for filename in dst_dirs]
+
+    for dst_dir, split_file_dir in zip(dst_dirs, split_files):
+        split(src_path, split_file_dir, dst_dir, trans=trans)
 
 
 def preprocess_ffhq64(src_path, dst_path):
