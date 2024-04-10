@@ -37,50 +37,10 @@ def file_transfer(src_path, dst_path, mode=COPY):
         raise RuntimeError(f'Invalid mode {mode}')
 
 
-# def preprocess_facescrub(src_path, dst_path, mode=COPY, split_seed=42):
-#     root_actors = os.path.join(src_path, 'actors/faces')
-#     root_actresses = os.path.join(src_path, 'actresses/faces')
-
-#     classes_actors, folders_actors = find_classes_folder(root_actors)
-#     classes_actoresses, folders_actoresses = find_classes_folder(root_actresses)
-#     classes = classes_actors + classes_actoresses
-#     folders = folders_actors + folders_actoresses
-
-#     files = []
-
-#     for i, folder in enumerate(tqdm(folders, leave=False)):
-#         # classname = classes[i]
-#         filenames = sorted(
-#             [name for name in os.listdir(folder) if name.endswith(IMG_EXTENSIONS)]
-#         )
-#         for fname in filenames:
-#             files.append([i, folder, fname])
-
-#     indices = list(range(len(files)))
-#     np.random.RandomState(split_seed).shuffle(indices)
-
-#     training_set_size = int(0.9 * len(indices))
-#     train_idx = indices[:training_set_size]
-#     test_idx = indices[training_set_size:]
-
-#     for split, indices in zip(['train', 'test'], [train_idx, test_idx]):
-#         root_path = os.path.join(dst_path, split)
-#         for idx in tqdm(indices, leave=False):
-#             i, src_folder, fname = files[idx]
-#             src_img_path = os.path.join(src_folder, fname)
-#             dst_class_dir = os.path.join(root_path, f'{i}')
-#             os.makedirs(dst_class_dir, exist_ok=True)
-#             dst_img_path = os.path.join(dst_class_dir, fname)
-#             # print(src_img_path)
-#             # print(dst_img_path)
-#             # exit()
-#             file_transfer(src_img_path, dst_img_path, mode=mode)
-
-
-class _Celeba64Transform:
+class _Celeba112Transform:
 
     def __init__(self) -> None:
-        re_size = 64
+        re_size = 112
         crop_size = 108
         offset_height = (218 - crop_size) // 2
         offset_width = (178 - crop_size) // 2
@@ -143,9 +103,9 @@ def _preprocess_celeba(src_path, dst_path, split_files_path, trans):
         split(src_path, split_file_dir, dst_dir, trans=trans)
 
 
-def preprocess_celeba64(src_path, dst_path, split_files_path):
+def preprocess_celeba112(src_path, dst_path, split_files_path):
 
-    trans = _Celeba64Transform()
+    trans = _Celeba112Transform()
     _preprocess_celeba(src_path, dst_path, split_files_path, trans)
 
 
@@ -173,11 +133,11 @@ class _Facescrub224Transform:
             img.save(dst_path)
 
 
-class _Facescrub64Transform:
+class _Facescrub112Transform:
 
     def __init__(self) -> None:
-        re_size = 64
-        crop_size = 54
+        re_size = 112
+        crop_size = int(54 * 112 / 64)
         # offset_height = (218 - crop_size) // 2
         # offset_width = (178 - crop_size) // 2
         # crop = lambda x: x[
@@ -215,9 +175,9 @@ def _preprocess_facescrub(src_path, dst_path, split_files_path, trans):
         split(src_path, split_file_dir, dst_dir, trans=trans)
 
 
-def preprocess_facescrub64(src_path, dst_path, split_files_path):
+def preprocess_facescrub112(src_path, dst_path, split_files_path):
 
-    trans = _Facescrub64Transform()
+    trans = _Facescrub112Transform()
     _preprocess_facescrub(src_path, dst_path, split_files_path, trans)
 
 
