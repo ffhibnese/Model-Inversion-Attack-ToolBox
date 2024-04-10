@@ -77,7 +77,7 @@ def file_transfer(src_path, dst_path, mode=COPY):
 #             file_transfer(src_img_path, dst_img_path, mode=mode)
 
 
-class _CelebaTransform:
+class _Celeba64Transform:
 
     def __init__(self) -> None:
         re_size = 64
@@ -129,7 +129,9 @@ def split(raw_img_dir, split_file_path, dst_dir, trans):
 
 def preprocess_celeba64(src_path, dst_path, split_files_path):
 
-    trans = _CelebaTransform()
+    src_path = os.path.join(src_path, 'img_align_celeba')
+
+    trans = _Celeba64Transform()
 
     split_files = ['private_train.txt', 'private_test.txt', 'public.txt']
 
@@ -144,6 +146,8 @@ def preprocess_celeba64(src_path, dst_path, split_files_path):
 
 
 def preprocess_celeba224(src_path, dst_path, split_files_path, mode=COPY):
+
+    src_path = os.path.join(src_path, 'img_align_celeba')
 
     trans = lambda src, dst: file_transfer(src, dst, mode)
 
@@ -174,16 +178,39 @@ class _Facescrub224Transform:
         if os.path.exists(src_path):
             img = Image.open(src_path)
             img = self.transform(img)
-            # print(img.mode)
             img.save(dst_path)
-            # exit()
-        # else:
-        #     print('aa')
 
 
-def preprocess_facescrub224(src_path, dst_path, split_files_path):
-    trans = _Facescrub224Transform()
+class _Facescrub64Transform:
 
+    def __init__(self) -> None:
+        re_size = 64
+        crop_size = 54
+        # offset_height = (218 - crop_size) // 2
+        # offset_width = (178 - crop_size) // 2
+        # crop = lambda x: x[
+        #     :,
+        #     offset_height : offset_height + crop_size,
+        #     offset_width : offset_width + crop_size,
+        # ]
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize((re_size, re_size), antialias=True),
+                transforms.ToTensor(),
+                transforms.CenterCrop((crop_size, crop_size)),
+                transforms.ToPILImage(),
+                transforms.Resize((re_size, re_size), antialias=True),
+            ]
+        )
+
+    def trans(self, src_path, dst_path):
+        if os.path.exists(src_path):
+            img = Image.open(src_path)
+            img = self.transform(img)
+            img.save(dst_path)
+
+
+def _preprocess_facescrub(src_path, dst_path, split_files_path, trans):
     split_files = ['private_train.txt', 'private_test.txt']
 
     split_files = [os.path.join(split_files_path, filename) for filename in split_files]
@@ -194,6 +221,18 @@ def preprocess_facescrub224(src_path, dst_path, split_files_path):
 
     for dst_dir, split_file_dir in zip(dst_dirs, split_files):
         split(src_path, split_file_dir, dst_dir, trans=trans)
+
+
+def preprocess_facescrub64(src_path, dst_path, split_files_path):
+
+    trans = _Facescrub64Transform()
+    _preprocess_facescrub(src_path, dst_path, split_files_path, trans)
+
+
+def preprocess_facescrub224(src_path, dst_path, split_files_path):
+
+    trans = _Facescrub224Transform()
+    _preprocess_facescrub(src_path, dst_path, split_files_path, trans)
 
 
 def preprocess_ffhq64(src_path, dst_path):
@@ -243,7 +282,7 @@ def preprocess_metfaces256(src_path, dst_path):
     return preprocess_ffhq256(src_path, dst_path)
 
 
-def preprocess_afhq256(src_path, dst_path):
+def preprocess_afhqdogs256(src_path, dst_path):
 
     src_paths = walk_imgs(src_path)
 
