@@ -127,11 +127,9 @@ def split(raw_img_dir, split_file_path, dst_dir, trans):
             trans.trans(src_path, dst_path)
 
 
-def preprocess_celeba64(src_path, dst_path, split_files_path):
+def _preprocess_celeba(src_path, dst_path, split_files_path, trans):
 
     src_path = os.path.join(src_path, 'img_align_celeba')
-
-    trans = _Celeba64Transform()
 
     split_files = ['private_train.txt', 'private_test.txt', 'public.txt']
 
@@ -145,22 +143,16 @@ def preprocess_celeba64(src_path, dst_path, split_files_path):
         split(src_path, split_file_dir, dst_dir, trans=trans)
 
 
+def preprocess_celeba64(src_path, dst_path, split_files_path):
+
+    trans = _Celeba64Transform()
+    _preprocess_celeba(src_path, dst_path, split_files_path, trans)
+
+
 def preprocess_celeba224(src_path, dst_path, split_files_path, mode=COPY):
 
-    src_path = os.path.join(src_path, 'img_align_celeba')
-
     trans = lambda src, dst: file_transfer(src, dst, mode)
-
-    split_files = ['private_train.txt', 'private_test.txt', 'public.txt']
-
-    split_files = [os.path.join(split_files_path, filename) for filename in split_files]
-
-    dst_dirs = ['private_train', 'private_test', 'public']
-
-    dst_dirs = [os.path.join(dst_path, filename) for filename in dst_dirs]
-
-    for dst_dir, split_file_dir in zip(dst_dirs, split_files):
-        split(src_path, split_file_dir, dst_dir, trans)
+    _preprocess_celeba(src_path, dst_path, split_files_path, trans)
 
 
 class _Facescrub224Transform:
