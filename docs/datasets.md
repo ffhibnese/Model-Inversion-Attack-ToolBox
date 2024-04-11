@@ -2,8 +2,9 @@
 # datasets
 
 Here are the details for preprocessing datasets in 3 steps. We provide the preprocess tools for
-+ celeba64
++ celeba112
 + celeba224
++ facescrub112
 + facescrub224
 + ffhq64
 + ffhq256
@@ -48,7 +49,7 @@ The structure of the dataset is as follows:
 └── list_landmarks_celeba.txt
 ```
 
-For `celeba64`, you can directly use your download file above for step 3.
+For `celeba112`, you can directly use your download file above for step 3.
 
 For `celeba224`, you need to follow [HD-CelebA-Cropper](https://github.com/LynnHo/HD-CelebA-Cropper) to increase the resolution of the cropped and aligned samples. Run the script of the cropper and replace all the images in `img_align_celeba`.
 ```sh
