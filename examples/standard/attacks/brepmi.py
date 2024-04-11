@@ -8,8 +8,7 @@ sys.path.append('../../../src')
 import torch
 from torch import nn
 from torchvision.datasets import ImageFolder
-from torchvision.transforms import ToTensor
-from kornia import augmentation
+from torchvision.transforms import ToTensor, Compose, Resize
 
 from modelinversion.models import (
     SimpleGenerator64,
@@ -17,9 +16,7 @@ from modelinversion.models import (
     FaceNet112,
 )
 from modelinversion.sampler import LabelOnlySelectLatentsSampler
-from modelinversion.utils import (
-    Logger,
-)
+from modelinversion.utils import Logger
 from modelinversion.attack import (
     BrepOptimizationConfig,
     BrepOptimization,
@@ -77,17 +74,14 @@ if __name__ == '__main__':
     generator.load_state_dict(
         torch.load(generator_ckpt_path, map_location='cpu')['state_dict']
     )
-    # discriminator.load_state_dict(torch.load(discriminator_ckpt_path, map_location='cpu')['state_dict'])
 
     target_model = nn.DataParallel(target_model, device_ids=gpu_devices).to(device)
     eval_model = nn.DataParallel(eval_model, device_ids=gpu_devices).to(device)
     generator = nn.DataParallel(generator, device_ids=gpu_devices).to(device)
-    # discriminator = nn.DataParallel(discriminator, device_ids=gpu_devices).to(device)
 
     target_model.eval()
     eval_model.eval()
     generator.eval()
-    # discriminator.eval()
 
     latents_sampler = LabelOnlySelectLatentsSampler(
         z_dim, batch_size, generator, target_model, device=device
@@ -95,7 +89,10 @@ if __name__ == '__main__':
 
     # prepare eval dataset
 
-    eval_dataset = ImageFolder(eval_dataset_path, transform=ToTensor())
+    eval_dataset = ImageFolder(
+        eval_dataset_path,
+        transform=Compose([Resize((64, 64), antialias=True), ToTensor()]),
+    )
 
     # prepare optimization
 

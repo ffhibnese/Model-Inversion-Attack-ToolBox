@@ -9,7 +9,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
-from torchvision.transforms import ToTensor, Compose
+from torchvision.transforms import ToTensor, Compose, Resize
 
 from modelinversion.models import SimpleGenerator64, GmiDiscriminator64
 from modelinversion.train import GmiGanTrainer
@@ -40,7 +40,9 @@ if __name__ == '__main__':
 
     # prepare dataset
 
-    dataset = ImageFolder(dataset_path, transform=Compose([ToTensor()]))
+    dataset = ImageFolder(
+        dataset_path, transform=Compose([Resize((64, 64), antialias=True), ToTensor()])
+    )
     dataloader = iter(
         DataLoader(
             dataset, batch_size=batch_size, sampler=InfiniteSamplerWrapper(dataset)

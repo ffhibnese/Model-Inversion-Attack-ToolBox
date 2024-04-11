@@ -30,7 +30,6 @@ from modelinversion.sampler import (
     SimpleLatentsSampler,
 )
 from modelinversion.utils import (
-    unwrapped_parallel_module,
     augment_images_fn_generator,
     Logger,
     MinMaxConstraint,

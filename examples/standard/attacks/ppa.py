@@ -11,7 +11,6 @@ from torchvision.datasets import ImageFolder
 from torchvision.transforms import (
     ToTensor,
     Compose,
-    ColorJitter,
     RandomResizedCrop,
     RandomHorizontalFlip,
     Normalize,
@@ -26,7 +25,6 @@ from modelinversion.models import (
 )
 from modelinversion.sampler import ImageAugmentSelectLatentsSampler
 from modelinversion.utils import (
-    unwrapped_parallel_module,
     augment_images_fn_generator,
     Logger,
 )

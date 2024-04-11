@@ -5,6 +5,7 @@ sys.path.append('../../../src')
 
 import torch
 from torch import nn
+from torchvision.transforms import functional as TF
 
 from modelinversion.models import IR152_64
 from modelinversion.datasets import top_k_selection
@@ -45,5 +46,5 @@ if __name__ == '__main__':
         target_model=target_model,
         num_classes=num_classes,
         device=device,
-        create_aug_images_fn=None,
+        create_aug_images_fn=lambda img: TF.resize(img, (64, 64), antialias=True),
     )

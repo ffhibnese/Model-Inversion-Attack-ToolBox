@@ -9,14 +9,11 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from torchvision.datasets import ImageFolder
-from torchvision.transforms import ToTensor
-from kornia import augmentation
+from torchvision.transforms import ToTensor, Compose, Resize
 
 from modelinversion.models import SimpleGenerator64, IR152_64, FaceNet112
 from modelinversion.sampler import SimpleLatentsSampler
 from modelinversion.utils import (
-    unwrapped_parallel_module,
-    augment_images_fn_generator,
     Logger,
     max_margin_loss,
 )
@@ -91,7 +88,10 @@ if __name__ == '__main__':
 
     # prepare eval dataset
 
-    eval_dataset = ImageFolder(eval_dataset_path, transform=ToTensor())
+    eval_dataset = ImageFolder(
+        eval_dataset_path,
+        transform=Compose([Resize((64, 64), antialias=True), ToTensor()]),
+    )
 
     # prepare optimization
 

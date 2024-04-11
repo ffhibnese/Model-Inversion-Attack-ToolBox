@@ -9,7 +9,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
-from torchvision.transforms import ToTensor, Compose
+from torchvision.transforms import ToTensor, Compose, Resize
 
 from modelinversion.models import IR152_64, PlgmiGenerator64, PlgmiDiscriminator64
 from modelinversion.train import PlgmiGanTrainer
@@ -54,7 +54,10 @@ if __name__ == '__main__':
     def _noise_adder(img):
         return torch.empty_like(img, dtype=img.dtype).uniform_(0.0, 1 / 256.0) + img
 
-    dataset = ImageFolder(dataset_path, transform=Compose([ToTensor(), _noise_adder]))
+    dataset = ImageFolder(
+        dataset_path,
+        transform=Compose([Resize((64, 64), antialias=True), ToTensor(), _noise_adder]),
+    )
     dataloader = iter(
         DataLoader(
             dataset, batch_size=batch_size, sampler=InfiniteSamplerWrapper(dataset)
