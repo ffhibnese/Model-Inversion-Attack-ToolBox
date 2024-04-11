@@ -6,13 +6,14 @@ from typing import Callable, Any, Optional, Iterable, Sequence
 import torch
 from torch import nn, Tensor, LongTensor
 from torch.nn import functional as F
-from ..utils import TorchLoss
+from ..utils import TorchLoss, reparameterize
 from ..models import (
     BaseImageClassifier,
     GmiDiscriminator64,
     GmiDiscriminator256,
     KedmiDiscriminator64,
     KedmiDiscriminator256,
+    HOOK_NAME_FEATURE,
 )
 
 
@@ -60,6 +61,70 @@ class ImageAugmentClassificationLoss(BaseImageLoss):
 
         return loss, OrderedDict(
             [['classification loss', loss.item()], ['target acc', acc / total_num]]
+        )
+
+
+class ClassificationWithFeatureDistributionLoss(ImageAugmentClassificationLoss):
+
+    def __init__(
+        self,
+        classifier: BaseImageClassifier,
+        feature_mean: Tensor,
+        feature_std: Tensor,
+        classification_loss_fn: (
+            str | Callable[[Tensor, LongTensor], Tensor]
+        ) = 'cross_entropy',
+        create_aug_images_fn: Optional[Callable[[Tensor], Iterable[Tensor]]] = None,
+        feature_loss_weight: float = 1.0,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            classifier, classification_loss_fn, create_aug_images_fn, *args, **kwargs
+        )
+
+        self.feature_mean = feature_mean
+        self.feature_std = feature_std
+        self.feature_loss_weight = feature_loss_weight
+
+    def _sample_distribution(self):
+        return reparameterize(self.feature_mean, self.feature_std)
+
+    def forward(self, images, labels, *args, **kwargs):
+
+        acc = 0
+        iden_loss = 0
+        feature_loss = 0
+        total_num = 0
+        bs = len(images)
+        for aug_images in self.create_aug_images_fn(images):
+            total_num += 1
+            conf, info_dict = self.classifier(aug_images)
+            if HOOK_NAME_FEATURE not in info_dict:
+                raise RuntimeError(
+                    f'The addition info that the model outputs do not contains {HOOK_NAME_FEATURE}'
+                )
+            pred_labels = torch.argmax(conf, dim=-1)
+            iden_loss += self.loss_fn(conf, labels)
+
+            feature_dist_samples = self._sample_distribution()
+            feature_loss += torch.mean(
+                (
+                    info_dict[HOOK_NAME_FEATURE].view(bs, -1)
+                    - feature_dist_samples.view(1, -1)
+                ).pow(2)
+            )
+            acc += (pred_labels == labels).float().mean().item()
+
+        loss = iden_loss + self.feature_loss_weight * feature_loss
+
+        return loss, OrderedDict(
+            [
+                ['loss', loss.item()],
+                ['classification loss', iden_loss.item()],
+                ['feature loss', feature_loss.item()],
+                ['target acc', acc / total_num],
+            ]
         )
 
 

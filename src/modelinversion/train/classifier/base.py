@@ -241,7 +241,7 @@ class DpsgdTrainConfig(SimpleTrainConfig):
     microbatch_size: int = 1
 
 
-class BpsgdTrainer(SimpleTrainer):
+class DpsgdTrainer(SimpleTrainer):
 
     def __init__(self, config: DpsgdTrainConfig, *args, **kwargs) -> None:
         super().__init__(config, *args, **kwargs)

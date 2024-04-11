@@ -1,6 +1,7 @@
 from typing import Callable
 from typing import Optional
 
+import torch
 from torch import nn
 from torch.nn.parallel import DataParallel, DistributedDataParallel
 
@@ -64,6 +65,21 @@ def unwrapped_parallel_module(module):
     if isinstance(module, (DataParallel, DistributedDataParallel)):
         return module.module
     return module
+
+
+def reparameterize(mu, std):
+    """
+    Reparameterization trick to sample from N(mu, var) from
+    N(0,1).
+    :param mu: (Tensor) Mean of the latent Gaussian [B x D]
+    :param logvar: (Tensor) Standard deviation of the latent Gaussian [B x D]
+    :return: (Tensor) [B x D]
+    """
+
+    # std = torch.exp(0.5 * std)
+    eps = torch.randn_like(std)
+
+    return eps * std + mu
 
 
 def augment_images_fn_generator(
