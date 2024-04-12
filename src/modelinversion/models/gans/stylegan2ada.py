@@ -94,7 +94,7 @@ class StyleGAN2adaSynthesisWrapper(BaseIntermediateImageGenerator):
         return x if end_block < self.block_num else img
 
 
-def get_stylegan2data_generator(
+def get_stylegan2ata_generator(
     stylegan2ada_path: str,
     checkpoint_path: str,
     single_w=True,

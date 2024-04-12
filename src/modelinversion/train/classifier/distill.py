@@ -7,6 +7,7 @@ from .base import *
 from ...models import BaseImageClassifier
 
 
+@dataclass
 class DistillTrainConfig(BaseTrainConfig):
 
     teacher: BaseImageClassifier = None
@@ -35,7 +36,7 @@ class DistillTrainer(BaseTrainer):
         return loss
 
     @torch.no_grad()
-    def calc_acc(self, inputs, result, labels: torch.LongTensor):
+    def calc_train_acc(self, inputs, result, labels: torch.LongTensor):
         res = result[0]
         if isinstance(res, InceptionOutputs):
             res, _ = res

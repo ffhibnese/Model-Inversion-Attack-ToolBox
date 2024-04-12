@@ -361,7 +361,9 @@ class ImageClassifierAttacker(ABC):
             self.concat_optimized_results()
         )
 
-        if self.config.eval_optimized_result:
+        if self.config.eval_optimized_result or (
+            optimized_scores is None and config.eval_final_result
+        ):
             print('evaluate optimized result')
             self._evaluation(
                 optimized_metric_features,

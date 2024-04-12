@@ -107,17 +107,17 @@ class GeneticAlgorithm:
             self.populations = self.latent_constraint(self.populations)
 
 
-def default_noise_apply_fn(self, latents, mask):
+def default_noise_apply_fn(latents, mask):
     return latents + mask * torch.randn_like(latents)
 
 
 @dataclass
 class GeneticOptimizationConfig(BaseImageOptimizationConfig):
 
-    iter_times: int = 600
+    iter_times: int = 100
     batch_size: int = 25
 
-    noise_probability: int = 0.5
+    noise_probability: int = 0.1
     latent_constraint: BaseConstraint = None
     noise_apply_fn: Callable[[Tensor, Tensor], Tensor] = default_noise_apply_fn
 

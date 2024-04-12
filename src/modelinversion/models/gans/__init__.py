@@ -13,4 +13,4 @@ from .cgan import (
     PlgmiDiscriminator64,
     PlgmiDiscriminator256,
 )
-from .stylegan2ada import get_stylegan2data_generator
+from .stylegan2ada import get_stylegan2ata_generator

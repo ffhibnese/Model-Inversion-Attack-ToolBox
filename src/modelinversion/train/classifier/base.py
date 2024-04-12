@@ -78,6 +78,7 @@ class BaseTrainer(ABC):
     def calc_loss(self, inputs, result, labels: torch.LongTensor):
         raise NotImplementedError()
 
+    @torch.no_grad()
     def calc_acc(self, inputs, result, labels: torch.LongTensor):
         res = result[0]
         if isinstance(res, InceptionOutputs):
@@ -87,6 +88,12 @@ class BaseTrainer(ABC):
         pred = torch.argmax(res, dim=-1)
         # print((pred == labels).float())
         return (pred == labels).float().mean()
+
+    def calc_train_acc(self, inputs, result, labels: torch.LongTensor):
+        return self.calc_acc(inputs, result, labels)
+
+    def calc_test_acc(self, inputs, result, labels):
+        return self.calc_acc(inputs, result, labels)
 
     def _update_step(self, loss):
         self.optimizer.zero_grad()
@@ -111,7 +118,7 @@ class BaseTrainer(ABC):
         result = self.model(inputs)
 
         loss = self.calc_loss(inputs, result, labels)
-        acc = self.calc_acc(inputs, result, labels)
+        acc = self.calc_train_acc(inputs, result, labels)
         self._update_step(loss)
 
         return OrderedDict(loss=loss, acc=acc)
@@ -153,7 +160,7 @@ class BaseTrainer(ABC):
 
         result = self.model(inputs)
 
-        acc = self.calc_acc(inputs, result, labels)
+        acc = self.calc_test_acc(inputs, result, labels)
 
         return OrderedDict(acc=acc)
 

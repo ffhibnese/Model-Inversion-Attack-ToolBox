@@ -20,7 +20,7 @@ from torchvision.transforms import (
 )
 
 from modelinversion.models import (
-    get_stylegan2data_generator,
+    get_stylegan2ata_generator,
     TorchvisionClassifierModel,
 )
 from modelinversion.sampler import ImageAugmentSelectLatentsSampler
@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
     z_dim = 128
 
-    mapping, generator = get_stylegan2data_generator(
+    mapping, generator = get_stylegan2ata_generator(
         stylegan2ada_path, stylegan2ada_ckpt_path, single_w=True
     )
 

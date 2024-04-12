@@ -56,7 +56,7 @@ class SimpleGenerator64(BaseIntermediateImageGenerator):
 class SimpleGenerator256(BaseIntermediateImageGenerator):
     def __init__(self, in_dim=100):
 
-        super(SimpleGenerator64, self).__init__(256, in_dim, 7)
+        super(SimpleGenerator256, self).__init__(256, in_dim, 7)
 
         dim = 64
 

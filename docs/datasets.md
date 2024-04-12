@@ -1,5 +1,5 @@
 
-# datasets
+# Datasets
 
 Here are the details for preprocessing datasets in 3 steps. We provide the preprocess tools for
 + celeba112
