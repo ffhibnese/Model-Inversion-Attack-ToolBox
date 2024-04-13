@@ -557,3 +557,158 @@ class PlgmiGanTrainer(GanTrainer):
                 ['loss', loss.item()],
             ]
         )
+
+
+class LoktGanTrainer(GanTrainer):
+
+    def __init__(
+        self,
+        experiment_dir: str,
+        batch_size: str,
+        input_size: int | Sequence[int],
+        generator: PlgmiGenerator64 | PlgmiGenerator256,
+        discriminator: PlgmiDiscriminator64 | PlgmiDiscriminator256,
+        num_classes: int,
+        target_model: BaseImageClassifier,
+        classification_loss_fn: str | Callable,
+        device: torch.device,
+        augment: Optional[Callable],
+        gen_optimizer: Optimizer,
+        dis_optimizer: Optimizer,
+        save_ckpt_iters: int,
+        start_class_loss_iters: int,
+        class_loss_weight: float = 0.2,
+        show_images_iters: int | None = None,
+        show_train_info_iters: int | None = None,
+        ncritic: int = 5,
+    ) -> None:
+        super().__init__(
+            experiment_dir,
+            batch_size,
+            generator,
+            discriminator,
+            device,
+            gen_optimizer,
+            dis_optimizer,
+            save_ckpt_iters,
+            show_images_iters,
+            show_train_info_iters,
+            ncritic,
+        )
+
+        self.num_classes = num_classes
+        self.generator: LoktGenerator64 | LoktGenerator256
+        self.discriminator: LoktDiscriminator64 | LoktDiscriminator256
+        self.target_model = target_model
+        self.augment = augment
+        self.classification_loss = ClassificationLoss(classification_loss_fn)
+
+        # self.latents_sampler = latents_sampler
+        self.input_size = (
+            (input_size,) if isinstance(input_size, int) else tuple(input_size)
+        )
+
+        self.start_classloss_iters = start_class_loss_iters
+        self.class_loss_weight = class_loss_weight
+
+    def sample_images(self, num: int):
+        latents = torch.randn((num, *self.input_size)).to(self.device)
+        labels = torch.randint(
+            0, self.num_classes, (len(latents),), dtype=torch.long, device=self.device
+        )
+        fake = self.generator(latents, labels=labels)
+        return fake
+
+    def sample_fake(self):
+
+        latents = torch.randn((self.batch_size, *self.input_size)).to(self.device)
+        labels = torch.randint(
+            0, self.num_classes, (len(latents),), dtype=torch.long, device=self.device
+        )
+        fake = self.generator(latents, labels=labels)
+        return fake, labels
+
+    def train_gen_step(
+        self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor | LongTensor]]
+    ):
+        fake, pseudo_y = self.sample_fake()
+        dis_fake, dis_class = self.discriminator(fake)
+
+        # target_pred, _ = self.target_model(aug_fake)
+        # inv_loss = self.classification_loss(target_pred, pseudo_y).mean()
+        gt_dis_real = torch.ones((len(dis_fake),), device=dis_fake.device)
+
+        dis_loss = F.binary_cross_entropy(dis_fake, gt_dis_real)
+
+        loss = dis_loss
+
+        if iters > self.start_classloss_iters:
+            loss_class = F.cross_entropy(dis_class, pseudo_y)
+            loss += loss_class * self.class_loss_weight
+            loss_class_item = loss_class.item()
+        else:
+            loss_class_item = 0
+
+        self.gen_optimizer.zero_grad()
+        loss.backward()
+        self.gen_optimizer.step()
+
+        return OrderedDict(
+            [
+                ['dis loss', dis_loss.item()],
+                ['class loss', loss_class_item],
+                ['loss', loss.item()],
+            ]
+        )
+
+    def train_dis_step(
+        self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor | LongTensor]]
+    ):
+        with torch.no_grad():
+            fake, pseudo_y = self.sample_fake()
+        dis_fake, dis_fake_class = self.discriminator(fake)
+
+        real = next(dataloader)
+        if isinstance(real, (list, tuple)):
+            real = real[0]
+
+        real = real.to(self.device)
+
+        dis_real, _ = self.discriminator(real)
+
+        gt_dis_real = torch.ones((len(dis_fake),), device=dis_fake.device)
+        gt_dis_fake = torch.zeros((len(dis_fake),), device=dis_fake.device)
+
+        dis_fake_loss = F.binary_cross_entropy(dis_fake, gt_dis_fake)
+        dis_real_loss = F.binary_cross_entropy(dis_real, gt_dis_real)
+
+        loss = dis_fake_loss + dis_real_loss
+
+        gen_acc = 0
+        dis_acc = 0
+        loss_class_item = 0
+        if iters > self.start_classloss_iters:
+            with torch.no_grad():
+                aug_fake = self.augment(fake) if self.augment is not None else fake
+                pred, _ = self.target_model(aug_fake)
+                pred = pred.argmax(dim=-1).detach()
+                gen_acc = (pred == pseudo_y).float().mean().item()
+                dis_pred = dis_fake_class.argmax(dim=-1)
+                dis_acc = (pred == dis_pred).float().mean().item()
+            loss_class = F.cross_entropy(dis_fake_class, pred)
+            loss += loss_class * self.class_loss_weight
+            loss_class_item = loss_class.item()
+
+        self.dis_optimizer.zero_grad()
+        loss.backward()
+        self.dis_optimizer.step()
+
+        return OrderedDict(
+            [
+                ['real loss', dis_real_loss.item()],
+                ['fake loss', dis_fake_loss.item()],
+                ['class loss', loss_class_item]['loss', loss.item()],
+                ['gen acc', gen_acc],
+                ['dis acc', dis_acc],
+            ]
+        )

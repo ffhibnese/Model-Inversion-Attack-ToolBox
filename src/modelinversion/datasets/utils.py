@@ -10,12 +10,13 @@ from PIL import Image
 from torch.utils.data import sampler, Subset
 from torchvision.datasets import DatasetFolder
 from torchvision.transforms import ToTensor
+from torchvision.utils import save_image
 from tqdm import tqdm
 
 import torch
 from ..models import BaseImageClassifier
 from ..scores import ImageClassificationAugmentConfidence, cross_image_augment_scores
-from ..utils import walk_imgs, batch_apply
+from ..utils import walk_imgs, batch_apply, get_random_string
 
 # class RandomIdentitySampler(sampler.Sampler):
 #     """
@@ -168,3 +169,43 @@ def top_k_selection(
             filename = os.path.split(src_path)[1]
             dst_path = os.path.join(dst_dir, filename)
             transfer_fn(src_path, dst_path)
+
+
+@torch.no_grad()
+def generator_generate_datasets(
+    dst_dataset_path: str,
+    generator,
+    num_per_class: int,
+    num_classes: int,
+    batch_size: int,
+    input_shape: int | tuple,
+    target_model: BaseImageClassifier,
+    device: torch.device,
+):
+    # def fn()
+    labels = torch.arange(0, num_classes, dtype=torch.long).repeat_interleave(
+        num_per_class
+    )
+    if isinstance(input_shape, int):
+        input_shape = (input_shape,)
+
+    def get_save_path(label):
+        save_dir = os.path.join(dst_dataset_path, f'{label}')
+        os.makedirs(save_dir, exist_ok=True)
+        filename = get_random_string()
+        return os.path.join(save_dir, f'{filename}.png')
+
+    def generation(labels):
+        shape = (len(labels), *input_shape)
+        labels = labels.to(device)
+        z = torch.randn(shape, device=device)
+        img = generator(z, labels=labels)
+        pred = target_model(img)[0].argmax(dim=-1).cpu()
+        img = img.cpu()
+        for i in range(len(labels)):
+            label = pred[i].item()
+            img = img[i]
+            savepath = get_save_path(label)
+            save_image(img, savepath)
+
+    batch_apply(generation, labels, batch_size=batch_size, use_tqdm=True)

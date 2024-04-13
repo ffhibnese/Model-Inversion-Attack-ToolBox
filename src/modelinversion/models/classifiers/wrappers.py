@@ -96,6 +96,8 @@ class VibWrapper(BaseImageClassifier):
 
 def get_default_create_hidden_hook_fn(num: int = 3):
 
+    param_num = num
+
     def _fn(model: BaseImageClassifier):
         linear_modules = []
         for m in model.modules():
@@ -103,7 +105,7 @@ def get_default_create_hidden_hook_fn(num: int = 3):
                 linear_modules.append(m)
         linear_modules = linear_modules[1:]
 
-        num = min(num, len(linear_modules))
+        num = min(param_num, len(linear_modules))
         splitnum = (len(linear_modules) + 1) // (num + 1)
         use_nums = [splitnum * (i + 1) - 1 for i in range(num)]
         use_linear_modules = [linear_modules[i] for i in use_nums]

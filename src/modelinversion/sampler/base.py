@@ -54,7 +54,9 @@ class SimpleLatentsSampler(BaseLatentsSampler):
 
         latents = torch.randn(size)
         if self.latents_mapping is not None:
-            latents = self.latents_mapping(latents)
+            latents = batch_apply(
+                self.latents_mapping, latents, batch_size=self.batch_size
+            )
         return {label: latents.detach().clone() for label in labels}
 
 

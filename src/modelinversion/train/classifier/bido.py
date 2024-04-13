@@ -178,7 +178,7 @@ class BiDOTrainer(SimpleTrainer):
         # return torch.squeeze(torch.eye(num_classes)[y.cpu()], dim=1)
         return (
             torch.zeros((len(y), num_classes))
-            .to(self.args.device)
+            .to(self.config.device)
             .scatter_(1, y.reshape(-1, 1), 1.0)
         )
 

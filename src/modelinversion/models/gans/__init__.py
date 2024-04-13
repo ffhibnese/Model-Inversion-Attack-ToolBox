@@ -12,5 +12,9 @@ from .cgan import (
     PlgmiGenerator256,
     PlgmiDiscriminator64,
     PlgmiDiscriminator256,
+    LoktDiscriminator64,
+    LoktDiscriminator256,
+    LoktGenerator64,
+    LoktGenerator256,
 )
 from .stylegan2ada import get_stylegan2ata_generator

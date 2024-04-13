@@ -431,10 +431,8 @@ class PlgmiDiscriminator64(nn.Module):
             num_features * 8, num_features * 16, activation=activation, downsample=True
         )
         self.l6 = nn.utils.spectral_norm(nn.Linear(num_features * 16, 1))
-        if num_classes > 0:
-            self.l_y = nn.utils.spectral_norm(
-                nn.Embedding(num_classes, num_features * 16)
-            )
+        # if num_classes > 0:
+        self.l_y = nn.utils.spectral_norm(nn.Embedding(num_classes, num_features * 16))
 
         self._initialize()
 
@@ -455,8 +453,8 @@ class PlgmiDiscriminator64(nn.Module):
         # Global pooling
         h = torch.sum(h, dim=(2, 3))
         output = self.l6(h)
-        if y is not None:
-            output += torch.sum(self.l_y(y) * h, dim=1, keepdim=True)
+        # if y is not None:
+        output += torch.sum(self.l_y(y) * h, dim=1, keepdim=True)
         return output
 
 
@@ -491,10 +489,8 @@ class PlgmiDiscriminator256(nn.Module):
             num_features * 16, num_features * 16, activation=activation, downsample=True
         )
         self.l6 = nn.utils.spectral_norm(nn.Linear(num_features * 16, 1))
-        if num_classes > 0:
-            self.l_y = nn.utils.spectral_norm(
-                nn.Embedding(num_classes, num_features * 16)
-            )
+        # if num_classes > 0:
+        self.l_y = nn.utils.spectral_norm(nn.Embedding(num_classes, num_features * 16))
 
         self._initialize()
 
@@ -517,6 +513,122 @@ class PlgmiDiscriminator256(nn.Module):
         # Global pooling
         h = torch.sum(h, dim=(2, 3))
         output = self.l6(h)
-        if y is not None:
-            output += torch.sum(self.l_y(y) * h, dim=1, keepdim=True)
+        # if y is not None:
+        output += torch.sum(self.l_y(y) * h, dim=1, keepdim=True)
         return output
+
+
+LoktGenerator64 = PlgmiGenerator64
+LoktGenerator256 = PlgmiGenerator256
+
+
+class LoktDiscriminator64(nn.Module):
+
+    def __init__(self, num_classes):
+        super(LoktDiscriminator64, self).__init__()
+
+        num_features = 64
+        activation = F.relu
+        self.num_features = num_features
+        self.num_classes = num_classes
+        self.activation = activation
+
+        self.block1 = _OptimizedBlock(3, num_features)
+        self.block2 = _DisBlock(
+            num_features, num_features * 2, activation=activation, downsample=True
+        )
+        self.block3 = _DisBlock(
+            num_features * 2, num_features * 4, activation=activation, downsample=True
+        )
+        self.block4 = _DisBlock(
+            num_features * 4, num_features * 8, activation=activation, downsample=True
+        )
+        self.block5 = _DisBlock(
+            num_features * 8, num_features * 16, activation=activation, downsample=True
+        )
+        self.l6 = nn.utils.spectral_norm(nn.Linear(num_features * 16, 1))
+        # if num_classes > 0:
+        self.l_y = nn.utils.spectral_norm(nn.Embedding(num_classes, num_features * 16))
+
+        self._initialize()
+
+    def _initialize(self):
+        init.xavier_uniform_(self.l6.weight.data)
+        optional_l_y = getattr(self, 'l_y', None)
+        if optional_l_y is not None:
+            init.xavier_uniform_(optional_l_y.weight.data)
+
+    def forward(self, x):
+        h = x
+        h = self.block1(h)
+        h = self.block2(h)
+        h = self.block3(h)
+        h = self.block4(h)
+        h = self.block5(h)
+        h = self.activation(h)
+        # Global pooling
+        h = torch.sum(h, dim=(2, 3))
+        output = torch.sigmoid(self.l6(h))
+        # if y is not None:
+        pred = self.l_y(h)
+        return output, pred
+
+
+class LoktDiscriminator256(nn.Module):
+
+    def __init__(self, num_classes):
+        super(LoktDiscriminator256, self).__init__()
+
+        num_features = 64
+        activation = F.relu
+        self.num_features = num_features
+        self.num_classes = num_classes
+        self.activation = activation
+
+        self.block1 = _OptimizedBlock(3, num_features)
+        self.block2 = _DisBlock(
+            num_features, num_features * 2, activation=activation, downsample=True
+        )
+        self.block3 = _DisBlock(
+            num_features * 2, num_features * 4, activation=activation, downsample=True
+        )
+        self.block4 = _DisBlock(
+            num_features * 4, num_features * 8, activation=activation, downsample=True
+        )
+        self.block5 = _DisBlock(
+            num_features * 8, num_features * 16, activation=activation, downsample=True
+        )
+        self.block6 = _DisBlock(
+            num_features * 16, num_features * 16, activation=activation, downsample=True
+        )
+        self.block7 = _DisBlock(
+            num_features * 16, num_features * 16, activation=activation, downsample=True
+        )
+        self.l6 = nn.utils.spectral_norm(nn.Linear(num_features * 16, 1))
+        # if num_classes > 0:
+        self.l_y = nn.utils.spectral_norm(nn.Embedding(num_classes, num_features * 16))
+
+        self._initialize()
+
+    def _initialize(self):
+        init.xavier_uniform_(self.l6.weight.data)
+        optional_l_y = getattr(self, 'l_y', None)
+        if optional_l_y is not None:
+            init.xavier_uniform_(optional_l_y.weight.data)
+
+    def forward(self, x):
+        h = x
+        h = self.block1(h)
+        h = self.block2(h)
+        h = self.block3(h)
+        h = self.block4(h)
+        h = self.block5(h)
+        h = self.block6(h)
+        h = self.block7(h)
+        h = self.activation(h)
+        # Global pooling
+        h = torch.sum(h, dim=(2, 3))
+        output = torch.sigmoid(self.l6(h))
+        # if y is not None:
+        pred = self.l_y(h)
+        return output, pred
