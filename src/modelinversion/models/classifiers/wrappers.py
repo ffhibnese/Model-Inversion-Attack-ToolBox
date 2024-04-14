@@ -69,6 +69,8 @@ class VibWrapper(BaseImageClassifier):
         self.hidden_dim = module.feature_dim
         self.output_dim = module.num_classes
         self.k = self.hidden_dim // 2
+        self.st_layer = nn.Linear(self.hidden_dim, self.k * 2)
+        # operate_fc(self.module, self.k * 2, None)
         self.fc_layer = nn.Linear(self.k, module.num_classes)
 
         self.feature_hook = FirstInputHook(self.fc_layer)
@@ -81,11 +83,15 @@ class VibWrapper(BaseImageClassifier):
         # self._inner_hook.clear_feature()
         _, hook_res = self.module(image, *args, **kwargs)
 
-        # self._check_hook(HOOK_NAME_FEATURE)
+        # # self._check_hook(HOOK_NAME_FEATURE)
 
-        statis = hook_res[HOOK_NAME_FEATURE]
+        feature = hook_res[HOOK_NAME_FEATURE]
 
-        mu, std = statis[:, : self.k], statis[:, self.k : self.k * 2]
+        statics = self.st_layer(feature)
+
+        # statics, _ = self.module(image, *args, **kwargs)
+
+        mu, std = statics[:, : self.k], statics[:, self.k : self.k * 2]
 
         self._last_statics = mu, std
 

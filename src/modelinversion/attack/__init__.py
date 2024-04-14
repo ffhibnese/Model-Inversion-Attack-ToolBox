@@ -19,6 +19,7 @@ from .optimize import (
 
 from .losses import (
     ImageAugmentClassificationLoss,
+    ClassificationWithFeatureDistributionLoss,
     ComposeImageLoss,
     GmiDiscriminatorLoss,
     KedmiDiscriminatorLoss,

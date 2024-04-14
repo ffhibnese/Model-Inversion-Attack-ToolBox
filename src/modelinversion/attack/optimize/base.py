@@ -16,7 +16,7 @@ from ...scores import BaseLatentScore
 
 
 def get_info_description(it: int, info: OrderedDict):
-    ls = [f'{k}: {v}' for k, v in info.items()]
+    ls = [f'{k}: {v:.6f}' for k, v in info.items()]
     right_str = '  '.join(ls)
     description = f'iter {it}: {right_str}'
     return description
