@@ -207,4 +207,4 @@ class GeneticOptimization(BaseImageOptimization):
             description=f'generate optimized images',
         )
 
-        return result_images, result_labels
+        return result_images, result_labels.detach().cpu()

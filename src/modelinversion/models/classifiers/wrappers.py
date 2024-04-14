@@ -1,5 +1,10 @@
 from torch import Tensor
-from ...utils import BaseHook, FirstInputHook, DeepInversionBNFeatureHook
+from ...utils import (
+    BaseHook,
+    FirstInputHook,
+    DeepInversionBNFeatureHook,
+    traverse_module,
+)
 from .base import *
 
 
@@ -14,7 +19,7 @@ class TorchvisionClassifierModel(BaseImageClassifier):
         arch_kwargs={},
         register_last_feature_hook=False,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         # weights: None, 'IMAGENET1K_V1', 'IMAGENET1K_V2' or 'DEFAULT'
 
@@ -49,7 +54,7 @@ class VibWrapper(BaseImageClassifier):
         module: BaseImageClassifier,
         register_last_feature_hook=False,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             module.resolution,
@@ -57,7 +62,7 @@ class VibWrapper(BaseImageClassifier):
             module.num_classes,
             register_last_feature_hook,
             *args,
-            **kwargs
+            **kwargs,
         )
 
         self.module = module
@@ -76,7 +81,7 @@ class VibWrapper(BaseImageClassifier):
         # self._inner_hook.clear_feature()
         _, hook_res = self.module(image, *args, **kwargs)
 
-        self._check_hook(HOOK_NAME_FEATURE)
+        # self._check_hook(HOOK_NAME_FEATURE)
 
         statis = hook_res[HOOK_NAME_FEATURE]
 
@@ -100,9 +105,16 @@ def get_default_create_hidden_hook_fn(num: int = 3):
 
     def _fn(model: BaseImageClassifier):
         linear_modules = []
-        for m in model.modules():
-            if isinstance(m, nn.Linear):
-                linear_modules.append(m)
+
+        # for m in model.modules():
+        #     if isinstance(m, nn.Linear):
+        #         linear_modules.append(m)
+        def _visit_fn(module):
+            if isinstance(module, (nn.Linear, nn.Conv2d)):
+                linear_modules.append(module)
+
+        traverse_module(model, _visit_fn)
+        # print(linear_modules.__len__())
         linear_modules = linear_modules[1:]
 
         num = min(param_num, len(linear_modules))
@@ -122,7 +134,7 @@ class BiDOWrapper(BaseImageClassifier):
         register_last_feature_hook=False,
         create_hidden_hook_fn: Optional[Callable] = None,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             module.resolution,
@@ -130,7 +142,7 @@ class BiDOWrapper(BaseImageClassifier):
             module.num_classes,
             register_last_feature_hook,
             *args,
-            **kwargs
+            **kwargs,
         )
 
         self.module = module
@@ -141,7 +153,9 @@ class BiDOWrapper(BaseImageClassifier):
             else get_default_create_hidden_hook_fn()
         )
 
-        self.hidden_hooks = create_hidden_hook_fn(module)
+        self.hidden_hooks = create_hidden_hook_fn(self.module)
+        print(f'hidden hook num: {len(self.hidden_hooks)}')
+        # exit()
 
     def get_last_feature_hook(self) -> BaseHook:
         return self.module.get_last_feature_hook()
@@ -172,7 +186,7 @@ class DeepInversionWrapper(BaseImageClassifier):
         register_last_feature_hook=False,
         create_bn_hook_fn: Optional[Callable] = None,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             module.resolution,
@@ -180,7 +194,7 @@ class DeepInversionWrapper(BaseImageClassifier):
             module.num_classes,
             register_last_feature_hook,
             *args,
-            **kwargs
+            **kwargs,
         )
 
         self.module = module

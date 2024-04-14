@@ -39,9 +39,15 @@ class ImageMetric(ABC):
         pass
 
     def get_features(self, images: Tensor, labels: LongTensor) -> Tensor:
-        if self.transform is not None:
-            images = self.transform(images)
-        return self._get_features_impl(images, labels)
+
+        def _batch_get_features(images: Tensor, labels: LongTensor):
+            if self.transform is not None:
+                images = self.transform(images)
+            return self._get_features_impl(images, labels)
+
+        return batch_apply(
+            _batch_get_features, images, labels, batch_size=self.batch_size
+        )
 
     @abstractmethod
     def _call_impl(self, features: Tensor, labels: LongTensor) -> OrderedDict:
