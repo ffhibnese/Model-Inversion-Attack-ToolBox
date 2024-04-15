@@ -62,12 +62,23 @@ class Flatten(nn.Module):
 
 
 class IR152_64(BaseImageClassifier):
-    def __init__(self, num_classes=1000, register_last_feature_hook=False):
+    def __init__(
+        self,
+        num_classes=1000,
+        register_last_feature_hook=False,
+        backbone_path: Optional[str] = None,
+    ):
         self.feat_dim = 512
         super(IR152_64, self).__init__(
             64, self.feat_dim, num_classes, register_last_feature_hook
         )
         self.feature = evolve.IR_152_64((64, 64))
+        if backbone_path is not None:
+            state_dict = torch.load(backbone_path, map_location='cpu')
+            for k in list(state_dict.keys()):
+                if 'output_layer' in k:
+                    del state_dict[k]
+            self.feature.load_state_dict(state_dict)
 
         self.output_layer = nn.Sequential(
             nn.BatchNorm2d(512),
@@ -112,11 +123,22 @@ class IR152_64(BaseImageClassifier):
 
 
 class FaceNet64(BaseImageClassifier):
-    def __init__(self, num_classes=1000, register_last_feature_hook=False):
+    def __init__(
+        self,
+        num_classes=1000,
+        register_last_feature_hook=False,
+        backbone_path: Optional[str] = None,
+    ):
         super(FaceNet64, self).__init__(
             64, 512, num_classes, register_last_feature_hook
         )
         self.feature = evolve.IR_50_64((64, 64))
+        if backbone_path is not None:
+            state_dict = torch.load(backbone_path, map_location='cpu')
+            for k in list(state_dict.keys()):
+                if 'output_layer' in k:
+                    del state_dict[k]
+            self.feature.load_state_dict(state_dict)
         self.feat_dim = 512
         self.output_layer = nn.Sequential(
             nn.BatchNorm2d(512),
