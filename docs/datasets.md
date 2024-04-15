@@ -11,6 +11,8 @@ Here are the details for preprocessing datasets in 3 steps. We provide the prepr
 + metfaces256
 + afhqdog256
 
+Note that when using the `celeba64` and `facescrub64` datasets you can directly use the transform `Resize((64,64))` in torchvision on `celeba112` and `facescrub112` datasets respectively.
+
 ## Step 1: Download split files
 
 We provide split files to split the dataset into train and test subset for `celeba` and `facescrub`. Split files are available at [here](https://drive.google.com/drive/folders/13jGV8bsQnxZRMPSVOLzu3OVGWyQf5kpI). Note that you need to unzip the file.
