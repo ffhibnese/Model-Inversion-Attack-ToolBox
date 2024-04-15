@@ -15,6 +15,7 @@ from torchvision.transforms import (
     RandomResizedCrop,
     RandomHorizontalFlip,
     Normalize,
+    Resize,
 )
 
 from modelinversion.models import IR152_64
@@ -29,7 +30,7 @@ if __name__ == '__main__':
     save_name = f'{model_name}.pth'
     train_dataset_path = '<fill it>'
     test_dataset_path = '<fill it>'
-    experiment_dir = '<fill it>'
+    experiment_dir = f'<fill it>'
     backbone_path = '<fill it>'
 
     batch_size = 128
@@ -55,10 +56,10 @@ if __name__ == '__main__':
     model = IR152_64(num_classes, backbone_path=backbone_path)
     model = nn.DataParallel(model, device_ids=gpu_devices).to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=[0.9, 0.999])
-    lr_schedular = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=[75, 90], gamma=0.1
+    optimizer = torch.optim.SGD(
+        model.parameters(), lr=0.01, momentum=0.9, weight_decay=1e-4
     )
+    lr_schedular = None
 
     # prepare dataset
 
@@ -66,6 +67,7 @@ if __name__ == '__main__':
         train_dataset_path,
         Compose(
             [
+                Resize((64, 64), antialias=True),
                 ToTensor(),
                 RandomHorizontalFlip(p=0.5),
             ]
@@ -73,7 +75,12 @@ if __name__ == '__main__':
     )
     test_dataset = ImageFolder(
         test_dataset_path,
-        Compose([ToTensor()]),
+        Compose(
+            [
+                Resize((64, 64), antialias=True),
+                ToTensor(),
+            ]
+        ),
     )
 
     train_loader = DataLoader(
