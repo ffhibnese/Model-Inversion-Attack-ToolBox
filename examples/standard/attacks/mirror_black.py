@@ -76,7 +76,7 @@ if __name__ == '__main__':
     sample_num = 100000
 
     optimize_num = 1000
-    final_num = 50
+    final_num = 5
 
     w_bound_sample_num = 100000
     p_std_ce = 1

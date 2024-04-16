@@ -4,7 +4,13 @@ from .base import (
     HOOK_NAME_FEATURE,
     HOOK_NAME_HIDDEN,
 )
-from .wrappers import TorchvisionClassifierModel, VibWrapper, BiDOWrapper
+from .wrappers import (
+    TorchvisionClassifierModel,
+    VibWrapper,
+    BiDOWrapper,
+    get_default_create_hidden_hook_fn,
+    origin_vgg16_64_hidden_hook_fn,
+)
 from .classifier64 import (
     VGG16_64,
     IR152_64,

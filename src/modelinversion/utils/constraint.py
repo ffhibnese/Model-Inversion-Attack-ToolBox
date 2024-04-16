@@ -57,7 +57,9 @@ class MinMaxConstraint(BaseConstraint):
     def __call__(self, tensor: Tensor, *args: Any, **kwds: Any) -> Any:
         res = torch.min(tensor, self.max_tensor)
         res = torch.max(tensor, self.min_tensor)
-        return copy_or_set_(tensor, res.detach().requires_grad_(False))
+        tensor.data = res.data
+        return tensor
+        # return copy_or_set_(tensor, res.detach().requires_grad_(False))
 
 
 class L1ballConstraint(BaseConstraint):

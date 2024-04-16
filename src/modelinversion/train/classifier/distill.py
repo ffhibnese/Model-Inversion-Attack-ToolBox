@@ -30,7 +30,7 @@ class DistillTrainer(BaseTrainer):
         loss = F.kl_div(
             F.log_softmax(result, dim=-1),
             F.softmax(teacher_result, dim=-1),
-            reduction='sum',
+            reduction='batchmean',
         )
 
         return loss

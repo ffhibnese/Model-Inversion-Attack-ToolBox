@@ -263,9 +263,6 @@ class DpsgdTrainer(SimpleTrainer):
         num_microbatch = (bs - 1) // self.config.microbatch_size + 1
 
         max_norm = self.config.clip_grad_norm
-
-        # print(len(list(range(0, bs, num_microbatch))))
-        # exit()
         for j in range(0, bs, self.config.microbatch_size):
             self.optimizer.zero_grad()
             torch.autograd.backward(
@@ -278,8 +275,6 @@ class DpsgdTrainer(SimpleTrainer):
                 l2norm += (param.grad * param.grad).sum()
             l2norm = torch.sqrt(l2norm)
 
-            # self.avg_norm = self.avg_norm * 0.95 + l2norm * 0.05
-
             coef = 1 if max_norm is None else (max_norm / max(max_norm, l2norm.item()))
             grad = [g + param.grad * coef for param, g in zip(parameters, grad)]
 
@@ -290,13 +285,10 @@ class DpsgdTrainer(SimpleTrainer):
             param.grad.data = g
             if self.config.noise_multiplier > 0:
                 param.grad.data += (
-                    # torch.cuda.FloatTensor(g.size())
-                    # .normal_(0, self.config.noise_multiplier * float(max_norm))
-                    # .to(self.config.device)
                     torch.randn_like(g.size())
                     * self.config.noise_multiplier
                     * float(max_norm)
-                )  # torch.randn_like(g) * self.config.noise_multiplier * max_norm
+                )
             param.grad.data /= num_microbatch
 
         self.optimizer.step()

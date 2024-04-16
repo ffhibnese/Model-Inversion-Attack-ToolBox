@@ -1,7 +1,9 @@
 from torch import Tensor
+from torch.nn import MaxPool2d
 from ...utils import (
     BaseHook,
     FirstInputHook,
+    OutputHook,
     DeepInversionBNFeatureHook,
     traverse_module,
 )
@@ -112,15 +114,11 @@ def get_default_create_hidden_hook_fn(num: int = 3):
     def _fn(model: BaseImageClassifier):
         linear_modules = []
 
-        # for m in model.modules():
-        #     if isinstance(m, nn.Linear):
-        #         linear_modules.append(m)
         def _visit_fn(module):
             if isinstance(module, (nn.Linear, nn.Conv2d)):
                 linear_modules.append(module)
 
         traverse_module(model, _visit_fn)
-        # print(linear_modules.__len__())
         linear_modules = linear_modules[1:]
 
         num = min(param_num, len(linear_modules))
@@ -130,6 +128,17 @@ def get_default_create_hidden_hook_fn(num: int = 3):
         return [FirstInputHook(l) for l in use_linear_modules]
 
     return _fn
+
+
+def origin_vgg16_64_hidden_hook_fn(module):
+    hiddens_hooks = []
+
+    def _add_hook_fn(module):
+        if isinstance(module, MaxPool2d):
+            hiddens_hooks.append(OutputHook(module))
+
+    traverse_module(module, _add_hook_fn, call_middle=False)
+    return hiddens_hooks
 
 
 class BiDOWrapper(BaseImageClassifier):
