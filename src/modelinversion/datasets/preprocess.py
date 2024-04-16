@@ -84,7 +84,7 @@ def split(raw_img_dir, split_file_path, dst_dir, trans):
                 s = s.split('/')[-1]
             dst_path = os.path.join(dst_label_dir, s[: s.rfind('.')] + '.png')
 
-            trans.trans(src_path, dst_path)
+            trans(src_path, dst_path)
 
 
 def _preprocess_celeba(src_path, dst_path, split_files_path, trans):
@@ -103,88 +103,88 @@ def _preprocess_celeba(src_path, dst_path, split_files_path, trans):
         split(src_path, split_file_dir, dst_dir, trans=trans)
 
 
-def preprocess_celeba112(src_path, dst_path, split_files_path):
+# def preprocess_celeba112(src_path, dst_path, split_files_path):
 
-    trans = _Celeba112Transform()
-    _preprocess_celeba(src_path, dst_path, split_files_path, trans)
+#     trans = _Celeba112Transform()
+#     _preprocess_celeba(src_path, dst_path, split_files_path, trans)
 
 
-def preprocess_celeba224(src_path, dst_path, split_files_path, mode=COPY):
+def preprocess_celeba(src_path, dst_path, split_files_path, mode=COPY):
 
     trans = lambda src, dst: file_transfer(src, dst, mode)
     _preprocess_celeba(src_path, dst_path, split_files_path, trans)
 
 
-class _Facescrub224Transform:
+# class _Facescrub224Transform:
 
-    def __init__(self) -> None:
-        self.transform = Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Resize((224, 224)),
-                transforms.ToPILImage(),
-            ]
-        )
+#     def __init__(self) -> None:
+#         self.transform = Compose(
+#             [
+#                 transforms.ToTensor(),
+#                 transforms.Resize((224, 224)),
+#                 transforms.ToPILImage(),
+#             ]
+#         )
 
-    def trans(self, src_path, dst_path):
-        if os.path.exists(src_path):
-            img = Image.open(src_path)
-            img = self.transform(img)
-            img.save(dst_path)
-
-
-class _Facescrub112Transform:
-
-    def __init__(self) -> None:
-        re_size = 112
-        crop_size = int(54 * 112 / 64)
-        # offset_height = (218 - crop_size) // 2
-        # offset_width = (178 - crop_size) // 2
-        # crop = lambda x: x[
-        #     :,
-        #     offset_height : offset_height + crop_size,
-        #     offset_width : offset_width + crop_size,
-        # ]
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize((re_size, re_size), antialias=True),
-                transforms.ToTensor(),
-                transforms.CenterCrop((crop_size, crop_size)),
-                transforms.ToPILImage(),
-                transforms.Resize((re_size, re_size), antialias=True),
-            ]
-        )
-
-    def trans(self, src_path, dst_path):
-        if os.path.exists(src_path):
-            img = Image.open(src_path)
-            img = self.transform(img)
-            img.save(dst_path)
+#     def trans(self, src_path, dst_path):
+#         if os.path.exists(src_path):
+#             img = Image.open(src_path)
+#             img = self.transform(img)
+#             img.save(dst_path)
 
 
-def _preprocess_facescrub(src_path, dst_path, split_files_path, trans):
-    split_files = ['private_train.txt', 'private_test.txt']
+# class _Facescrub112Transform:
 
-    split_files = [os.path.join(split_files_path, filename) for filename in split_files]
+#     def __init__(self) -> None:
+#         re_size = 112
+#         crop_size = int(54 * 112 / 64)
+#         # offset_height = (218 - crop_size) // 2
+#         # offset_width = (178 - crop_size) // 2
+#         # crop = lambda x: x[
+#         #     :,
+#         #     offset_height : offset_height + crop_size,
+#         #     offset_width : offset_width + crop_size,
+#         # ]
+#         self.transform = transforms.Compose(
+#             [
+#                 transforms.Resize((re_size, re_size), antialias=True),
+#                 # transforms.ToTensor(),
+#                 transforms.CenterCrop((crop_size, crop_size)),
+#                 # transforms.ToPILImage(),
+#                 transforms.Resize((re_size, re_size), antialias=True),
+#             ]
+#         )
 
-    dst_dirs = ['private_train', 'private_test']
-
-    dst_dirs = [os.path.join(dst_path, filename) for filename in dst_dirs]
-
-    for dst_dir, split_file_dir in zip(dst_dirs, split_files):
-        split(src_path, split_file_dir, dst_dir, trans=trans)
-
-
-def preprocess_facescrub112(src_path, dst_path, split_files_path):
-
-    trans = _Facescrub112Transform()
-    _preprocess_facescrub(src_path, dst_path, split_files_path, trans)
+#     def trans(self, src_path, dst_path):
+#         if os.path.exists(src_path):
+#             img = Image.open(src_path)
+#             img = self.transform(img).convert('RGB')
+#             img.save(dst_path, format='png')
 
 
-def preprocess_facescrub224(src_path, dst_path, split_files_path):
+# def _preprocess_facescrub(src_path, dst_path, split_files_path, trans):
+#     split_files = ['private_train.txt', 'private_test.txt']
 
-    trans = _Facescrub224Transform()
-    _preprocess_facescrub(src_path, dst_path, split_files_path, trans)
+#     split_files = [os.path.join(split_files_path, filename) for filename in split_files]
+
+#     dst_dirs = ['private_train', 'private_test']
+
+#     dst_dirs = [os.path.join(dst_path, filename) for filename in dst_dirs]
+
+#     for dst_dir, split_file_dir in zip(dst_dirs, split_files):
+#         split(src_path, split_file_dir, dst_dir, trans=trans)
+
+
+# def preprocess_facescrub112(src_path, dst_path, split_files_path):
+
+#     trans = _Facescrub112Transform()
+#     _preprocess_facescrub(src_path, dst_path, split_files_path, trans)
+
+
+# def preprocess_facescrub224(src_path, dst_path, split_files_path):
+
+#     trans = _Facescrub224Transform()
+#     _preprocess_facescrub(src_path, dst_path, split_files_path, trans)
 
 
 def preprocess_ffhq64(src_path, dst_path):

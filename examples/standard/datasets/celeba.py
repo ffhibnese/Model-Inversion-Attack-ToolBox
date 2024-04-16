@@ -2,7 +2,7 @@ import sys
 
 sys.path.append('../../../src')
 
-from modelinversion.datasets.preprocess import preprocess_celeba224
+from modelinversion.datasets.preprocess import preprocess_celeba
 
 if __name__ == '__main__':
 
@@ -11,4 +11,4 @@ if __name__ == '__main__':
     split_files_path = '<fill it>'
     mode = 'copy'
 
-    preprocess_celeba224(src_path, dst_path, split_files_path, mode=mode)
+    preprocess_celeba(src_path, dst_path, split_files_path, mode=mode)
