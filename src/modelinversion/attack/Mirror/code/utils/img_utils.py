@@ -10,6 +10,7 @@ import torch
 import torchvision.transforms.functional as F
 
 
+
 ALL_MEANS = {
     # 'vgg16': [129.186279296875, 104.76238250732422, 93.59396362304688],
     'vgg_face_dag': [129.186279296875, 104.76238250732422, 93.59396362304688],

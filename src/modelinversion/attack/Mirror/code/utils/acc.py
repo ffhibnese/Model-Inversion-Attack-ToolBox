@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+
 def verify_acc(inputs, labels, model, arch_name):
     
     device = inputs.device

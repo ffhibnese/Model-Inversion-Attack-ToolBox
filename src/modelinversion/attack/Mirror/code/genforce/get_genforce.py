@@ -1,6 +1,7 @@
 
 """This file is modifed from synthesize.py. The goal is to return a generator which output an image in range [0., 1.]"""
 
+
 import os
 import argparse
 import subprocess
