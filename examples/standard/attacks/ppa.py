@@ -7,7 +7,6 @@ sys.path.append('../../../src')
 
 import torch
 from torch import nn
-from torchvision.datasets import ImageFolder
 from torchvision.transforms import (
     ToTensor,
     Compose,
@@ -34,6 +33,7 @@ from modelinversion.attack import (
     ImageClassifierAttackConfig,
     ImageClassifierAttacker,
 )
+from modelinversion.datasets import CelebA
 from modelinversion.scores import ImageClassificationAugmentConfidence
 from modelinversion.metrics import (
     ImageClassifierAttackAccuracy,
@@ -121,11 +121,13 @@ if __name__ == '__main__':
 
     # prepare eval dataset
 
-    eval_dataset = ImageFolder(
+    eval_dataset = CelebA(
         eval_dataset_path,
+        crop_center=False,
+        preprocess_resolution=299,
         transform=Compose(
             [
-                Resize((eval_resolution, eval_resolution), antialias=True),
+                Resize((eval_resolution, eval_resolution)),
                 ToTensor(),
                 Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
             ]

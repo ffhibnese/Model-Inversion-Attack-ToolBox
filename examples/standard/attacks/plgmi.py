@@ -7,7 +7,7 @@ sys.path.append('../../../src')
 
 import torch
 from torch import nn
-from torchvision.datasets import ImageFolder
+from modelinversion.datasets import CelebA
 from torchvision.transforms import ToTensor, Resize, Compose
 from kornia import augmentation
 
@@ -93,9 +93,11 @@ if __name__ == '__main__':
 
     # prepare eval dataset
 
-    eval_dataset = ImageFolder(
+    eval_dataset = CelebA(
         eval_dataset_path,
-        transform=Compose([Resize((64, 64), antialias=True), ToTensor()]),
+        crop_center=True,
+        preprocess_resolution=112,
+        transform=ToTensor(),
     )
 
     # prepare optimization

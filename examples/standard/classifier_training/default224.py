@@ -20,7 +20,7 @@ from torchvision.transforms import (
 from modelinversion.models import TorchvisionClassifierModel
 from modelinversion.train import SimpleTrainer, SimpleTrainConfig
 from modelinversion.utils import Logger
-from modelinversion.datasets import InfiniteSamplerWrapper
+from modelinversion.datasets import InfiniteSamplerWrapper, CelebA
 
 if __name__ == '__main__':
 
@@ -63,9 +63,11 @@ if __name__ == '__main__':
 
     # prepare dataset
 
-    train_dataset = ImageFolder(
+    train_dataset = CelebA(
         train_dataset_path,
-        Compose(
+        crop_center=False,
+        preprocess_resolution=224,
+        transform=Compose(
             [
                 ToTensor(),
                 RandomResizedCrop(
@@ -77,11 +79,14 @@ if __name__ == '__main__':
             ]
         ),
     )
-    test_dataset = ImageFolder(
+    test_dataset = False(
         test_dataset_path,
-        Compose([ToTensor(), Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])]),
+        crop_center=True,
+        preprocess_resolution=224,
+        transform=Compose(
+            [ToTensor(), Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])]
+        ),
     )
-
     train_loader = DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True, pin_memory=pin_memory
     )

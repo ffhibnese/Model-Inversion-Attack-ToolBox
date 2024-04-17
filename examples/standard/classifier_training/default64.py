@@ -21,7 +21,7 @@ from torchvision.transforms import (
 from modelinversion.models import IR152_64
 from modelinversion.train import SimpleTrainer, SimpleTrainConfig
 from modelinversion.utils import Logger
-from modelinversion.datasets import InfiniteSamplerWrapper
+from modelinversion.datasets import InfiniteSamplerWrapper, CelebA
 
 if __name__ == '__main__':
 
@@ -63,24 +63,22 @@ if __name__ == '__main__':
 
     # prepare dataset
 
-    train_dataset = ImageFolder(
+    train_dataset = CelebA(
         train_dataset_path,
-        Compose(
+        crop_center=True,
+        preprocess_resolution=64,
+        transform=Compose(
             [
-                Resize((64, 64), antialias=True),
                 ToTensor(),
                 RandomHorizontalFlip(p=0.5),
             ]
         ),
     )
-    test_dataset = ImageFolder(
+    test_dataset = CelebA(
         test_dataset_path,
-        Compose(
-            [
-                Resize((64, 64), antialias=True),
-                ToTensor(),
-            ]
-        ),
+        crop_center=True,
+        preprocess_resolution=64,
+        transform=Compose([ToTensor()]),
     )
 
     train_loader = DataLoader(

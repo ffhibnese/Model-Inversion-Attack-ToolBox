@@ -14,7 +14,7 @@ from torchvision.transforms import ToTensor, Compose, Resize
 from modelinversion.models import IR152_64, PlgmiGenerator64, PlgmiDiscriminator64
 from modelinversion.train import PlgmiGanTrainer
 from modelinversion.utils import Logger
-from modelinversion.datasets import InfiniteSamplerWrapper
+from modelinversion.datasets import InfiniteSamplerWrapper, CelebA
 
 if __name__ == '__main__':
 
@@ -54,9 +54,11 @@ if __name__ == '__main__':
     def _noise_adder(img):
         return torch.empty_like(img, dtype=img.dtype).uniform_(0.0, 1 / 256.0) + img
 
-    dataset = ImageFolder(
+    dataset = CelebA(
         dataset_path,
-        transform=Compose([Resize((64, 64), antialias=True), ToTensor(), _noise_adder]),
+        crop_center=True,
+        preprocess_resolution=64,
+        transform=Compose([ToTensor(), _noise_adder]),
     )
     dataloader = iter(
         DataLoader(

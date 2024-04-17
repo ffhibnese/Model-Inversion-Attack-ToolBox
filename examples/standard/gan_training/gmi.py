@@ -4,7 +4,6 @@ import time
 
 sys.path.append('../../../src')
 
-import kornia
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -14,7 +13,7 @@ from torchvision.transforms import ToTensor, Compose, Resize
 from modelinversion.models import SimpleGenerator64, GmiDiscriminator64
 from modelinversion.train import GmiGanTrainer
 from modelinversion.utils import Logger
-from modelinversion.datasets import InfiniteSamplerWrapper
+from modelinversion.datasets import InfiniteSamplerWrapper, CelebA
 
 if __name__ == '__main__':
 
@@ -40,8 +39,11 @@ if __name__ == '__main__':
 
     # prepare dataset
 
-    dataset = ImageFolder(
-        dataset_path, transform=Compose([Resize((64, 64), antialias=True), ToTensor()])
+    dataset = CelebA(
+        dataset_path,
+        crop_center=True,
+        preprocess_resolution=64,
+        transform=ToTensor(),
     )
     dataloader = iter(
         DataLoader(

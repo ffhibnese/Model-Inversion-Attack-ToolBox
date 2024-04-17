@@ -4,6 +4,7 @@ import numpy as np
 from torch.utils.data import ConcatDataset, Dataset, Subset
 from torchvision.datasets import ImageFolder
 import torchvision.transforms as TF
+from .base import LabelImageFolder
 
 
 def preprocess_celeba_fn(crop_center, output_resolution):
@@ -33,7 +34,9 @@ class CelebA(Dataset):
             crop_center, preprocess_resolution
         )
 
-        self.dataset = ImageFolder(root=root_path, transform=self.preprocess_transform)
+        self.dataset = LabelImageFolder(
+            root=root_path, transform=self.preprocess_transform
+        )
         self.name = 'CelebA'
 
         self.transform = transform

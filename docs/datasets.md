@@ -1,11 +1,9 @@
 
 # Datasets
 
-Here are the details for preprocessing datasets in 3 steps. We provide the preprocess tools for
-+ celeba112
-+ celeba224
-+ facescrub112
-+ facescrub224
+Here are the details for preprocessing datasets in 2 steps. We provide the preprocess tools for
++ celeba
++ facescrub
 + ffhq64
 + ffhq256
 + metfaces256
@@ -13,27 +11,8 @@ Here are the details for preprocessing datasets in 3 steps. We provide the prepr
 
 Note that when using the `celeba64` and `facescrub64` datasets you can directly use the transform `Resize((64,64))` in torchvision on `celeba112` and `facescrub112` datasets respectively.
 
-## Step 1: Download split files
 
-We provide split files to split the dataset into train and test subset for `celeba` and `facescrub`. Split files are available at [here](https://drive.google.com/drive/folders/13jGV8bsQnxZRMPSVOLzu3OVGWyQf5kpI). Note that you need to unzip the file.
-
-The file structure of `celeba` is as follows: 
-```
-split_files/
-├── private_test.txt
-├── private_train.txt
-└── public.txt
-```
-
-and the file structure of `facescrub` is
-```
-split_files/
-├── private_test.txt
-└── private_train.txt
-```
-
-
-## Step 2: Download datasets
+## Step 1: Download datasets
 
 ### Celeba
 
@@ -51,9 +30,9 @@ The structure of the dataset is as follows:
 └── list_landmarks_celeba.txt
 ```
 
-For `celeba112`, you can directly use your download file above for step 3.
+For `celeba` with low resolution, you can directly use your download file above for step 3.
 
-For `celeba224`, you need to follow [HD-CelebA-Cropper](https://github.com/LynnHo/HD-CelebA-Cropper) to increase the resolution of the cropped and aligned samples. Run the script of the cropper and replace all the images in `img_align_celeba`.
+For `celeba` with high resolution (e.g. $224\times 224$), you need to follow [HD-CelebA-Cropper](https://github.com/LynnHo/HD-CelebA-Cropper) to increase the resolution of the cropped and aligned samples. Run the script of the cropper and replace all the images in `img_align_celeba`.
 ```sh
 python align.py --crop_size_h 224 --crop_size_w 224 --order 3 --save_format png --face_factor 0.65 --n_worker 32
 ```
@@ -88,9 +67,17 @@ Follow [StyleGAN2-ada](https://github.com/NVlabs/stylegan2-ada-pytorch) to downl
 python dataset_tool.py --source=~/downloads/afhq/train/dog --dest=~/datasets/afhqdog.zip
 ```
 
-## Step 3: Preprocess data
+## Step 2: Preprocess data
 
-Fill the relative path for relative scripts in [examples/standard/datasets](../examples/standard/datasets) and run the scripts. The parameters are as follows:
+Fill the relative path for relative scripts in [examples/standard/datasets](../examples/standard/datasets) and run the scripts. Note that **FaceScrub dataset do not need to be preprocessed**. The parameters are as follows:
 + src_path: The path for the dataset you download.
 + dst_path: The path for the preprocessed dataset.
-+ split_file_path: The path of split files in step 1. Only `celeba` and `facescrub` need this parameter.
++ split_file_path: Only `celeba` need this parameter. We provide split files to split the dataset into train and test subset for `celeba`. Split files are available at [here](https://drive.google.com/drive/folders/13jGV8bsQnxZRMPSVOLzu3OVGWyQf5kpI). Note that you need to unzip the file.
+
+The file structure of split files for `celeba` is as follows: 
+```
+split_files/
+├── private_test.txt
+├── private_train.txt
+└── public.txt
+```
