@@ -6,9 +6,10 @@ from modelinversion.datasets.preprocess import preprocess_celeba
 
 if __name__ == '__main__':
 
-    src_path = '<fill it>'
-    dst_path = '<fill it>'
-    split_files_path = '<fill it>'
+    # '<fill it>'
+    src_path = '../../../../CelebA'
+    dst_path = '../../../datasets/celeba'
+    split_files_path = '../../../datasets/celeba/split_files'
     mode = 'copy'
 
     preprocess_celeba(src_path, dst_path, split_files_path, mode=mode)
