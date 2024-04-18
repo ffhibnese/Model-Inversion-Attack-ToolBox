@@ -116,7 +116,10 @@ class ClassSubset(Subset):
             target_class = set(target_class)
 
         targets = dataset.targets
-        if dataset.target_transform is not None:
+        if (
+            hasattr(dataset, 'target_transform')
+            and dataset.target_transform is not None
+        ):
             targets = [dataset.target_transform(target) for target in dataset.targets]
 
         indices = [i for i, c in enumerate(targets) if c in target_class]
@@ -148,8 +151,10 @@ def top_k_selection(
         imgs = [totensor(Image.open(p)) for p in paths]
         imgs = torch.stack(imgs, dim=0)
 
-        return cross_image_augment_scores(
-            target_model, device, create_aug_images_fn, imgs
+        return (
+            cross_image_augment_scores(target_model, device, create_aug_images_fn, imgs)
+            .detach()
+            .cpu()
         )
 
     scores = batch_apply(
