@@ -2,7 +2,7 @@ import sys
 import os
 import time
 
-sys.path.append('../../../src')
+sys.path.append("../../../src")
 
 import torch
 from torch import nn
@@ -15,25 +15,25 @@ from modelinversion.train import GmiGanTrainer
 from modelinversion.utils import Logger
 from modelinversion.datasets import InfiniteSamplerWrapper, CelebA
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    dataset_path = '<fill it>'
-    experiment_dir = '<fill it>'
+    dataset_path = "<fill it>"
+    experiment_dir = "<fill it>"
 
     batch_size = 64
     max_iters = 150000
 
-    device_ids_str = '1'
+    device_ids_available = "1"
 
     # prepare logger
 
-    now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-    logger = Logger(experiment_dir, f'train_gan_{now_time}.log')
+    now_time = time.strftime(r"%Y%m%d_%H%M", time.localtime(time.time()))
+    logger = Logger(experiment_dir, f"train_gan_{now_time}.log")
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_str
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_available
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
 
@@ -72,6 +72,8 @@ if __name__ == '__main__':
 
     trainer = GmiGanTrainer(
         experiment_dir=experiment_dir,
+        
+        # train args
         batch_size=batch_size,
         input_size=z_dim,
         generator=generator,
@@ -79,6 +81,8 @@ if __name__ == '__main__':
         device=device,
         gen_optimizer=gen_optimizer,
         dis_optimizer=dis_optimizer,
+        
+        # log args
         save_ckpt_iters=1000,
         show_images_iters=1000,
         show_train_info_iters=100,
