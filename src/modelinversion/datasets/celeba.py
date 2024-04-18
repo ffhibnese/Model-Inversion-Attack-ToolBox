@@ -8,6 +8,10 @@ from .base import LabelImageFolder
 
 
 def preprocess_celeba_fn(crop_center, output_resolution):
+    """
+        Do transformations to CelebA dataset.
+        Support: center crop
+    """
     if crop_center:
         crop_size = 108
         return TF.Compose(
