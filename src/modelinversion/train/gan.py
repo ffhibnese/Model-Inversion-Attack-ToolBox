@@ -707,7 +707,8 @@ class LoktGanTrainer(GanTrainer):
             [
                 ['real loss', dis_real_loss.item()],
                 ['fake loss', dis_fake_loss.item()],
-                ['class loss', loss_class_item]['loss', loss.item()],
+                ['class loss', loss_class_item],
+                ['loss', loss.item()],
                 ['gen acc', gen_acc],
                 ['dis acc', dis_acc],
             ]

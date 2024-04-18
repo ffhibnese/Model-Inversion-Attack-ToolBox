@@ -77,15 +77,11 @@ if __name__ == '__main__':
         torch.load(generator_ckpt_path, map_location='cpu')['state_dict']
     )
 
-    target_model = nn.parallel.DistributedDataParallel(
-        target_model, device_ids=gpu_devices
-    ).to(device)
-    eval_model = nn.parallel.DistributedDataParallel(
-        eval_model, device_ids=gpu_devices
-    ).to(device)
-    generator = nn.parallel.DistributedDataParallel(
-        generator, device_ids=gpu_devices
-    ).to(device)
+    target_model = nn.parallel.DataParallel(target_model, device_ids=gpu_devices).to(
+        device
+    )
+    eval_model = nn.parallel.DataParallel(eval_model, device_ids=gpu_devices).to(device)
+    generator = nn.parallel.DataParallel(generator, device_ids=gpu_devices).to(device)
 
     target_model.eval()
     eval_model.eval()

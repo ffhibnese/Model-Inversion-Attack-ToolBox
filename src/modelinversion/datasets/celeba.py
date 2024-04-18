@@ -40,6 +40,7 @@ class CelebA(Dataset):
         self.name = 'CelebA'
 
         self.transform = transform
+        self.targets = self.dataset.targets
 
     def __len__(self):
         return len(self.dataset)
