@@ -74,7 +74,7 @@ if __name__ == '__main__':
                     size=(224, 224), scale=(0.85, 1), ratio=(1, 1), antialias=True
                 ),
                 ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1, hue=0.1),
-                RandomHorizontalFlip(p=0.2),
+                RandomHorizontalFlip(p=0.5),
                 Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
             ]
         ),
