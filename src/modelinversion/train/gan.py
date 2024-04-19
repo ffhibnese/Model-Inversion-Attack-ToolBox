@@ -152,6 +152,8 @@ class GanTrainer(ABC):
     def train(
         self, dataloader: Iterator[Tensor | Tuple[Tensor, LongTensor]], max_iters: int
     ):
+        if not isinstance(dataloader, Iterator):
+            dataloader = iter(dataloader)
         train_gan(
             max_iters,
             dataloader,
