@@ -27,9 +27,9 @@ if __name__ == '__main__':
     num_classes = 1000
     torchvison_model_name = 'resnet152'
     save_name = f'{torchvison_model_name}.pth'
-    train_dataset_path = '<fill it>'
-    test_dataset_path = '<fill it>'
-    experiment_dir = '<fill it>'
+    train_dataset_path = '../../../test/celeba/private_train'
+    test_dataset_path = '../../../test/celeba/private_test'
+    experiment_dir = '../../../test/resnet152'
 
     batch_size = 128
     epoch_num = 100
@@ -79,7 +79,7 @@ if __name__ == '__main__':
             ]
         ),
     )
-    test_dataset = False(
+    test_dataset = CelebA(
         test_dataset_path,
         crop_center=True,
         preprocess_resolution=224,
