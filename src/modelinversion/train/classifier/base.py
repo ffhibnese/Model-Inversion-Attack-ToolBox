@@ -25,6 +25,7 @@ from ...utils import (
     ClassificationLoss,
     obj_to_yaml,
     print_as_yaml,
+    print_split_line,
     DictAccumulator,
 )
 
@@ -189,7 +190,7 @@ class BaseTrainer(ABC):
         for epoch in epochs:
 
             self._epoch = epoch
-
+            print_split_line()
             train_res = self._train_loop(trainloader)
             print_as_yaml({'epoch': epoch})
             print_as_yaml({'train': train_res})

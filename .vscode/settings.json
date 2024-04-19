@@ -5,5 +5,8 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter"
     },
+    "black-formatter.args": [
+        "-S"
+    ],
     "python.formatting.provider": "none"
 }

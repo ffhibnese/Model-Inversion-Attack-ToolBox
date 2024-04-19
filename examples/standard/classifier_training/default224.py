@@ -40,7 +40,7 @@ if __name__ == '__main__':
     # prepare logger
 
     now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-    logger = Logger(experiment_dir, f'train_gan_{now_time}.log')
+    logger = Logger(experiment_dir, f'train_classifier_{now_time}.log')
 
     # prepare devices
 

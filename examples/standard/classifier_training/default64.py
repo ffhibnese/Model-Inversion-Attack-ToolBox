@@ -44,7 +44,7 @@ if __name__ == '__main__':
     # prepare logger
 
     now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-    logger = Logger(experiment_dir, f'train_gan_{now_time}.log')
+    logger = Logger(experiment_dir, f'train_classifier_{now_time}.log')
 
     # prepare devices
 
@@ -95,6 +95,8 @@ if __name__ == '__main__':
     config = SimpleTrainConfig(
         experiment_dir=experiment_dir,
         save_name=save_name,
+        
+        # train args
         device=device,
         model=model,
         optimizer=optimizer,

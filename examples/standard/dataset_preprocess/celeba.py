@@ -1,7 +1,7 @@
 import sys
 
 sys.path.append('../../../src')
-sys.path.append('../../../src/modelinversion')
+
 from modelinversion.datasets.preprocess import preprocess_celeba
 
 if __name__ == '__main__':
