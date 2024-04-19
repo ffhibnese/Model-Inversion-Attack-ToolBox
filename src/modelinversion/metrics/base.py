@@ -330,8 +330,8 @@ class ImageFidPRDCMetric(ImageMetric):
                 embedding_real = real_feature[real_mask]
 
                 if (
-                    len(embedding_fake) < self.prdc_k
-                    or len(embedding_real) < self.prdc_k
+                    len(embedding_fake) <= self.prdc_k + 1
+                    or len(embedding_real) <= self.prdc_k + 1
                 ):
                     unfinish_list.append(target)
                     continue

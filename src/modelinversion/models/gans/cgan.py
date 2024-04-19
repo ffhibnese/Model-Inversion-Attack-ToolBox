@@ -548,7 +548,7 @@ class LoktDiscriminator64(nn.Module):
         )
         self.l6 = nn.utils.spectral_norm(nn.Linear(num_features * 16, 1))
         # if num_classes > 0:
-        self.l_y = nn.utils.spectral_norm(nn.Embedding(num_classes, num_features * 16))
+        self.l_y = nn.Linear(num_features * 16, num_classes)
 
         self._initialize()
 
@@ -568,7 +568,7 @@ class LoktDiscriminator64(nn.Module):
         h = self.activation(h)
         # Global pooling
         h = torch.sum(h, dim=(2, 3))
-        output = torch.sigmoid(self.l6(h))
+        output = torch.sigmoid(self.l6(h)).squeeze(-1)
         # if y is not None:
         pred = self.l_y(h)
         return output, pred
@@ -606,7 +606,7 @@ class LoktDiscriminator256(nn.Module):
         )
         self.l6 = nn.utils.spectral_norm(nn.Linear(num_features * 16, 1))
         # if num_classes > 0:
-        self.l_y = nn.utils.spectral_norm(nn.Embedding(num_classes, num_features * 16))
+        self.l_y = nn.Linear(num_features * 16, num_classes)
 
         self._initialize()
 
@@ -628,7 +628,7 @@ class LoktDiscriminator256(nn.Module):
         h = self.activation(h)
         # Global pooling
         h = torch.sum(h, dim=(2, 3))
-        output = torch.sigmoid(self.l6(h))
+        output = torch.sigmoid(self.l6(h)).squeeze(-1)
         # if y is not None:
         pred = self.l_y(h)
         return output, pred

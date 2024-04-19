@@ -6,7 +6,12 @@ from typing import Callable, Any, Optional, Iterable, Sequence
 import torch
 from torch import nn, Tensor, LongTensor
 from torch.nn import functional as F
-from ..utils import TorchLoss, reparameterize
+from ..utils import (
+    TorchLoss,
+    reparameterize,
+    DeepInversionBNFeatureHook,
+    traverse_module,
+)
 from ..models import (
     BaseImageClassifier,
     GmiDiscriminator64,
@@ -203,3 +208,130 @@ class ComposeImageLoss(BaseImageLoss):
         return_dict['compose loss'] = compose_loss.item()
 
         return compose_loss, return_dict
+
+
+class ImagePixelPriorLoss(BaseImageLoss):
+
+    def __init__(
+        self, l1_weight: float = 0, l2_weight: float = 0, *args, **kwargs
+    ) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.l1_weight = l1_weight
+        self.l2_weight = l2_weight
+
+    def forward(self, images: Tensor, labels: LongTensor, *args, **kwargs):
+        l1_loss = images.abs().mean()
+        l2_loss = torch.norm(images).mean()
+        loss = l1_loss * self.l1_weight + l2_loss * self.l2_weight
+        return loss, OrderedDict(
+            [
+                ['l1 loss', l1_loss.item()],
+                ['l2 loss', l2_loss.item()],
+                ['loss', loss.item()],
+            ]
+        )
+
+
+class ImageVariationPriorLoss(BaseImageLoss):
+
+    def __init__(
+        self, l1_weight: float = 0, l2_weight: float = 0, *args, **kwargs
+    ) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.l1_weight = l1_weight
+        self.l2_weight = l2_weight
+
+    def forward(self, images: Tensor, labels: LongTensor, *args, **kwargs):
+
+        diff1 = images[..., :, :-1] - images[..., :, 1:]
+        diff2 = images[..., :-1, :] - images[..., 1:, :]
+        diff3 = images[..., 1:, :-1] - images[..., :-1, 1:]
+        diff4 = images[..., :-1, :-1] - images[..., 1:, 1:]
+
+        loss_var_l2 = (
+            torch.norm(diff1)
+            + torch.norm(diff2)
+            + torch.norm(diff3)
+            + torch.norm(diff4)
+        ) / 4
+        loss_var_l1 = (
+            diff1.abs().mean()
+            + diff2.abs().mean()
+            + diff3.abs().mean()
+            + diff4.abs().mean()
+        ) / 4
+        loss = loss_var_l1 * self.l1_weight + loss_var_l2 * self.l2_weight
+        return loss, OrderedDict(
+            [
+                ['l1 var loss', loss_var_l1.item()],
+                ['l2 var loss', loss_var_l2.item()],
+                ['loss', loss.item()],
+            ]
+        )
+
+
+class DeepInversionBatchNormPriorLoss(BaseImageLoss):
+
+    def __init__(self, model, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.feature_hooks: list[DeepInversionBNFeatureHook] = []
+
+        def _find_bn_fn(module):
+            if isinstance(module, nn.BatchNorm2d):
+                self.feature_hooks.append(DeepInversionBNFeatureHook(module))
+
+        traverse_module(model, _find_bn_fn, call_middle=True)
+
+    def forward(self, images: Tensor, labels: LongTensor, *args, **kwargs):
+
+        r_features_losses = [hook.get_feature() for hook in self.feature_hooks]
+        r_features_losses = [l.sum() for l in r_features_losses if l is not None]
+        loss = sum(r_features_losses)
+        return loss, OrderedDict(loss=loss.item())
+
+
+class MultiModelOutputKLLoss(BaseImageLoss):
+
+    def __init__(
+        self,
+        teacher: BaseImageClassifier,
+        students: BaseImageClassifier | list[BaseImageClassifier],
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.teacher = teacher
+        if isinstance(students, BaseImageClassifier):
+            students = [students]
+        self.students = students
+
+    def forward(self, images: Tensor, labels: LongTensor, *args, **kwargs):
+        T = 3.0
+        output_teacher = self.teacher(images)
+        Q = nn.functional.softmax(output_teacher / T, dim=1)
+        Q = torch.clamp(Q, 0.01, 0.99)
+
+        loss = 0
+        for student in self.students:
+            output_student = student(images)
+
+            # Jensen Shanon divergence:
+            # another way to force KL between negative probabilities
+            P = nn.functional.softmax(output_student / T, dim=1)
+            M = 0.5 * (P + Q)
+
+            P = torch.clamp(P, 0.01, 0.99)
+            M = torch.clamp(M, 0.01, 0.99)
+            eps = 0.0
+            loss_verifier_cig = 0.5 * F.kl_div(torch.log(P + eps), M) + 0.5 * F.kl_div(
+                torch.log(Q + eps), M
+            )
+            # JS criteria - 0 means full correlation, 1 - means completely different
+            loss_verifier_cig = 1.0 - torch.clamp(loss_verifier_cig, 0.0, 1.0)
+            loss += loss_verifier_cig
+
+        return loss, {'loss': loss.item()}

@@ -566,8 +566,8 @@ class LoktGanTrainer(GanTrainer):
         experiment_dir: str,
         batch_size: str,
         input_size: int | Sequence[int],
-        generator: PlgmiGenerator64 | PlgmiGenerator256,
-        discriminator: PlgmiDiscriminator64 | PlgmiDiscriminator256,
+        generator: LoktGenerator64 | LoktGenerator256,
+        discriminator: LoktDiscriminator64 | LoktDiscriminator256,
         num_classes: int,
         target_model: BaseImageClassifier,
         classification_loss_fn: str | Callable,
@@ -577,7 +577,7 @@ class LoktGanTrainer(GanTrainer):
         dis_optimizer: Optimizer,
         save_ckpt_iters: int,
         start_class_loss_iters: int,
-        class_loss_weight: float = 0.2,
+        class_loss_weight: float = 1.5,
         show_images_iters: int | None = None,
         show_train_info_iters: int | None = None,
         ncritic: int = 5,
@@ -669,7 +669,7 @@ class LoktGanTrainer(GanTrainer):
         dis_fake, dis_fake_class = self.discriminator(fake)
 
         real = next(dataloader)
-        if isinstance(real, (list, tuple)):
+        if not isinstance(real, Tensor):
             real = real[0]
 
         real = real.to(self.device)
@@ -705,11 +705,11 @@ class LoktGanTrainer(GanTrainer):
 
         return OrderedDict(
             [
+                ['gen acc', gen_acc],
+                ['dis acc', dis_acc],
                 ['real loss', dis_real_loss.item()],
                 ['fake loss', dis_fake_loss.item()],
                 ['class loss', loss_class_item],
                 ['loss', loss.item()],
-                ['gen acc', gen_acc],
-                ['dis acc', dis_acc],
             ]
         )
