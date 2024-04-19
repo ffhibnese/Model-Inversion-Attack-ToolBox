@@ -25,18 +25,20 @@ from modelinversion.datasets import InfiniteSamplerWrapper, CelebA
 
 if __name__ == '__main__':
 
+    # prepare path args
+
     num_classes = 1000
     model_name = 'ir152'
     save_name = f'{model_name}.pth'
-    train_dataset_path = '<fill it>'
-    test_dataset_path = '<fill it>'
-    experiment_dir = f'<fill it>'
-    backbone_path = '<fill it>'
+    train_dataset_path = '../../../test/celeba/private_train'
+    test_dataset_path = '../../../test/celeba/private_test'
+    experiment_dir = '../../../test/gmi'
+    backbone_path = None
 
     batch_size = 128
     epoch_num = 100
 
-    device_ids_str = '0'
+    device_ids_available = '7'
     pin_memory = True
 
     # prepare logger
@@ -46,7 +48,7 @@ if __name__ == '__main__':
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_str
+    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_available
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
