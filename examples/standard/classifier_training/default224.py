@@ -79,7 +79,7 @@ if __name__ == '__main__':
             ]
         ),
     )
-    test_dataset = False(
+    test_dataset = CelebA(
         test_dataset_path,
         crop_center=True,
         preprocess_resolution=224,
