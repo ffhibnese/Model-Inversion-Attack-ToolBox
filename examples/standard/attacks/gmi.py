@@ -156,13 +156,18 @@ if __name__ == '__main__':
     # prepare attack
 
     attack_config = ImageClassifierAttackConfig(
+        # attack args
         latents_sampler,
         optimize_num=50,
         optimize_batch_size=batch_size,
         optimize_fn=optimization_fn,
+        
+        # save path args
         save_dir=experiment_dir,
         save_optimized_images=True,
         save_final_images=False,
+        
+        # metric args
         eval_metrics=[accuracy_metric, distance_metric, fid_prdc_metric],
         eval_optimized_result=True,
         eval_final_result=False,
