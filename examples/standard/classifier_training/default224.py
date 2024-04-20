@@ -81,7 +81,7 @@ if __name__ == '__main__':
     )
     test_dataset = CelebA(
         test_dataset_path,
-        crop_center=True,
+        crop_center=False,
         preprocess_resolution=224,
         transform=Compose(
             [ToTensor(), Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])]

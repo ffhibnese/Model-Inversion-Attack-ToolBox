@@ -18,7 +18,7 @@ from torchvision.transforms import (
     Resize,
 )
 
-from modelinversion.models import IR152_64
+from modelinversion.models import FaceNet112
 from modelinversion.train import SimpleTrainer, SimpleTrainConfig
 from modelinversion.utils import Logger
 from modelinversion.datasets import InfiniteSamplerWrapper, CelebA
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     # prepare path args
 
     num_classes = 1000
-    model_name = 'ir152'
+    model_name = 'ir50'
     save_name = f'{model_name}.pth'
     train_dataset_path = '../../../test/celeba/private_train'
     test_dataset_path = '../../../test/celeba/private_test'
@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     # prepare target model
 
-    model = IR152_64(num_classes, backbone_path=backbone_path)
+    model = FaceNet112(num_classes,backbone_path=backbone_path)
     model = nn.DataParallel(model, device_ids=gpu_devices).to(device)
 
     optimizer = torch.optim.SGD(
@@ -67,8 +67,8 @@ if __name__ == '__main__':
 
     train_dataset = CelebA(
         train_dataset_path,
-        crop_center=True,
-        preprocess_resolution=64,
+        crop_center=False,
+        preprocess_resolution=112,
         transform=Compose(
             [
                 ToTensor(),
@@ -78,8 +78,8 @@ if __name__ == '__main__':
     )
     test_dataset = CelebA(
         test_dataset_path,
-        crop_center=True,
-        preprocess_resolution=64,
+        crop_center=False,
+        preprocess_resolution=112,
         transform=Compose([ToTensor()]),
     )
 
