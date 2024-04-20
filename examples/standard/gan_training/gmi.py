@@ -70,6 +70,7 @@ if __name__ == "__main__":
 
     trainer = GmiGanTrainer(
         experiment_dir=experiment_dir,
+        
         # train args
         batch_size=batch_size,
         input_size=z_dim,
@@ -78,6 +79,7 @@ if __name__ == "__main__":
         device=device,
         gen_optimizer=gen_optimizer,
         dis_optimizer=dis_optimizer,
+        
         # log args
         save_ckpt_iters=1000,
         show_images_iters=1000,

@@ -14,13 +14,14 @@ from torch.utils.data import DataLoader, TensorDataset
 from torchvision.datasets import DatasetFolder
 from torchvision.transforms import ToTensor
 from tqdm import tqdm
+from pytorch_fid.inception import InceptionV3
 import pandas as pd
 
 # from ..foldermanager import FolderManager
 from ..models import BaseImageClassifier, BaseImageEncoder, HOOK_NAME_FEATURE
 from ..datasets.utils import ClassSubset
 from ..utils import batch_apply, safe_save_csv, unwrapped_parallel_module
-from .fid import fid_utils, inceptionv3
+from .fid import fid_utils
 
 
 class ImageMetric(ABC):
@@ -238,7 +239,7 @@ class ImageFidPRDCMetric(ImageMetric):
 
         self.device = device
         self.dataset = dataset
-        self.inception_model = inceptionv3.InceptionV3().to(self.device)
+        self.inception_model = InceptionV3().to(self.device)
         self.num_workers = num_workers
         self.prdc_k = prdc_k
 
