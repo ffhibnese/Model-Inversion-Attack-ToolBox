@@ -23,7 +23,7 @@ class BaseHook(metaclass=ABCMeta):
     def get_feature(self) -> Tensor:
         """
         Returns:
-            Tensor: the value that the hook monitor.
+            Tensor: the value that the hook monitors.
         """
         return self.features
 

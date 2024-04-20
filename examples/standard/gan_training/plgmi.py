@@ -60,10 +60,8 @@ if __name__ == '__main__':
         preprocess_resolution=64,
         transform=Compose([ToTensor(), _noise_adder]),
     )
-    dataloader = iter(
-        DataLoader(
-            dataset, batch_size=batch_size, sampler=InfiniteSamplerWrapper(dataset)
-        )
+    dataloader = DataLoader(
+        dataset, batch_size=batch_size, sampler=InfiniteSamplerWrapper(dataset)
     )
 
     # prepare GANs

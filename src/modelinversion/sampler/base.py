@@ -17,9 +17,9 @@ class BaseLatentsSampler(ABC):
         """The sampling function of the sampler.
 
         Args:
+            labels (list[int]): The labels where latent vectors are sampled.
             sample_num (int): The number of latent vectors sampled.
-            batch_size (int): Batch size for sampling.
-        """
+        """             
         pass
 
 

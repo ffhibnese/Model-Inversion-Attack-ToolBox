@@ -17,13 +17,13 @@ from modelinversion.datasets import InfiniteSamplerWrapper, CelebA
 
 if __name__ == "__main__":
 
-    dataset_path = "<fill it>"
-    experiment_dir = "<fill it>"
+    dataset_path = "../../../test/celeba/public"
+    experiment_dir = "../../../test/gmi"
 
     batch_size = 64
     max_iters = 150000
 
-    device_ids_available = "1"
+    device_ids_available = "2"
 
     # prepare logger
 
@@ -45,10 +45,8 @@ if __name__ == "__main__":
         preprocess_resolution=64,
         transform=ToTensor(),
     )
-    dataloader = iter(
-        DataLoader(
-            dataset, batch_size=batch_size, sampler=InfiniteSamplerWrapper(dataset)
-        )
+    dataloader = DataLoader(
+        dataset, batch_size=batch_size, sampler=InfiniteSamplerWrapper(dataset)
     )
 
     # prepare GANs
@@ -72,7 +70,6 @@ if __name__ == "__main__":
 
     trainer = GmiGanTrainer(
         experiment_dir=experiment_dir,
-        
         # train args
         batch_size=batch_size,
         input_size=z_dim,
@@ -81,7 +78,6 @@ if __name__ == "__main__":
         device=device,
         gen_optimizer=gen_optimizer,
         dis_optimizer=dis_optimizer,
-        
         # log args
         save_ckpt_iters=1000,
         show_images_iters=1000,
