@@ -37,32 +37,32 @@ def file_transfer(src_path, dst_path, mode=COPY):
         raise RuntimeError(f'Invalid mode {mode}')
 
 
-class _Celeba112Transform:
+# class _Celeba112Transform:
 
-    def __init__(self) -> None:
-        re_size = 112
-        crop_size = 108
-        offset_height = (218 - crop_size) // 2
-        offset_width = (178 - crop_size) // 2
-        crop = lambda x: x[
-            :,
-            offset_height : offset_height + crop_size,
-            offset_width : offset_width + crop_size,
-        ]
-        self.transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Lambda(crop),
-                transforms.ToPILImage(),
-                transforms.Resize((re_size, re_size)),
-            ]
-        )
+    # def __init__(self) -> None:
+    #     re_size = 112
+    #     crop_size = 108
+    #     offset_height = (218 - crop_size) // 2
+    #     offset_width = (178 - crop_size) // 2
+    #     crop = lambda x: x[
+    #         :,
+    #         offset_height : offset_height + crop_size,
+    #         offset_width : offset_width + crop_size,
+    #     ]
+    #     self.transform = transforms.Compose(
+    #         [
+    #             transforms.ToTensor(),
+    #             transforms.Lambda(crop),
+    #             transforms.ToPILImage(),
+    #             transforms.Resize((re_size, re_size)),
+    #         ]
+    #     )
 
-    def trans(self, src_path, dst_path):
-        if os.path.exists(src_path):
-            img = Image.open(src_path)
-            img = self.transform(img)
-            img.save(dst_path)
+    # def trans(self, src_path, dst_path):
+    #     if os.path.exists(src_path):
+    #         img = Image.open(src_path)
+    #         img = self.transform(img)
+    #         img.save(dst_path)
 
 
 def split(raw_img_dir, split_file_path, dst_dir, trans):

@@ -24,7 +24,7 @@ from ..utils import batch_apply, safe_save_csv, unwrapped_parallel_module
 from .fid import fid_utils
 
 
-class ImageMetric(ABC):
+class BaseImageMetric(ABC):
     """Base class for all image metric classes.
 
     Args:
@@ -67,7 +67,7 @@ class ImageMetric(ABC):
         return self._call_impl(features, labels)
 
 
-class ImageClassifierAttackAccuracy(ImageMetric):
+class ImageClassifierAttackAccuracy(BaseImageMetric):
     """Attack accuracy metric for inversed images.
 
     Args:
@@ -119,7 +119,7 @@ class ImageClassifierAttackAccuracy(ImageMetric):
         )
 
 
-class ImageDistanceMetric(ImageMetric):
+class ImageDistanceMetric(BaseImageMetric):
     """Distance metrics for each target class.
 
     Args:
@@ -211,7 +211,7 @@ class ImageDistanceMetric(ImageMetric):
         return OrderedDict([[f'{self.description} square distance', float(result)]])
 
 
-class ImageFidPRDCMetric(ImageMetric):
+class ImageFidPRDCMetric(BaseImageMetric):
     """A class for calculating FID and PRDC (Precision, Recall, Diversity and Coverage). The model will use InceptionV3 pretrained with ImageNet.
 
     Args:
