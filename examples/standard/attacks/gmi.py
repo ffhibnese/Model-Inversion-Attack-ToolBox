@@ -100,7 +100,7 @@ if __name__ == '__main__':
 
     eval_dataset = CelebA(
         eval_dataset_path,
-        crop_center=False,
+        crop_center=True,
         preprocess_resolution=112,
         transform=Compose([ToTensor()])
     )
