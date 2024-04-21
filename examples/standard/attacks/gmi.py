@@ -48,7 +48,7 @@ if __name__ == '__main__':
     eval_dataset_path = '../../../test/celeba/private_train'
     attack_targets = list(range(100))
 
-    batch_size = 100
+    batch_size = 200
 
     # prepare logger
 

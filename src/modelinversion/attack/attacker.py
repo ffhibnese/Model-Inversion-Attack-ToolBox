@@ -52,7 +52,7 @@ class ImageClassifierAttackConfig:
             Whether to save the final images. Defaults to False.
         save_kwargs (dict, optional):
             Other args for saving images. Defaults to `{}`.
-        eval_metrics (list[ImageMetric], optional):
+        eval_metrics (list[BaseImageMetric], optional):
             A list of metric methods. Defaults to `[]`.
         eval_optimized_result (bool, optional):
             Whether to evaluate the optimized results. Defaults to False.
@@ -85,7 +85,7 @@ class ImageClassifierAttackConfig:
     save_kwargs: dict = field(default_factory=lambda: {})
 
     # metric
-    eval_metrics: list[ImageMetric] = field(default=lambda: [])
+    eval_metrics: list[BaseImageMetric] = field(default=lambda: [])
     eval_optimized_result: bool = False
     eval_final_result: bool = False
 
