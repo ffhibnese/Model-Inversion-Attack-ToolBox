@@ -54,7 +54,7 @@ from modelinversion.metrics import (
 
 if __name__ == '__main__':
 
-    device_ids_str = '2'
+    device_ids_available = '2'
     num_classes = 1000
 
     experiment_dir = '<fill it>'
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_str
+    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_available
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
@@ -164,10 +164,10 @@ if __name__ == '__main__':
     def latent_sampler_aug_fn(img):
 
         img = gan_to_target_transform(img)
-        # lower_bound = torch.tensor(-1.0).float().to(img.device)
-        # upper_bound = torch.tensor(1.0).float().to(img.device)
-        # img = torch.where(img > upper_bound, upper_bound, img)
-        # img = torch.where(img < lower_bound, lower_bound, img)
+        lower_bound = torch.tensor(-1.0).float().to(img.device)
+        upper_bound = torch.tensor(1.0).float().to(img.device)
+        img = torch.where(img > upper_bound, upper_bound, img)
+        img = torch.where(img < lower_bound, lower_bound, img)
         return [img]
 
     latents_sampler = ImageAugmentSelectLatentsSampler(
@@ -212,7 +212,7 @@ if __name__ == '__main__':
         model=target_model,
         device=device,
         create_aug_images_fn=optimize_create_aug_images_fn,
-        loss_fn='ce',
+        loss_fn='cross_entropy',
     )
 
     @torch.no_grad()

@@ -199,6 +199,7 @@ class BaseTrainer(ABC):
                 test_res = self._test_loop(testloader)
                 if 'acc' in test_res and test_res['acc'] > bestacc:
                     bestckpt = deepcopy(self.model).cpu().eval()
+                    bestacc = test_res['acc']
                 print_as_yaml({'test': test_res})
 
             if self.lr_scheduler is not None:
@@ -211,6 +212,8 @@ class BaseTrainer(ABC):
             self.save_state_dict()
         else:
             self.save_state_dict(bestckpt)
+
+        print(f'best acc: {bestacc}')
 
     def save_state_dict(self, model=None):
         if model is None:

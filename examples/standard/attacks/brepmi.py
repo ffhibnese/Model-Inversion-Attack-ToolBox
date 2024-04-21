@@ -33,7 +33,7 @@ from modelinversion.datasets import CelebA
 if __name__ == '__main__':
 
     experiment_dir = '<fill it>'
-    device_ids_str = '2'
+    device_ids_available = '2'
     num_classes = 1000
     generator_ckpt_path = '<fill it>'
     target_model_ckpt_path = '<fill it>'
@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_str
+    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_available
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
