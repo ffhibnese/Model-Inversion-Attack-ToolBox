@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     train_dataset = CelebA(
         train_dataset_path,
-        crop_center=False,
+        crop_center=True,
         preprocess_resolution=112,
         transform=Compose(
             [
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     )
     test_dataset = CelebA(
         test_dataset_path,
-        crop_center=False,
+        crop_center=True,
         preprocess_resolution=112,
         transform=Compose([ToTensor()]),
     )

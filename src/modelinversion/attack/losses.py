@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from collections import OrderedDict
 from typing import Callable, Any, Optional, Iterable, Sequence
 
@@ -22,13 +22,13 @@ from ..models import (
 )
 
 
-class BaseImageLoss(nn.Module):
+class BaseImageLoss(ABC):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
     @abstractmethod
-    def forward(self, images: Tensor, labels: LongTensor, *args, **kwargs):
+    def __call__(self, images: Tensor, labels: LongTensor, *args, **kwargs):
         pass
 
 
@@ -50,7 +50,7 @@ class ImageAugmentClassificationLoss(BaseImageLoss):
         self.classifier = classifier
         self.loss_fn = TorchLoss(loss_fn, *args, **kwargs)
 
-    def forward(self, images, labels, *args, **kwargs):
+    def __call__(self, images, labels, *args, **kwargs):
         acc = 0
         loss = 0
         total_num = 0
@@ -95,7 +95,7 @@ class ClassificationWithFeatureDistributionLoss(ImageAugmentClassificationLoss):
     def _sample_distribution(self):
         return reparameterize(self.feature_mean, self.feature_std)
 
-    def forward(self, images, labels, *args, **kwargs):
+    def __call__(self, images, labels, *args, **kwargs):
 
         acc = 0
         iden_loss = 0
@@ -141,7 +141,7 @@ class GmiDiscriminatorLoss(BaseImageLoss):
         super().__init__(*args, **kwargs)
         self.discriminator = discriminator
 
-    def forward(self, images, labels, *args, **kwargs):
+    def __call__(self, images, labels, *args, **kwargs):
         dis_res = self.discriminator(images)
         loss = -dis_res.mean()
         return loss, {'discriminator loss': loss.item()}
@@ -158,7 +158,7 @@ class KedmiDiscriminatorLoss(BaseImageLoss):
         super().__init__(*args, **kwargs)
         self.discriminator = discriminator
 
-    def forward(self, images, labels, *args, **kwargs):
+    def __call__(self, images, labels, *args, **kwargs):
         _, dis_res = self.discriminator(images)
         logsumup = torch.logsumexp(dis_res, dim=-1)
         # loss = - dis_res.mean()
@@ -190,7 +190,7 @@ class ComposeImageLoss(BaseImageLoss):
         self.losses = losses
         self.weights = weights
 
-    def forward(self, images: Tensor, labels: LongTensor, *args, **kwargs):
+    def __call__(self, images: Tensor, labels: LongTensor, *args, **kwargs):
 
         compose_loss = 0.0
         return_dict = OrderedDict()
@@ -220,7 +220,7 @@ class ImagePixelPriorLoss(BaseImageLoss):
         self.l1_weight = l1_weight
         self.l2_weight = l2_weight
 
-    def forward(self, images: Tensor, labels: LongTensor, *args, **kwargs):
+    def __call__(self, images: Tensor, labels: LongTensor, *args, **kwargs):
         l1_loss = images.abs().mean()
         l2_loss = torch.norm(images).mean()
         loss = l1_loss * self.l1_weight + l2_loss * self.l2_weight
@@ -243,7 +243,7 @@ class ImageVariationPriorLoss(BaseImageLoss):
         self.l1_weight = l1_weight
         self.l2_weight = l2_weight
 
-    def forward(self, images: Tensor, labels: LongTensor, *args, **kwargs):
+    def __call__(self, images: Tensor, labels: LongTensor, *args, **kwargs):
 
         diff1 = images[..., :, :-1] - images[..., :, 1:]
         diff2 = images[..., :-1, :] - images[..., 1:, :]
@@ -285,7 +285,7 @@ class DeepInversionBatchNormPriorLoss(BaseImageLoss):
 
         traverse_module(model, _find_bn_fn, call_middle=True)
 
-    def forward(self, images: Tensor, labels: LongTensor, *args, **kwargs):
+    def __call__(self, images: Tensor, labels: LongTensor, *args, **kwargs):
 
         r_features_losses = [hook.get_feature() for hook in self.feature_hooks]
         r_features_losses = [l.sum() for l in r_features_losses if l is not None]
@@ -309,7 +309,7 @@ class MultiModelOutputKLLoss(BaseImageLoss):
             students = [students]
         self.students = students
 
-    def forward(self, images: Tensor, labels: LongTensor, *args, **kwargs):
+    def __call__(self, images: Tensor, labels: LongTensor, *args, **kwargs):
         T = 3.0
         output_teacher = self.teacher(images)
         Q = nn.functional.softmax(output_teacher / T, dim=1)
