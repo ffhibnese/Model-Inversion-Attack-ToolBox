@@ -38,14 +38,14 @@ if __name__ == '__main__':
 
     # prepare path args
 
-    experiment_dir = '<fill it>'
-    device_ids_available = '3'
+    experiment_dir = '../../../test/gmi'
+    device_ids_available = '2'
     num_classes = 1000
-    generator_ckpt_path = '<fill it>'
-    discriminator_ckpt_path = '<fill it>'
-    target_model_ckpt_path = '<fill it>'
-    eval_model_ckpt_path = '<fill it>'
-    eval_dataset_path = '<fill it>'
+    generator_ckpt_path = '../../../test/gmi/G.pth'
+    discriminator_ckpt_path = '../../../test/gmi/D.pth'
+    target_model_ckpt_path = '../../../test/gmi/ir152_7983.pth'
+    eval_model_ckpt_path = '../../../test/gmi/ir50_7720.pth'
+    eval_dataset_path = '../../../test/celeba/private_train'
     attack_targets = list(range(100))
 
     batch_size = 100
@@ -100,9 +100,9 @@ if __name__ == '__main__':
 
     eval_dataset = CelebA(
         eval_dataset_path,
-        crop_center=True,
+        crop_center=False,
         preprocess_resolution=112,
-        transform=ToTensor(),
+        transform=Compose([ToTensor()])
     )
 
     # prepare optimization
