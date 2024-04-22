@@ -56,9 +56,9 @@ class VGG16_64(BaseImageClassifier):
         return res
 
 
-class Flatten(nn.Module):
-    def forward(self, input):
-        return input.view(input.size(0), -1)
+# class Flatten(nn.Module):
+#     def forward(self, input):
+#         return input.view(input.size(0), -1)
 
 
 class IR152_64(BaseImageClassifier):
@@ -83,7 +83,7 @@ class IR152_64(BaseImageClassifier):
         self.output_layer = nn.Sequential(
             nn.BatchNorm2d(512),
             nn.Dropout(),
-            Flatten(),
+            nn.Flatten(),
             nn.Linear(512 * 4 * 4, 512),
             nn.BatchNorm1d(512),
         )
@@ -143,7 +143,7 @@ class FaceNet64(BaseImageClassifier):
         self.output_layer = nn.Sequential(
             nn.BatchNorm2d(512),
             nn.Dropout(),
-            Flatten(),
+            nn.Flatten(),
             nn.Linear(512 * 4 * 4, 512),
             nn.BatchNorm1d(512),
         )

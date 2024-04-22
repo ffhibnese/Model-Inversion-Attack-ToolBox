@@ -7,11 +7,6 @@ from .base import *
 from .evolve import evolve
 
 
-class Flatten(nn.Module):
-    def forward(self, input):
-        return input.view(input.size(0), -1)
-
-
 class FaceNet112(BaseImageClassifier):
     def __init__(
         self,
