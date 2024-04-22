@@ -19,13 +19,7 @@ HOOK_NAME_DEEPINVERSION_BN = 'deepinversion_bn'
 class ModelConstructException(Exception):
     pass
 
-
-class BaseTargetModel(nn.Module):
-
-    pass
-
-
-class BaseImageModel(BaseTargetModel):
+class BaseImageModel(nn.Module):
 
     def __init__(self, resolution: int, feature_dim: int, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

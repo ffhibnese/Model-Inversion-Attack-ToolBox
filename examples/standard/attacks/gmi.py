@@ -39,14 +39,14 @@ if __name__ == '__main__':
     # prepare path args
 
     experiment_dir = '../../../test/gmi'
-    device_ids_available = '2'
+    device_ids_available = '0'
     num_classes = 1000
     generator_ckpt_path = '../../../test/gmi/G.pth'
     discriminator_ckpt_path = '../../../test/gmi/D.pth'
     target_model_ckpt_path = '../../../test/gmi/ir152_7983.pth'
-    eval_model_ckpt_path = '../../../test/gmi/ir50_7720.pth'
+    eval_model_ckpt_path = '../../../test/gmi/ir50_8295.pth'
     eval_dataset_path = '../../../test/celeba/private_train'
-    attack_targets = list(range(100))
+    attack_targets = list(range(1000))
 
     batch_size = 200
 
