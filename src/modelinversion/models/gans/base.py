@@ -44,8 +44,12 @@ class BaseImageGenerator(nn.Module):
     #     size = (sample_num, ) + unwrapped_parallel_module(self).input_size
     #     return torch.randn(size)
 
+    @abstractmethod
+    def _forward_impl(self, *inputs, labels=None, **kwargs):
+        raise NotImplementedError()
+
     def forward(self, *inputs, labels=None, **kwargs):
-        pass
+        return self._forward_impl(*inputs, labels, **kwargs)
 
 
 class BaseIntermediateImageGenerator(BaseImageGenerator):
@@ -69,7 +73,7 @@ class BaseIntermediateImageGenerator(BaseImageGenerator):
         end_block: int,
         **kwargs,
     ):
-        pass
+        raise NotImplementedError()
 
     def forward(
         self,
