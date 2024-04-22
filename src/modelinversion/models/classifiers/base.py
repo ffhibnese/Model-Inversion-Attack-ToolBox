@@ -114,6 +114,16 @@ class BaseImageClassifier(BaseImageModel):
 def _operate_fc_impl(
     module: nn.Module, reset_num_classes: int = None, visit_fc_fn: Callable = None
 ):
+    """Reset the output class num of nn.Linear and return the input feature_dim of nn.Linear.
+
+    Args:
+        module (nn.Module): The specific model structure.
+        reset_num_classes (int, optional): The new output class num. Defaults to None.
+        visit_fc_fn (Callable, optional): Other operations to the nn.Linear of the input module. Defaults to None.
+
+    Returns:
+        feature_dim (int): The input feature_dim of nn.Linear.
+    """    
 
     if isinstance(module, nn.Sequential):
 

@@ -30,10 +30,10 @@ if __name__ == '__main__':
     num_classes = 1000
     model_name = 'ir50'
     save_name = f'{model_name}.pth'
-    train_dataset_path = '../../../test/celeba/private_train'
-    test_dataset_path = '../../../test/celeba/private_test'
-    experiment_dir = '../../../test/gmi'
-    backbone_path = None
+    train_dataset_path = '<fill it>'
+    test_dataset_path = '<fill it>'
+    experiment_dir = '<fill it>'
+    backbone_path = '<fill it, or set as None>'
 
     batch_size = 128
     epoch_num = 100
