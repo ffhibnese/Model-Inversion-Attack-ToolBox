@@ -204,14 +204,14 @@ def generator_generate_datasets(
         shape = (len(labels), *input_shape)
         labels = labels.to(device)
         z = torch.randn(shape, device=device)
-        img = generator(z, labels=labels)
-        pred = target_model(img)[0].argmax(dim=-1).cpu()
-        img = img.cpu()
+        imgs = generator(z, labels=labels)
+        pred = target_model(imgs)[0].argmax(dim=-1).cpu()
+        imgs = imgs.cpu()
         for i in range(len(labels)):
             label = pred[i].item()
-            save_im = img[i]
+            save_img = imgs[i]
             savepath = get_save_path(label)
-            assert save_im.ndim == 3, save_im.shape
-            save_image(img, savepath, normalize=True)
+            assert save_img.ndim == 3, save_img.shape
+            save_image(save_img, savepath, normalize=True)
 
     batch_apply(generation, labels, batch_size=batch_size, use_tqdm=True)
