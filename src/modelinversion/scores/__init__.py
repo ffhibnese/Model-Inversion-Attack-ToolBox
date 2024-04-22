@@ -5,7 +5,7 @@ from .imgscore import (
     ImageClassificationAugmentLossScore,
 )
 from .latentscore import BaseLatentScore, LatentClassificationAugmentConfidence
-from .funtional import (
+from .functional import (
     cross_image_augment_scores,
     specific_image_augment_scores,
     specific_image_augment_loss_score,

@@ -6,7 +6,7 @@ from torch import Tensor, LongTensor
 
 from .imgscore import *
 from ..models import BaseImageClassifier, BaseImageGenerator
-from .funtional import specific_image_augment_scores
+from .functional import specific_image_augment_scores
 
 
 class BaseLatentScore(ABC):
