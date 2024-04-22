@@ -102,8 +102,12 @@ if __name__ == '__main__':
 
     # print(torch.load(target_model_ckpt_path, map_location='cpu').keys())
 
-    target_model.load_state_dict(torch.load(target_model_ckpt_path, map_location='cpu'))
-    eval_model.load_state_dict(torch.load(eval_model_ckpt_path, map_location='cpu'))
+    target_model.load_state_dict(
+        torch.load(target_model_ckpt_path, map_location='cpu')['state_dict']
+    )
+    eval_model.load_state_dict(
+        torch.load(eval_model_ckpt_path, map_location='cpu')['state_dict']
+    )
 
     mapping = nn.parallel.DataParallel(mapping, device_ids=gpu_devices).to(device)
     target_model = nn.parallel.DataParallel(target_model, device_ids=gpu_devices).to(
@@ -189,7 +193,7 @@ if __name__ == '__main__':
     )
 
     optimization_fn = ImageAugmentWhiteBoxOptimization(
-        optimization_config, generator, target_model, eval_model
+        optimization_config, generator, target_model
     )
 
     # prepare final selection
