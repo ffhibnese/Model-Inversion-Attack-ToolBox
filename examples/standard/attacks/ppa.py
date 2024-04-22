@@ -33,7 +33,7 @@ from modelinversion.attack import (
     ImageClassifierAttackConfig,
     ImageClassifierAttacker,
 )
-from modelinversion.datasets import CelebA
+from modelinversion.datasets import CelebA299
 from modelinversion.scores import ImageClassificationAugmentConfidence
 from modelinversion.metrics import (
     ImageClassifierAttackAccuracy,
@@ -121,11 +121,9 @@ if __name__ == '__main__':
 
     # prepare eval dataset
 
-    eval_dataset = CelebA(
+    eval_dataset = CelebA299(
         eval_dataset_path,
-        crop_center=False,
-        preprocess_resolution=299,
-        transform=Compose(
+        output_transform=Compose(
             [
                 Resize((eval_resolution, eval_resolution)),
                 ToTensor(),

@@ -8,7 +8,7 @@ sys.path.append('../../../src')
 import torch
 from torch import nn
 from torch.nn import functional as F
-from modelinversion.datasets import CelebA
+from modelinversion.datasets import CelebA112
 from torchvision.transforms import ToTensor, Compose, Resize
 
 from modelinversion.models import SimpleGenerator64, IR152_64, FaceNet112
@@ -88,11 +88,9 @@ if __name__ == '__main__':
 
     # prepare eval dataset
 
-    eval_dataset = CelebA(
+    eval_dataset = CelebA112(
         eval_dataset_path,
-        crop_center=True,
-        preprocess_resolution=112,
-        transform=ToTensor(),
+        output_transform=ToTensor(),
     )
 
     # prepare optimization

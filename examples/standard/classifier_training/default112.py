@@ -7,7 +7,6 @@ sys.path.append('../../../src')
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
 from torchvision.transforms import (
     ToTensor,
     Compose,
@@ -21,7 +20,7 @@ from torchvision.transforms import (
 from modelinversion.models import FaceNet112
 from modelinversion.train import SimpleTrainer, SimpleTrainConfig
 from modelinversion.utils import Logger
-from modelinversion.datasets import InfiniteSamplerWrapper, CelebA
+from modelinversion.datasets import InfiniteSamplerWrapper, CelebA112
 
 if __name__ == '__main__':
 
@@ -55,7 +54,7 @@ if __name__ == '__main__':
 
     # prepare target model
 
-    model = FaceNet112(num_classes,backbone_path=backbone_path)
+    model = FaceNet112(num_classes, backbone_path=backbone_path)
     model = nn.DataParallel(model, device_ids=gpu_devices).to(device)
 
     optimizer = torch.optim.SGD(
@@ -65,22 +64,18 @@ if __name__ == '__main__':
 
     # prepare dataset
 
-    train_dataset = CelebA(
+    train_dataset = CelebA112(
         train_dataset_path,
-        crop_center=True,
-        preprocess_resolution=112,
-        transform=Compose(
+        output_transform=Compose(
             [
                 ToTensor(),
                 RandomHorizontalFlip(p=0.5),
             ]
         ),
     )
-    test_dataset = CelebA(
+    test_dataset = CelebA112(
         test_dataset_path,
-        crop_center=True,
-        preprocess_resolution=112,
-        transform=Compose([ToTensor()]),
+        output_transform=Compose([ToTensor()]),
     )
 
     train_loader = DataLoader(
@@ -95,7 +90,6 @@ if __name__ == '__main__':
     config = SimpleTrainConfig(
         experiment_dir=experiment_dir,
         save_name=save_name,
-        
         # train args
         device=device,
         model=model,

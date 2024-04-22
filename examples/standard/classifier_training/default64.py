@@ -7,7 +7,6 @@ sys.path.append('../../../src')
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
 from torchvision.transforms import (
     ToTensor,
     Compose,
@@ -21,7 +20,7 @@ from torchvision.transforms import (
 from modelinversion.models import IR152_64
 from modelinversion.train import SimpleTrainer, SimpleTrainConfig
 from modelinversion.utils import Logger
-from modelinversion.datasets import InfiniteSamplerWrapper, CelebA
+from modelinversion.datasets import InfiniteSamplerWrapper, CelebA64
 
 if __name__ == '__main__':
 
@@ -65,22 +64,18 @@ if __name__ == '__main__':
 
     # prepare dataset
 
-    train_dataset = CelebA(
+    train_dataset = CelebA64(
         train_dataset_path,
-        crop_center=True,
-        preprocess_resolution=64,
-        transform=Compose(
+        output_transform=Compose(
             [
                 ToTensor(),
                 RandomHorizontalFlip(p=0.5),
             ]
         ),
     )
-    test_dataset = CelebA(
+    test_dataset = CelebA64(
         test_dataset_path,
-        crop_center=True,
-        preprocess_resolution=64,
-        transform=Compose([ToTensor()]),
+        output_transform=Compose([ToTensor()]),
     )
 
     train_loader = DataLoader(
@@ -95,7 +90,6 @@ if __name__ == '__main__':
     config = SimpleTrainConfig(
         experiment_dir=experiment_dir,
         save_name=save_name,
-        
         # train args
         device=device,
         model=model,

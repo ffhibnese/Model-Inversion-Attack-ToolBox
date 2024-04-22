@@ -7,7 +7,7 @@ sys.path.append('../../../src')
 
 import torch
 from torch import nn
-from modelinversion.datasets import CelebA
+from modelinversion.datasets import CelebA112
 from torchvision.transforms import ToTensor, Compose, Resize
 
 from modelinversion.models import (
@@ -98,11 +98,9 @@ if __name__ == '__main__':
 
     # prepare eval dataset
 
-    eval_dataset = CelebA(
+    eval_dataset = CelebA112(
         eval_dataset_path,
-        crop_center=True,
-        preprocess_resolution=112,
-        transform=Compose([ToTensor()])
+        output_transform=ToTensor(),
     )
 
     # prepare optimization
@@ -161,12 +159,10 @@ if __name__ == '__main__':
         optimize_num=50,
         optimize_batch_size=batch_size,
         optimize_fn=optimization_fn,
-        
         # save path args
         save_dir=experiment_dir,
         save_optimized_images=True,
         save_final_images=False,
-        
         # metric args
         eval_metrics=[accuracy_metric, distance_metric, fid_prdc_metric],
         eval_optimized_result=True,

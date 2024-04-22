@@ -9,9 +9,9 @@ sys.path.append('../../../src')
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor, Resize
 
+from modelinversion.datasets import LabelImageFolder, CelebA112
 from modelinversion.models import (
     SimpleGenerator64,
     GmiDiscriminator64,
@@ -135,10 +135,13 @@ if __name__ == '__main__':
 
     # prepare eval dataset
 
-    eval_dataset = ImageFolder(eval_dataset_path, transform=ToTensor())
+    eval_dataset = CelebA112(
+        eval_dataset_path,
+        output_transform=ToTensor(),
+    )
 
     # prepare feature statics
-    public_dataset = ImageFolder(public_dataset_path, transform=ToTensor())
+    public_dataset = LabelImageFolder(public_dataset_path, transform=ToTensor())
     public_loader = DataLoader(public_dataset, batch_size=batch_size, shuffle=True)
 
     feature_mean, feature_std = generate_feature_statics(

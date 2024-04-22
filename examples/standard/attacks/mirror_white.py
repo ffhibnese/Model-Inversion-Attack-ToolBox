@@ -8,7 +8,7 @@ sys.path.append('../../../src')
 import torch
 from torch import nn
 from torch.nn import functional as F
-from modelinversion.datasets import CelebA
+from modelinversion.datasets import CelebA299
 from torchvision.transforms import (
     ToTensor,
     Compose,
@@ -133,11 +133,9 @@ if __name__ == '__main__':
 
     # prepare eval dataset
 
-    eval_dataset = CelebA(
+    eval_dataset = CelebA299(
         eval_dataset_path,
-        crop_center=False,
-        preprocess_resolution=299,
-        transform=Compose(
+        output_transform=Compose(
             [
                 Resize((eval_resolution, eval_resolution)),
                 ToTensor(),

@@ -7,7 +7,6 @@ sys.path.append('../../../src')
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
 from torchvision.transforms import (
     ToTensor,
     Compose,
@@ -21,7 +20,7 @@ from torchvision.transforms import (
 from modelinversion.models import IR152_64, EfficientNet_b0_64
 from modelinversion.train import DistillTrainer, DistillTrainConfig
 from modelinversion.utils import Logger
-from modelinversion.datasets import CelebA
+from modelinversion.datasets import CelebA64
 
 if __name__ == '__main__':
 
@@ -70,10 +69,8 @@ if __name__ == '__main__':
 
     # prepare dataset
 
-    train_dataset = CelebA(
+    train_dataset = CelebA64(
         train_dataset_path,
-        crop_center=True,
-        preprocess_resolution=64,
         transform=Compose(
             [
                 ToTensor(),
@@ -81,10 +78,8 @@ if __name__ == '__main__':
             ]
         ),
     )
-    test_dataset = CelebA(
+    test_dataset = CelebA64(
         test_dataset_path,
-        crop_center=True,
-        preprocess_resolution=64,
         transform=Compose([ToTensor()]),
     )
 

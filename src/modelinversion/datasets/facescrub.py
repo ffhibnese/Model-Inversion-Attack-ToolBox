@@ -87,3 +87,47 @@ class FaceScrub(Dataset):
             return self.transform(im), self.targets[idx]
         else:
             return im, self.targets[idx]
+
+
+class FaceScrub64(FaceScrub):
+
+    def __init__(
+        self,
+        root_path,
+        train=True,
+        output_transform=None,
+    ):
+        super().__init__(root_path, train, True, 64, output_transform)
+
+
+class FaceScrub112(FaceScrub):
+
+    def __init__(
+        self,
+        root_path,
+        train=True,
+        output_transform=None,
+    ):
+        super().__init__(root_path, train, True, 112, output_transform)
+
+
+class FaceScrub224(FaceScrub):
+
+    def __init__(
+        self,
+        root_path,
+        train=True,
+        output_transform=None,
+    ):
+        super().__init__(root_path, train, False, 224, output_transform)
+
+
+class FaceScrub299(FaceScrub):
+
+    def __init__(
+        self,
+        root_path,
+        train=True,
+        output_transform=None,
+    ):
+        super().__init__(root_path, train, False, 299, output_transform)

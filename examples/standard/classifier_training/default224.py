@@ -7,7 +7,6 @@ sys.path.append('../../../src')
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
 from torchvision.transforms import (
     ToTensor,
     Compose,
@@ -20,7 +19,7 @@ from torchvision.transforms import (
 from modelinversion.models import TorchvisionClassifierModel
 from modelinversion.train import SimpleTrainer, SimpleTrainConfig
 from modelinversion.utils import Logger
-from modelinversion.datasets import InfiniteSamplerWrapper, CelebA
+from modelinversion.datasets import InfiniteSamplerWrapper, CelebA224
 
 if __name__ == '__main__':
 
@@ -63,11 +62,9 @@ if __name__ == '__main__':
 
     # prepare dataset
 
-    train_dataset = CelebA(
+    train_dataset = CelebA224(
         train_dataset_path,
-        crop_center=False,
-        preprocess_resolution=224,
-        transform=Compose(
+        output_transform=Compose(
             [
                 ToTensor(),
                 RandomResizedCrop(
@@ -79,11 +76,9 @@ if __name__ == '__main__':
             ]
         ),
     )
-    test_dataset = CelebA(
+    test_dataset = CelebA224(
         test_dataset_path,
-        crop_center=False,
-        preprocess_resolution=224,
-        transform=Compose(
+        output_transform=Compose(
             [ToTensor(), Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])]
         ),
     )

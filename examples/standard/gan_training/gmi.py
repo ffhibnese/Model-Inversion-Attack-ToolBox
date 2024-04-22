@@ -7,13 +7,12 @@ sys.path.append("../../../src")
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor, Compose, Resize
 
 from modelinversion.models import SimpleGenerator64, GmiDiscriminator64
 from modelinversion.train import GmiGanTrainer
 from modelinversion.utils import Logger
-from modelinversion.datasets import InfiniteSamplerWrapper, CelebA
+from modelinversion.datasets import InfiniteSamplerWrapper, CelebA64
 
 if __name__ == "__main__":
 
@@ -39,11 +38,9 @@ if __name__ == "__main__":
 
     # prepare dataset
 
-    dataset = CelebA(
+    dataset = CelebA64(
         dataset_path,
-        crop_center=True,
-        preprocess_resolution=64,
-        transform=ToTensor(),
+        output_transform=ToTensor(),
     )
     dataloader = DataLoader(
         dataset, batch_size=batch_size, sampler=InfiniteSamplerWrapper(dataset)
@@ -70,7 +67,6 @@ if __name__ == "__main__":
 
     trainer = GmiGanTrainer(
         experiment_dir=experiment_dir,
-        
         # train args
         batch_size=batch_size,
         input_size=z_dim,
@@ -79,7 +75,6 @@ if __name__ == "__main__":
         device=device,
         gen_optimizer=gen_optimizer,
         dis_optimizer=dis_optimizer,
-        
         # log args
         save_ckpt_iters=1000,
         show_images_iters=1000,

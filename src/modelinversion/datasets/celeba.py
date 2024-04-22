@@ -9,8 +9,8 @@ from .base import LabelImageFolder
 
 def preprocess_celeba_fn(crop_center, output_resolution):
     """
-        Do transformations to CelebA dataset.
-        Support: center crop
+    Do transformations to CelebA dataset.
+    Support: center crop
     """
     if crop_center:
         crop_size = 108
@@ -55,3 +55,27 @@ class CelebA(Dataset):
             return self.transform(im), target
         else:
             return im, target
+
+
+class CelebA64(CelebA):
+
+    def __init__(self, root_path, output_transform=None):
+        super().__init__(root_path, True, 64, output_transform)
+
+
+class CelebA112(CelebA):
+
+    def __init__(self, root_path, output_transform=None):
+        super().__init__(root_path, True, 112, output_transform)
+
+
+class CelebA224(CelebA):
+
+    def __init__(self, root_path, output_transform=None):
+        super().__init__(root_path, False, 224, output_transform)
+
+
+class CelebA299(CelebA):
+
+    def __init__(self, root_path, output_transform=None):
+        super().__init__(root_path, False, 299, output_transform)

@@ -24,7 +24,7 @@ from modelinversion.models import (
     get_stylegan2ada_generator,
     TorchvisionClassifierModel,
 )
-from modelinversion.datasets import CelebA
+from modelinversion.datasets import CelebA299
 from modelinversion.sampler import (
     ImageAugmentSelectLatentsSampler,
     SimpleLatentsSampler,
@@ -137,11 +137,9 @@ if __name__ == '__main__':
 
     # prepare eval dataset
 
-    eval_dataset = CelebA(
+    eval_dataset = CelebA299(
         eval_dataset_path,
-        crop_center=False,
-        preprocess_resolution=299,
-        transform=Compose(
+        output_transform=Compose(
             [
                 Resize((eval_resolution, eval_resolution)),
                 ToTensor(),
