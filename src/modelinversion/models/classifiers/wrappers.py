@@ -32,6 +32,8 @@ class TorchvisionClassifierModel(BaseImageClassifier):
 
         tv_module = importlib.import_module('torchvision.models')
         factory = getattr(tv_module, arch_name, None)
+        if factory is None:
+            raise RuntimeError(f'torchvision do not support model {arch_name}')
         model = factory(weights=weights, **arch_kwargs)
 
         feature_dim = operate_fc(model, num_classes, _add_hook_fn)
