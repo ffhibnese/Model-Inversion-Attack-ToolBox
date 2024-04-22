@@ -5,6 +5,30 @@ import os
 
 
 class LabelDatasetFolder(DatasetFolder):
+    """A label data loader.
+
+    The subfolder of the root should be named as the label number.
+
+    Args:
+        root (string): Root directory path.
+        loader (callable): A function to load a sample given its path.
+        extensions (tuple[string]): A list of allowed extensions.
+            both extensions and is_valid_file should not be passed.
+        transform (callable, optional): A function/transform that takes in
+            a sample and returns a transformed version.
+            E.g, ``transforms.RandomCrop`` for images.
+        target_transform (callable, optional): A function/transform that takes
+            in the target and transforms it.
+        is_valid_file (callable, optional): A function that takes path of a file
+            and check if the file is a valid file (used to check of corrupt files)
+            both extensions and is_valid_file should not be passed.
+
+     Attributes:
+        classes (list): List of the class names sorted alphabetically.
+        class_to_idx (dict): Dict with items (class_name, class_index).
+        samples (list): List of (sample path, class_index) tuples
+        targets (list): The class_index value for each image in the dataset
+    """
 
     def __init__(
         self,
