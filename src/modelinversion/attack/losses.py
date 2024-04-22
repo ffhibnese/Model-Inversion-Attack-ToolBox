@@ -31,6 +31,12 @@ class BaseImageLoss(ABC):
     def __call__(self, images: Tensor, labels: LongTensor, *args, **kwargs):
         pass
 
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def __repr__(self) -> str:
+        return self.__class__.__name__
+
 
 class ImageAugmentClassificationLoss(BaseImageLoss):
 
@@ -67,6 +73,9 @@ class ImageAugmentClassificationLoss(BaseImageLoss):
         return loss, OrderedDict(
             [['classification loss', loss.item()], ['target acc', acc / total_num]]
         )
+
+    def __repr__(self) -> str:
+        return f'classifier loss'
 
 
 class ClassificationWithFeatureDistributionLoss(ImageAugmentClassificationLoss):
@@ -132,6 +141,9 @@ class ClassificationWithFeatureDistributionLoss(ImageAugmentClassificationLoss):
             ]
         )
 
+    def __repr__(self) -> str:
+        return 'classifier loss'
+
 
 class GmiDiscriminatorLoss(BaseImageLoss):
 
@@ -145,6 +157,9 @@ class GmiDiscriminatorLoss(BaseImageLoss):
         dis_res = self.discriminator(images)
         loss = -dis_res.mean()
         return loss, {'discriminator loss': loss.item()}
+
+    def __repr__(self) -> str:
+        return 'gmi discriminator loss'
 
 
 class KedmiDiscriminatorLoss(BaseImageLoss):
@@ -164,6 +179,9 @@ class KedmiDiscriminatorLoss(BaseImageLoss):
         # loss = - dis_res.mean()
         loss = torch.mean(F.softplus(logsumup)) - torch.mean(logsumup)
         return loss, {'discriminator loss': loss.item()}
+
+    def __repr__(self) -> str:
+        return 'kedmi discriminator loss'
 
 
 class ComposeImageLoss(BaseImageLoss):
@@ -196,18 +214,24 @@ class ComposeImageLoss(BaseImageLoss):
         return_dict = OrderedDict()
         return_dict['compose loss'] = 0
 
-        for lossfn, weight in zip(self.losses, self.weights):
+        for i, (lossfn, weight) in enumerate(zip(self.losses, self.weights)):
 
             loss = lossfn(images, labels, *args, **kwargs)
             if not isinstance(loss, Tensor):
                 loss, single_dict = loss
-                for k, v in single_dict.items():
-                    return_dict[k] = v
+                # for k, v in single_dict.items():
+                #     return_dict[k] = v
+                if single_dict is not None:
+                    k = f'{i} - {lossfn}'
+                    return_dict[k] = single_dict
             compose_loss += weight * loss
 
         return_dict['compose loss'] = compose_loss.item()
 
         return compose_loss, return_dict
+
+    def __repr__(self) -> str:
+        return 'compose loss'
 
 
 class ImagePixelPriorLoss(BaseImageLoss):
@@ -231,6 +255,9 @@ class ImagePixelPriorLoss(BaseImageLoss):
                 ['loss', loss.item()],
             ]
         )
+
+    def __repr__(self) -> str:
+        return 'image pixel loss'
 
 
 class ImageVariationPriorLoss(BaseImageLoss):
@@ -271,6 +298,9 @@ class ImageVariationPriorLoss(BaseImageLoss):
             ]
         )
 
+    def __repr__(self) -> str:
+        return 'image variation loss'
+
 
 class DeepInversionBatchNormPriorLoss(BaseImageLoss):
 
@@ -292,6 +322,9 @@ class DeepInversionBatchNormPriorLoss(BaseImageLoss):
         loss = sum(r_features_losses)
         return loss, OrderedDict(loss=loss.item())
 
+    def __repr__(self) -> str:
+        return 'deep inversion BN loss'
+
 
 class MultiModelOutputKLLoss(BaseImageLoss):
 
@@ -305,19 +338,23 @@ class MultiModelOutputKLLoss(BaseImageLoss):
         super().__init__(*args, **kwargs)
 
         self.teacher = teacher
-        if isinstance(students, BaseImageClassifier):
+        if isinstance(students, nn.Module):
             students = [students]
         self.students = students
 
     def __call__(self, images: Tensor, labels: LongTensor, *args, **kwargs):
         T = 3.0
         output_teacher = self.teacher(images)
+        if not isinstance(output_teacher, Tensor):
+            output_teacher = output_teacher[0]
         Q = nn.functional.softmax(output_teacher / T, dim=1)
         Q = torch.clamp(Q, 0.01, 0.99)
 
         loss = 0
         for student in self.students:
             output_student = student(images)
+            if not isinstance(output_student, Tensor):
+                output_student = output_student[0]
 
             # Jensen Shanon divergence:
             # another way to force KL between negative probabilities
@@ -335,3 +372,6 @@ class MultiModelOutputKLLoss(BaseImageLoss):
             loss += loss_verifier_cig
 
         return loss, {'loss': loss.item()}
+
+    def __repr__(self) -> str:
+        return 'multi-model output kl loss'

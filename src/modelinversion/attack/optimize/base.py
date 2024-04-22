@@ -10,16 +10,17 @@ from torch import Tensor, LongTensor
 from torch.optim import Optimizer, Adam
 from tqdm import tqdm
 
-from ...utils import ClassificationLoss, BaseConstraint, DictAccumulator
+from ...utils import ClassificationLoss, BaseConstraint, DictAccumulator, obj_to_yaml
 from ...models import BaseImageClassifier, BaseImageGenerator
 from ...scores import BaseLatentScore
 
 
 def get_info_description(it: int, info: OrderedDict):
-    ls = [f'{k}: {v:.6f}' for k, v in info.items()]
-    right_str = '  '.join(ls)
-    description = f'iter {it}: {right_str}'
-    return description
+    description_dict = OrderedDict()
+    description_dict['iter'] = it
+    for k, v in info.items():
+        description_dict[k] = v
+    return obj_to_yaml(description_dict)
 
 
 @dataclass
@@ -155,7 +156,8 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
                         # right_str = '  '.join(ls)
                         # description = f'iter {i}: {right_str}'
                         description = get_info_description(i, metric_dict)
-                        bar.set_description(description)
+                        # description = obj_to_yaml()
+                        bar.write(description)
                     if i == config.iter_times:
                         # ls = [f'{k}: {v}' for k, v in metric_dict.items()]
                         description = get_info_description(i, metric_dict)
@@ -171,7 +173,7 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
                 latents = config.latent_constraint(latents)
 
         if description is not None:
-            print(description)
+            bar.write(description)
 
         final_fake = self.generator(latents, labels=labels).cpu()
 
@@ -380,7 +382,8 @@ class BrepOptimization(BaseImageOptimization):
 
         description = None
 
-        for it in tqdm(range(1, 1 + config.iter_times), leave=False):
+        bar = tqdm(range(1, 1 + config.iter_times), leave=False)
+        for it in bar:
 
             step_size = current_radius * config.step_rate
             step_size = torch.min(
@@ -396,7 +399,6 @@ class BrepOptimization(BaseImageOptimization):
 
             sphere_points_scores = []
             for i in range(config.sphere_points_count):
-                # sphere_points_scores.append(config.latent_score_fn(sphere_points[i], labels=labels))
                 batch_images = self.generator(sphere_points[i], labels=labels)
                 scores = self.image_score_fn(batch_images, labels=labels)
                 if isinstance(scores, tuple):
@@ -407,7 +409,7 @@ class BrepOptimization(BaseImageOptimization):
             if len(accumulator) > 0:
                 if it == 1 or it % config.show_loss_info_iters == 0:
                     description = get_info_description(i, accumulator.avg())
-                    print(description)
+                    bar.write(description)
                 elif it == config.show_loss_info_iters:
                     description = get_info_description(i, accumulator.avg())
 
@@ -430,6 +432,6 @@ class BrepOptimization(BaseImageOptimization):
             )
 
         if description is not None:
-            print(description)
+            bar.write(description)
 
         return self.generator(latents, labels=labels).detach().cpu(), labels.cpu()

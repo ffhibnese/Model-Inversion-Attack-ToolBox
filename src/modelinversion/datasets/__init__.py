@@ -1,3 +1,8 @@
-from .utils import InfiniteSamplerWrapper, ClassSubset, top_k_selection
-from .facescrub import FaceScrub
-from .celeba import CelebA
+from .utils import (
+    InfiniteSamplerWrapper,
+    ClassSubset,
+    top_k_selection,
+    generator_generate_datasets,
+)
+from .facescrub import FaceScrub, preprocess_facescrub_fn
+from .celeba import CelebA, preprocess_celeba_fn

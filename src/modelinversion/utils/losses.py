@@ -44,7 +44,7 @@ class LabelSmoothingCrossEntropyLoss:
     def __init__(self, label_smoothing: float = 0.0) -> None:
         self.label_smoothing = label_smoothing
 
-    def __call__(self, inputs, labels) -> torch.Any:
+    def __call__(self, inputs, labels):
         ls = self.label_smoothing
         confidence = 1.0 - ls
         logprobs = F.log_softmax(inputs, dim=-1)

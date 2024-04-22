@@ -23,4 +23,8 @@ from .losses import (
     ComposeImageLoss,
     GmiDiscriminatorLoss,
     KedmiDiscriminatorLoss,
+    DeepInversionBatchNormPriorLoss,
+    ImagePixelPriorLoss,
+    ImageVariationPriorLoss,
+    MultiModelOutputKLLoss,
 )
