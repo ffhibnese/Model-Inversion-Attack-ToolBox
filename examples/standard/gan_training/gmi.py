@@ -17,8 +17,8 @@ from modelinversion.datasets import InfiniteSamplerWrapper, CelebA
 
 if __name__ == "__main__":
 
-    dataset_path = "../../../test/celeba/public"
-    experiment_dir = "../../../test/gmi"
+    dataset_path = '<fill it>'
+    experiment_dir = '<fill it>'
 
     batch_size = 64
     max_iters = 150000
