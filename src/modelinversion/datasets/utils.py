@@ -209,8 +209,9 @@ def generator_generate_datasets(
         img = img.cpu()
         for i in range(len(labels)):
             label = pred[i].item()
-            img = img[i]
+            save_im = img[i]
             savepath = get_save_path(label)
-            save_image(img, savepath)
+            assert save_im.ndim == 3, save_im.shape
+            save_image(img, savepath, normalize=True)
 
     batch_apply(generation, labels, batch_size=batch_size, use_tqdm=True)

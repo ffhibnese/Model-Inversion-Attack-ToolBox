@@ -55,8 +55,20 @@ class MinMaxConstraint(BaseConstraint):
         pass
 
     def __call__(self, tensor: Tensor, *args: Any, **kwds: Any) -> Any:
-        res = torch.min(tensor, self.max_tensor)
-        res = torch.max(tensor, self.min_tensor)
+        max_tensor = self.max_tensor
+        min_tensor = self.min_tensor
+        if isinstance(max_tensor, int):
+            max_tensor = torch.tensor(
+                max_tensor, dtype=tensor.dtype, device=tensor.device
+            )
+
+        if isinstance(min_tensor, int):
+            min_tensor = torch.tensor(
+                min_tensor, dtype=tensor.dtype, device=tensor.device
+            )
+
+        res = torch.min(tensor, max_tensor)
+        res = torch.max(tensor, min_tensor)
         tensor.data = res.data
         return tensor
         # return copy_or_set_(tensor, res.detach().requires_grad_(False))
