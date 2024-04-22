@@ -35,8 +35,6 @@ class ImageClassificationAugmentConfidence(BaseImageClassificationScore):
     """This is a class for generating score for each image with the corresponding label. The score is calculated by the conficence of the classifier model.
 
     Args:
-        generator (BaseImageGenerator):
-            The image generator.
         model (BaseImageClassifier):
             The image classifier to generate scores.
         device (device):
@@ -67,14 +65,14 @@ class ImageClassificationAugmentLossScore(BaseImageClassificationScore):
     """This is a class for generating score for each image with the corresponding label with loss function. The score is calculated by the output of the classifier model and the loss function. The output is the inverse of the loss result.
 
     Args:
-        generator (BaseImageGenerator):
-            The image generator.
         model (BaseImageClassifier):
             The image classifier to generate scores.
         device (device):
             The device used for calculation. Please keep the same with the device of `generator` and `model`.
         create_aug_images_fn (Callable[[Tensor], Iterable[Tensor]], optional):
             The function to create a list of augment images that will be used to calculate the score. Defaults to `None`.
+        loss_fn (Callable):
+            The loss function to use.
     """
 
     def __init__(
