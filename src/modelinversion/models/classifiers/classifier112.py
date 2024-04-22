@@ -20,9 +20,6 @@ class FaceNet112(BaseImageClassifier):
         self.feature = evolve.IR_50_112((112, 112))
         if backbone_path is not None:
             state_dict = torch.load(backbone_path, map_location='cpu')
-            # for k in list(state_dict.keys()):
-            #     if 'output_layer' in k:
-            #         del state_dict[k]
             self.feature.load_state_dict(state_dict)
         self.feat_dim = 512
 

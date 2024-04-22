@@ -22,7 +22,7 @@ from torchvision.transforms import (
 )
 
 from modelinversion.models import (
-    get_stylegan2ata_generator,
+    get_stylegan2ada_generator,
     TorchvisionClassifierModel,
 )
 from modelinversion.sampler import (
@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
     # prepare models
 
-    mapping, generator = get_stylegan2ata_generator(
+    mapping, generator = get_stylegan2ada_generator(
         stylegan2ada_path, stylegan2ada_ckpt_path, single_w=True
     )
 
