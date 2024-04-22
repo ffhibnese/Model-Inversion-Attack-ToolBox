@@ -7,7 +7,7 @@ from torch import Tensor, LongTensor
 
 from ..models import BaseImageClassifier
 from ..utils import TorchLoss
-from .funtional import (
+from .functional import (
     specific_image_augment_scores,
     specific_image_augment_scores_label_only,
     specific_image_augment_loss_score,
