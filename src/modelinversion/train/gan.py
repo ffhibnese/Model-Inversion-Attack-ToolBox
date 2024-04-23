@@ -59,7 +59,7 @@ def train_gan(
     save_fn(max_iters)
 
 
-class GanTrainer(ABC):
+class BaseGanTrainer(ABC):
 
     def __init__(
         self,
@@ -167,7 +167,7 @@ class GanTrainer(ABC):
         )
 
 
-class GmiGanTrainer(GanTrainer):
+class GmiGanTrainer(BaseGanTrainer):
 
     def __init__(
         self,
@@ -287,7 +287,7 @@ class GmiGanTrainer(GanTrainer):
         )
 
 
-class KedmiGanTrainer(GanTrainer):
+class KedmiGanTrainer(BaseGanTrainer):
 
     def __init__(
         self,
@@ -437,7 +437,7 @@ class KedmiGanTrainer(GanTrainer):
         )
 
 
-class PlgmiGanTrainer(GanTrainer):
+class PlgmiGanTrainer(BaseGanTrainer):
 
     def __init__(
         self,
@@ -561,7 +561,7 @@ class PlgmiGanTrainer(GanTrainer):
         )
 
 
-class LoktGanTrainer(GanTrainer):
+class LoktGanTrainer(BaseGanTrainer):
 
     def __init__(
         self,
