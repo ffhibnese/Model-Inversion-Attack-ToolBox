@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor, Compose, Resize
 
 from modelinversion.models import IR152_64, PlgmiGenerator64, PlgmiDiscriminator64
-from modelinversion.train import PlgmiGanTrainer
+from modelinversion.train import PlgmiGanTrainer, PlgmiGanTrainConfig
 from modelinversion.utils import Logger
 from modelinversion.datasets import InfiniteSamplerWrapper, CelebA64
 
@@ -89,7 +89,7 @@ if __name__ == '__main__':
         kornia.augmentation.RandomRotation(5),
     )
 
-    trainer = PlgmiGanTrainer(
+    train_configs = PlgmiGanTrainConfig(
         experiment_dir=experiment_dir,
         batch_size=batch_size,
         input_size=z_dim,
@@ -108,5 +108,7 @@ if __name__ == '__main__':
     )
 
     # train gan
+
+    trainer = PlgmiGanTrainer(train_configs)
 
     trainer.train(dataloader, max_iters)

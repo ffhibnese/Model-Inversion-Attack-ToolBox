@@ -1,6 +1,7 @@
 import os
 import importlib
 from abc import abstractmethod, ABC
+from dataclasses import dataclass, field
 from collections import OrderedDict
 from typing import Optional, Iterator, Tuple, Callable, Sequence
 import math
@@ -59,40 +60,39 @@ def train_gan(
     save_fn(max_iters)
 
 
+@dataclass
+class BaseGanTrainConfig:
+    experiment_dir: str
+    batch_size: str
+    generator: BaseImageGenerator
+    discriminator: Module
+    device: torch.device
+    gen_optimizer: Optimizer
+    dis_optimizer: Optimizer
+    save_ckpt_iters: int
+    show_images_iters: Optional[int] = None
+    show_train_info_iters: Optional[int] = None
+    ncritic: int = 5
+
+
 class BaseGanTrainer(ABC):
 
-    def __init__(
-        self,
-        experiment_dir: str,
-        batch_size: str,
-        generator: BaseImageGenerator,
-        discriminator: Module,
-        device: torch.device,
-        gen_optimizer: Optimizer,
-        dis_optimizer: Optimizer,
-        #  gen_optimizer_class: str | type[Optimizer],
-        #  gen_optimizer_kwargs: dict,
-        #  dis_optimizer_class: str | type[Optimizer],
-        #  dis_optimizer_kwargs: dict,
-        save_ckpt_iters: int,
-        show_images_iters: Optional[int] = None,
-        show_train_info_iters: Optional[int] = None,
-        ncritic: int = 5,
-    ) -> None:
-        self.experiment_dir = experiment_dir
-        self.save_img_dir = os.path.join(experiment_dir, 'gen_images')
-        os.makedirs(experiment_dir, exist_ok=True)
-        if show_images_iters is not None:
+    def __init__(self, config: BaseGanTrainConfig) -> None:
+        # self.experiment_dir = experiment_dir
+        self.config = config
+        self.save_img_dir = os.path.join(config.experiment_dir, 'gen_images')
+        os.makedirs(config.experiment_dir, exist_ok=True)
+        if config.show_images_iters is not None:
             os.makedirs(self.save_img_dir, exist_ok=True)
 
-        self.generator = generator
-        self.discriminator = discriminator
-        self.device = device
-        self.save_ckpt_iters = save_ckpt_iters
-        self.show_images_iters = show_images_iters
-        self.ncritic = ncritic
-        self.show_train_info_iters = show_train_info_iters
-        self.batch_size = batch_size
+        self.generator = config.generator
+        self.discriminator = config.discriminator
+        self.device = config.device
+        # self.save_ckpt_iters = save_ckpt_iters
+        # self.show_images_iters = show_images_iters
+        # self.ncritic = ncritic
+        # self.show_train_info_iters = show_train_info_iters
+        # self.batch_size = batch_size
 
         # optim_module = importlib.import_module('torch.optim')
         # if isinstance(gen_optimizer_class, str):
@@ -101,8 +101,8 @@ class BaseGanTrainer(ABC):
         #     dis_optimizer_class = getattr(optim_module, dis_optimizer_class)
         # self.gen_optimizer = optim_module(self.generator.parameters(), **gen_optimizer_kwargs)
         # self.dis_optimizer = optim_module(self.discriminator.parameters(), **dis_optimizer_kwargs)
-        self.gen_optimizer = gen_optimizer
-        self.dis_optimizer = dis_optimizer
+        self.gen_optimizer = config.gen_optimizer
+        self.dis_optimizer = config.dis_optimizer
 
     def save_checkpoint(self, iters: int):
         for name, module in [
@@ -112,7 +112,7 @@ class BaseGanTrainer(ABC):
             ['D_optim', self.dis_optimizer],
         ]:
 
-            save_path = os.path.join(self.experiment_dir, f'{name}.pth')
+            save_path = os.path.join(self.config.experiment_dir, f'{name}.pth')
             torch.save(
                 {'state_dict': unwrapped_parallel_module(module).state_dict()},
                 save_path,
@@ -140,10 +140,10 @@ class BaseGanTrainer(ABC):
 
         with torch.no_grad():
             if (
-                self.show_images_iters is not None
-                and (iters + 1) % self.show_images_iters == 0
+                self.config.show_images_iters is not None
+                and (iters + 1) % self.config.show_images_iters == 0
             ):
-                save_image_num = min(self.batch_size, 16)
+                save_image_num = min(self.config.batch_size, 16)
                 images = self.sample_images(save_image_num).detach().cpu()
                 nrow = int(math.sqrt(save_image_num))
                 save_path = os.path.join(self.save_img_dir, f'iter_{iters+1}.png')
@@ -160,55 +160,36 @@ class BaseGanTrainer(ABC):
             self.train_gen_step,
             self.train_dis_step,
             self.save_checkpoint,
-            self.save_ckpt_iters,
-            self.show_train_info_iters,
+            self.config.save_ckpt_iters,
+            self.config.show_train_info_iters,
             self.before_iter_step,
-            self.ncritic,
+            self.config.ncritic,
         )
+
+
+@dataclass
+class GmiGanTrainConfig(BaseGanTrainConfig):
+    input_size: int | Sequence[int] = None
 
 
 class GmiGanTrainer(BaseGanTrainer):
 
-    def __init__(
-        self,
-        experiment_dir: str,
-        batch_size: str,
-        input_size: int | Sequence[int],
-        generator: SimpleGenerator64 | SimpleGenerator256,
-        discriminator: GmiDiscriminator64 | GmiDiscriminator256,
-        #  num_classes: int,
-        #  target_model: BaseImageClassifier,
-        #  classification_loss_fn: str | Callable,
-        device: torch.device,
-        #  augment: Optional[Callable],
-        gen_optimizer: Optimizer,
-        dis_optimizer: Optimizer,
-        save_ckpt_iters: int,
-        show_images_iters: int | None = None,
-        show_train_info_iters: int | None = None,
-        ncritic: int = 5,
-    ) -> None:
-        super().__init__(
-            experiment_dir,
-            batch_size,
-            generator,
-            discriminator,
-            device,
-            gen_optimizer,
-            dis_optimizer,
-            save_ckpt_iters,
-            show_images_iters,
-            show_train_info_iters,
-            ncritic,
-        )
+    def __init__(self, config: GmiGanTrainConfig) -> None:
+        super().__init__(config)
 
         # self.num_classes = num_classes
         self.generator: SimpleGenerator64 | SimpleGenerator256
         self.discriminator: GmiDiscriminator64 | GmiDiscriminator256
 
         # self.latents_sampler = latents_sampler
+
+        if config.input_size is None:
+            raise RuntimeError(f'input_size should not be None')
+
         self.input_size = (
-            (input_size,) if isinstance(input_size, int) else tuple(input_size)
+            (config.input_size,)
+            if isinstance(config.input_size, int)
+            else tuple(config.input_size)
         )
 
     def sample_images(self, num: int):
@@ -232,7 +213,7 @@ class GmiGanTrainer(BaseGanTrainer):
         self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor, LongTensor]]
     ):
 
-        fake = self.sample_images(self.batch_size)
+        fake = self.sample_images(self.config.batch_size)
 
         dis_res = self.discriminator(fake)
 
@@ -264,7 +245,7 @@ class GmiGanTrainer(BaseGanTrainer):
         self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor | LongTensor]]
     ):
 
-        fake = self.sample_images(self.batch_size)
+        fake = self.sample_images(self.config.batch_size)
         real = self._get_next_real_images(dataloader)
 
         output_real = self.discriminator(real)
@@ -287,51 +268,36 @@ class GmiGanTrainer(BaseGanTrainer):
         )
 
 
+@dataclass
+class KedmiGanTrainConfig(BaseGanTrainConfig):
+    input_size: int | Sequence[int] = None
+    target_model: BaseImageClassifier = None
+    augment: Optional[Callable] = None
+
+
 class KedmiGanTrainer(BaseGanTrainer):
 
-    def __init__(
-        self,
-        experiment_dir: str,
-        batch_size: str,
-        input_size: int | Sequence[int],
-        generator: SimpleGenerator64 | SimpleGenerator256,
-        discriminator: KedmiDiscriminator64 | KedmiDiscriminator256,
-        #  num_classes: int,
-        target_model: BaseImageClassifier,
-        #  classification_loss_fn: str | Callable,
-        device: torch.device,
-        augment: Optional[Callable],
-        gen_optimizer: Optimizer,
-        dis_optimizer: Optimizer,
-        save_ckpt_iters: int,
-        show_images_iters: int | None = None,
-        show_train_info_iters: int | None = None,
-        ncritic: int = 5,
-    ) -> None:
-        super().__init__(
-            experiment_dir,
-            batch_size,
-            generator,
-            discriminator,
-            device,
-            gen_optimizer,
-            dis_optimizer,
-            save_ckpt_iters,
-            show_images_iters,
-            show_train_info_iters,
-            ncritic,
-        )
+    def __init__(self, config: KedmiGanTrainConfig) -> None:
+        super().__init__(config)
 
         # self.num_classes = num_classes
         self.generator: SimpleGenerator64 | SimpleGenerator256
         self.discriminator: KedmiDiscriminator64 | KedmiDiscriminator256
-        self.target_model = target_model
-        self.augment = augment
+        self.target_model = config.target_model
+        self.augment = config.augment
         # self.classification_loss = ClassificationLoss(classification_loss_fn)
+
+        if config.input_size is None:
+            raise RuntimeError(f'input_size should not be None')
+
+        if config.target_model is None:
+            raise RuntimeError(f'target_model should not be None')
 
         # self.latents_sampler = latents_sampler
         self.input_size = (
-            (input_size,) if isinstance(input_size, int) else tuple(input_size)
+            (config.input_size,)
+            if isinstance(config.input_size, int)
+            else tuple(config.input_size)
         )
 
     def sample_images(self, num: int):
@@ -358,7 +324,7 @@ class KedmiGanTrainer(BaseGanTrainer):
         freeze(self.discriminator)
         unfreeze(self.generator)
 
-        fake = self.sample_images(self.batch_size)
+        fake = self.sample_images(self.config.batch_size)
         real = self._get_next_real_images(dataloader)
 
         mom_gen, output_fake = self.discriminator(fake)
@@ -399,7 +365,7 @@ class KedmiGanTrainer(BaseGanTrainer):
         freeze(self.generator)
         unfreeze(self.discriminator)
 
-        fake = self.sample_images(self.batch_size)
+        fake = self.sample_images(self.config.batch_size)
         real = self._get_next_real_images(dataloader)
         real_unlabel = self._get_next_real_images(dataloader)
 
@@ -437,51 +403,42 @@ class KedmiGanTrainer(BaseGanTrainer):
         )
 
 
+@dataclass
+class PlgmiGanTrainConfig(BaseGanTrainConfig):
+
+    input_size: int | Sequence[int] = None
+    num_classes: int = None
+    target_model: BaseImageClassifier = None
+    augment: Optional[Callable] = None
+    classification_loss_fn: str | Callable = 'cross_entropy'
+
+
 class PlgmiGanTrainer(BaseGanTrainer):
 
-    def __init__(
-        self,
-        experiment_dir: str,
-        batch_size: str,
-        input_size: int | Sequence[int],
-        generator: PlgmiGenerator64 | PlgmiGenerator256,
-        discriminator: PlgmiDiscriminator64 | PlgmiDiscriminator256,
-        num_classes: int,
-        target_model: BaseImageClassifier,
-        classification_loss_fn: str | Callable,
-        device: torch.device,
-        augment: Optional[Callable],
-        gen_optimizer: Optimizer,
-        dis_optimizer: Optimizer,
-        save_ckpt_iters: int,
-        show_images_iters: int | None = None,
-        show_train_info_iters: int | None = None,
-        ncritic: int = 5,
-    ) -> None:
-        super().__init__(
-            experiment_dir,
-            batch_size,
-            generator,
-            discriminator,
-            device,
-            gen_optimizer,
-            dis_optimizer,
-            save_ckpt_iters,
-            show_images_iters,
-            show_train_info_iters,
-            ncritic,
-        )
+    def __init__(self, config: PlgmiGanTrainConfig) -> None:
+        super().__init__(config)
 
-        self.num_classes = num_classes
+        self.num_classes = config.num_classes
         self.generator: PlgmiGenerator64 | PlgmiGenerator256
         self.discriminator: PlgmiDiscriminator64 | PlgmiDiscriminator256
-        self.target_model = target_model
-        self.augment = augment
-        self.classification_loss = ClassificationLoss(classification_loss_fn)
+        self.target_model = config.target_model
+        self.augment = config.augment
+        self.classification_loss = ClassificationLoss(config.classification_loss_fn)
+
+        if config.input_size is None:
+            raise RuntimeError(f'input_size should not be None')
+
+        if config.target_model is None:
+            raise RuntimeError(f'target_model should not be None')
+
+        if config.augment is None:
+            raise RuntimeError(f'augment should not be None')
 
         # self.latents_sampler = latents_sampler
         self.input_size = (
-            (input_size,) if isinstance(input_size, int) else tuple(input_size)
+            (config.input_size,)
+            if isinstance(config.input_size, int)
+            else tuple(config.input_size)
         )
 
     def sample_images(self, num: int):
@@ -494,7 +451,9 @@ class PlgmiGanTrainer(BaseGanTrainer):
 
     def sample_fake(self):
 
-        latents = torch.randn((self.batch_size, *self.input_size)).to(self.device)
+        latents = torch.randn((self.config.batch_size, *self.input_size)).to(
+            self.device
+        )
         labels = torch.randint(
             0, self.num_classes, (len(latents),), dtype=torch.long, device=self.device
         )
@@ -561,57 +520,48 @@ class PlgmiGanTrainer(BaseGanTrainer):
         )
 
 
+@dataclass
+class LoktGanTrainConfig(BaseGanTrainConfig):
+
+    input_size: int | Sequence[int] = None
+    num_classes: int = None
+    target_model: BaseImageClassifier = None
+    augment: Optional[Callable] = None
+    classification_loss_fn: str | Callable = 'cross_entropy'
+    start_class_loss_iters: int = 1000
+    class_loss_weight: float = 1.5
+
+
 class LoktGanTrainer(BaseGanTrainer):
 
-    def __init__(
-        self,
-        experiment_dir: str,
-        batch_size: str,
-        input_size: int | Sequence[int],
-        generator: LoktGenerator64 | LoktGenerator256,
-        discriminator: LoktDiscriminator64 | LoktDiscriminator256,
-        num_classes: int,
-        target_model: BaseImageClassifier,
-        classification_loss_fn: str | Callable,
-        device: torch.device,
-        augment: Optional[Callable],
-        gen_optimizer: Optimizer,
-        dis_optimizer: Optimizer,
-        save_ckpt_iters: int,
-        start_class_loss_iters: int,
-        class_loss_weight: float = 1.5,
-        show_images_iters: int | None = None,
-        show_train_info_iters: int | None = None,
-        ncritic: int = 5,
-    ) -> None:
-        super().__init__(
-            experiment_dir,
-            batch_size,
-            generator,
-            discriminator,
-            device,
-            gen_optimizer,
-            dis_optimizer,
-            save_ckpt_iters,
-            show_images_iters,
-            show_train_info_iters,
-            ncritic,
-        )
+    def __init__(self, config: LoktGanTrainConfig) -> None:
+        super().__init__(config)
 
-        self.num_classes = num_classes
+        self.num_classes = config.num_classes
         self.generator: LoktGenerator64 | LoktGenerator256
         self.discriminator: LoktDiscriminator64 | LoktDiscriminator256
-        self.target_model = target_model
-        self.augment = augment
-        self.classification_loss = ClassificationLoss(classification_loss_fn)
+        self.target_model = config.target_model
+        self.augment = config.augment
+        self.classification_loss = ClassificationLoss(config.classification_loss_fn)
+
+        if config.input_size is None:
+            raise RuntimeError(f'input_size should not be None')
+
+        if config.target_model is None:
+            raise RuntimeError(f'target_model should not be None')
+
+        if config.augment is None:
+            raise RuntimeError(f'augment should not be None')
 
         # self.latents_sampler = latents_sampler
         self.input_size = (
-            (input_size,) if isinstance(input_size, int) else tuple(input_size)
+            (config.input_size,)
+            if isinstance(config.input_size, int)
+            else tuple(config.input_size)
         )
 
-        self.start_classloss_iters = start_class_loss_iters
-        self.class_loss_weight = class_loss_weight
+        self.start_classloss_iters = config.start_class_loss_iters
+        self.class_loss_weight = config.class_loss_weight
 
     def sample_images(self, num: int):
         latents = torch.randn((num, *self.input_size)).to(self.device)
@@ -623,7 +573,9 @@ class LoktGanTrainer(BaseGanTrainer):
 
     def sample_fake(self):
 
-        latents = torch.randn((self.batch_size, *self.input_size)).to(self.device)
+        latents = torch.randn((self.config.batch_size, *self.input_size)).to(
+            self.device
+        )
         labels = torch.randint(
             0, self.num_classes, (len(latents),), dtype=torch.long, device=self.device
         )

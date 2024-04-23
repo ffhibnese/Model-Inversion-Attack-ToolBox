@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor, Compose, Resize
 
 from modelinversion.models import SimpleGenerator64, GmiDiscriminator64
-from modelinversion.train import GmiGanTrainer
+from modelinversion.train import GmiGanTrainer, GmiGanTrainConfig
 from modelinversion.utils import Logger
 from modelinversion.datasets import InfiniteSamplerWrapper, CelebA64
 
@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
     # prepare trainer
 
-    trainer = GmiGanTrainer(
+    train_config = GmiGanTrainConfig(
         experiment_dir=experiment_dir,
         # train args
         batch_size=batch_size,
@@ -80,6 +80,8 @@ if __name__ == "__main__":
         show_images_iters=1000,
         show_train_info_iters=100,
     )
+
+    trainer = GmiGanTrainer(train_config)
 
     # train gan
 
