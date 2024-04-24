@@ -8,6 +8,7 @@ from .io import (
     walk_imgs,
     print_as_yaml,
     print_split_line,
+    obj_to_yaml
 )
 from .losses import (
     TorchLoss,
