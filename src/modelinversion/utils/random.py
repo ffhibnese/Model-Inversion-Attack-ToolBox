@@ -20,6 +20,14 @@ _ALL_LOGITS_INDICES = np.arange(len(_ALL_LOGITS), dtype=np.int32)
 
 
 def get_random_string(length: int = 6):
+    """Generate a random string with the specified length.
+
+    Args:
+        length (int, optional): The string length. Defaults to 6.
+
+    Returns:
+        str: The randomly generated string.
+    """    
 
     seed = int(time.time() * 1000) % (2**30) ^ random.randint(0, 2**30)
     # print(seed)

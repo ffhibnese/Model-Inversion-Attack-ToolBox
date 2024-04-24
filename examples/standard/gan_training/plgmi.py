@@ -91,6 +91,7 @@ if __name__ == '__main__':
 
     train_configs = PlgmiGanTrainConfig(
         experiment_dir=experiment_dir,
+        # train args
         batch_size=batch_size,
         input_size=z_dim,
         generator=generator,
@@ -102,6 +103,7 @@ if __name__ == '__main__':
         augment=data_augment,
         gen_optimizer=gen_optimizer,
         dis_optimizer=dis_optimizer,
+        # log args
         save_ckpt_iters=1000,
         show_images_iters=1000,
         show_train_info_iters=100,

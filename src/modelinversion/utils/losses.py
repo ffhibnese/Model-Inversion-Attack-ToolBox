@@ -40,6 +40,7 @@ _LOSS_MAPPING = {
 
 
 class LabelSmoothingCrossEntropyLoss:
+    """The Cross Entropy Loss with label smoothing technique. Used in the LS defense method."""    
 
     def __init__(self, label_smoothing: float = 0.0) -> None:
         self.label_smoothing = label_smoothing
@@ -56,6 +57,7 @@ class LabelSmoothingCrossEntropyLoss:
 
 
 class TorchLoss:
+    """Find loss function from 'torch.nn.functional' and 'torch.nn'"""    
 
     def __init__(self, loss_fn: str | Callable, *args, **kwargs) -> None:
         # super().__init__()
@@ -80,6 +82,3 @@ class TorchLoss:
 
     def __call__(self, *args, **kwargs):
         return self.fn(*args, **kwargs)
-
-    # def forward(self, *args, **kwargs):
-    #     return self.fn(*args, **kwargs)
