@@ -2,6 +2,7 @@ from typing import Any, Optional
 import torch
 import torch.nn.functional as F
 from torch import Tensor
+from abc import ABC,abstractmethod
 
 
 def copy_or_set_(dest, source):
@@ -27,23 +28,22 @@ def copy_or_set_(dest, source):
         return dest
 
 
-class BaseConstraint:
+class BaseConstraint(ABC):
+    """The limitations for tensors to restrict them in the certain domain."""    
 
     def __init__(self) -> None:
         self.center_tensor = None
 
-    # @property
-    # def center(self):
-    #     return self.center_tensor
-
     def register_center(self, tensor: Tensor):
         self.center_tensor = tensor
 
+    @abstractmethod
     def __call__(self, tensor: Tensor, *args: Any, **kwds: Any) -> Any:
         return tensor
 
 
 class MinMaxConstraint(BaseConstraint):
+    """Restrict the input tensor between the minimum tensor and maximum tensor."""
 
     def __init__(self, min_tensor, max_tensor) -> None:
         super().__init__()
@@ -75,11 +75,15 @@ class MinMaxConstraint(BaseConstraint):
 
 
 class L1ballConstraint(BaseConstraint):
-
+    """Restrict the input tensor into a L1-ball centered at the specified tensor."""
+    
     def __init__(self, bias: float) -> None:
         super().__init__()
 
         self.bias = bias
+    
+    def register_center(self, tensor: Tensor):
+        pass
 
     def __call__(self, tensor: Tensor, *args: Any, **kwds: Any) -> Any:
         x = tensor

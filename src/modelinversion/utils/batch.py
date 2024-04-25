@@ -14,6 +14,13 @@ def _is_namedtuple(obj):
 
 
 def _gather(outputs, dim=0):
+    """Gather the input data.
+
+    Args:
+        outputs (_type_): The data to gather.
+        dim (int, optional): The specified dimension used when the type of input data is torch.Tensor. Defaults to 0.
+    """    
+    
     def gather_map(outputs):
         out = outputs[0]
         if isinstance(out, torch.Tensor):
@@ -43,7 +50,15 @@ def batch_apply(
     use_tqdm: bool = False,
     **other_input_kwargs,
 ):
+    """Apply the given function to input data by the specified batch size.
 
+    Args:
+        fn (Callable): The given function.
+        *inputs: The collected input data.
+        batch_size (int): The specified batch size.
+        description (Optional[str], optional): The content to print when processing the input data. Defaults to None.
+        use_tqdm (bool, optional): Determine whether to use tqdm when printing. Defaults to False.
+    """    
     def _check_valid(inputs):
         if len(inputs) == 0:
             return

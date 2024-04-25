@@ -12,6 +12,17 @@ def check_shape(
     expect_shape: Union[list[Optional[int]], list[Optional[int]]],
     raise_exception=True,
 ) -> bool:
+    """Check if the shape of the tensor matches expectations.
+
+    Args:
+        tensor (torch.Tensor): The tensor to check.
+        expect_shape (Union[list[Optional[int]], list[Optional[int]]]): The expected shape.
+        raise_exception (bool, optional): Whether to raise an exception. Defaults to True.
+
+    Returns:
+        bool: The check result.
+    """    
+    
     tensor_shape = tensor.shape
 
     if len(tensor_shape) < len(expect_shape):

@@ -88,7 +88,14 @@ def augment_images_fn_generator(
     augment: Optional[Callable] = None,
     augment_times: int = 0,
 ):
+    """Return a function for image augmentation.
 
+    Args:
+        initial_transform (Optional[Callable], optional): The first transformation to perform. Defaults to None.
+        add_origin_image (bool, optional): Whether to return the original image. Defaults to True.
+        augment (Optional[Callable], optional): The augmentation to perform. Defaults to None.
+        augment_times (int, optional): Times for augmentation to repeat. Defaults to 0.
+    """
     def fn(image):
         if initial_transform is not None:
             image = initial_transform(image)
