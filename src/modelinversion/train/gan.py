@@ -550,8 +550,8 @@ class LoktGanTrainer(BaseGanTrainer):
         if config.target_model is None:
             raise RuntimeError(f'target_model should not be None')
 
-        if config.augment is None:
-            raise RuntimeError(f'augment should not be None')
+        # if config.augment is None:
+        #     raise RuntimeError(f'augment should not be None')
 
         # self.latents_sampler = latents_sampler
         self.input_size = (

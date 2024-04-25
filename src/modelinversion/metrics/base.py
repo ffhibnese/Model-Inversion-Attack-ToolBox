@@ -239,7 +239,9 @@ class ImageFidPRDCMetric(BaseImageMetric):
 
         self.device = device
         self.dataset = dataset
-        self.inception_model = InceptionV3().to(self.device)
+        self.inception_model = InceptionV3([InceptionV3.DEFAULT_BLOCK_INDEX]).to(
+            self.device
+        )
         self.num_workers = num_workers
         self.prdc_k = prdc_k
 

@@ -4,6 +4,7 @@ from .utils import (
     top_k_selection,
     generator_generate_datasets,
 )
+from .generator import GeneratorDataset
 from .base import LabelImageFolder
 from .facescrub import (
     FaceScrub,
