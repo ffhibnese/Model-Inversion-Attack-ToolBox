@@ -112,11 +112,23 @@ class ImageClassifierAttackAccuracy(BaseImageMetric):
     @torch.no_grad()
     def _call_impl(self, features: Tensor, labels: LongTensor) -> OrderedDict:
 
-        acc, acc5 = features[:, 0].mean().item(), features[:, 1].mean().item()
+        accs, acc5s = features[:, 0].reshape(-1), features[:, 1].reshape(-1)
 
-        return OrderedDict(
+        acc, acc5 = accs.mean().item(), acc5s.mean().item()
+
+        ret = OrderedDict(
             [(f'{self.description} acc@1', acc), (f'{self.description} acc@5', acc5)]
         )
+
+        try:
+            acc_var = torch.std(accs, dim=0).mean().item()
+            acc5_var = torch.std(acc5s, dim=0).mean().item()
+            ret[f'{self.description} acc@1 std'] = acc_var
+            ret[f'{self.description} acc@5 std'] = acc5_var
+        except:
+            pass
+
+        return ret
 
 
 class ImageDistanceMetric(BaseImageMetric):
