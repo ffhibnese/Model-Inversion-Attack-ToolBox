@@ -95,6 +95,47 @@ class ImageClassifierAttacker(ABC):
 
     Args:
         config (ImageClassifierAttackConfig): ImageClassifierAttackConfig.
+
+
+    Attack Flow
+
+                         Start
+                           |
+                           |
+        +------------------v------------------+
+        |                                     |
+        |           Latent Sampler            |
+        |       Inital Latents Generation     |
+        |                                     |
+        +-------+----------+----------+-------+                                                                          *
+                |          |          |
+                |          |          |
+        +-------v----------v----------v-------+
+        |                                     |
+        |           Initial Selection         |
+        |       Select Latents By Scores      |
+        |                                     |
+        +-------+----------+----------+-------+
+                |          |          |
+                |          |          |
+        +-------v----------v----------v-------+
+        |                                     |
+        |             Optimization            |
+        |     O ptimize Latents To Images     |
+        |                                     |
+        +-------+----------+----------+-------+
+                |          |          |
+                |          |          |
+        +-------v----------v----------v-------+
+        |                                     |
+        |           Final Selection           |
+        |       Select Images By Scores       |
+        |                                     |
+        +------------------+------------------+
+                           |
+                           |
+                           v
+                          End
     """
 
     def __init__(self, config: ImageClassifierAttackConfig) -> None:
