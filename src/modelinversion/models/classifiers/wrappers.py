@@ -10,47 +10,6 @@ from ...utils import (
 from .base import *
 
 
-class TorchvisionClassifierModel(BaseImageClassifier):
-
-    def __init__(
-        self,
-        arch_name: str,
-        num_classes: int,
-        resolution=224,
-        weights=None,
-        arch_kwargs={},
-        register_last_feature_hook=False,
-        *args,
-        **kwargs,
-    ) -> None:
-        # weights: None, 'IMAGENET1K_V1', 'IMAGENET1K_V2' or 'DEFAULT'
-
-        self._feature_hook = None
-
-        def _add_hook_fn(m):
-            self._feature_hook = FirstInputHook(m)
-
-        tv_module = importlib.import_module('torchvision.models')
-        factory = getattr(tv_module, arch_name, None)
-        if factory is None:
-            raise RuntimeError(f'torchvision do not support model {arch_name}')
-        model = factory(weights=weights, **arch_kwargs)
-
-        feature_dim = operate_fc(model, num_classes, _add_hook_fn)
-
-        super().__init__(
-            resolution, feature_dim, num_classes, register_last_feature_hook
-        )
-
-        self.model = model
-
-    def _forward_impl(self, image: torch.Tensor, *args, **kwargs):
-        return self.model(image)
-
-    def get_last_feature_hook(self) -> BaseHook:
-        return self._feature_hook
-
-
 class VibWrapper(BaseImageClassifier):
 
     def __init__(

@@ -6,7 +6,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
 
-from .base import BaseIntermediateImageGenerator, LambdaModule
+from .base import (
+    BaseIntermediateImageGenerator,
+    LambdaModule,
+    register_discriminator,
+    register_generator,
+)
 
 
 class _ConditionalBatchNorm2d(nn.BatchNorm2d):
@@ -161,6 +166,7 @@ class _GenBlock(nn.Module):
         return self.c2(self.activation(h))
 
 
+@register_generator('cgan64', alias=['plgmi64', 'lokt64'])
 class PlgmiGenerator64(BaseIntermediateImageGenerator):
     """Generator generates 64x64."""
 
@@ -236,8 +242,9 @@ class PlgmiGenerator64(BaseIntermediateImageGenerator):
         return h
 
 
+@register_generator('cgan256', alias=['plgmi256', 'lokt256'])
 class PlgmiGenerator256(BaseIntermediateImageGenerator):
-    """Generator generates 64x64."""
+    """Generator generates 256x256."""
 
     def __init__(self, num_classes, dim_z=128, bottom_width=4):
         super(PlgmiGenerator256, self).__init__(256, dim_z, 8)
@@ -406,6 +413,7 @@ class _OptimizedBlock(nn.Module):
         return F.avg_pool2d(self.c2(h), 2)
 
 
+@register_discriminator(name='plgmi64')
 class PlgmiDiscriminator64(nn.Module):
 
     def __init__(self, num_classes):
@@ -458,6 +466,7 @@ class PlgmiDiscriminator64(nn.Module):
         return output
 
 
+@register_discriminator(name='plgmi256')
 class PlgmiDiscriminator256(nn.Module):
 
     def __init__(self, num_classes):
@@ -522,6 +531,7 @@ LoktGenerator64 = PlgmiGenerator64
 LoktGenerator256 = PlgmiGenerator256
 
 
+@register_discriminator(name='lokt64')
 class LoktDiscriminator64(nn.Module):
 
     def __init__(self, num_classes):
@@ -574,6 +584,7 @@ class LoktDiscriminator64(nn.Module):
         return output, pred
 
 
+@register_discriminator(name='lokt256')
 class LoktDiscriminator256(nn.Module):
 
     def __init__(self, num_classes):

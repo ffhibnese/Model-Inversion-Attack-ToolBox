@@ -7,6 +7,7 @@ from .base import *
 from .evolve import evolve
 
 
+@register_model(name='facenet112')
 class FaceNet112(BaseImageClassifier):
     def __init__(
         self,

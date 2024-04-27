@@ -7,6 +7,7 @@ from .base import *
 from .evolve import evolve
 
 
+@register_model('vgg16_64')
 class VGG16_64(BaseImageClassifier):
     def __init__(self, num_classes, pretrained=False, register_last_feature_hook=False):
         self.feat_dim = 512 * 2 * 2
@@ -61,6 +62,7 @@ class VGG16_64(BaseImageClassifier):
 #         return input.view(input.size(0), -1)
 
 
+@register_model(name='ir152_64')
 class IR152_64(BaseImageClassifier):
     def __init__(
         self,
@@ -122,6 +124,7 @@ class IR152_64(BaseImageClassifier):
         return out
 
 
+@register_model(name='facenet64')
 class FaceNet64(BaseImageClassifier):
     def __init__(
         self,
@@ -163,6 +166,7 @@ class FaceNet64(BaseImageClassifier):
         return out
 
 
+@register_model(name='efficientnet_b0_64')
 class EfficientNet_b0_64(BaseImageClassifier):
     def __init__(self, num_classes=1000, prtrained=False):
         super(EfficientNet_b0_64, self).__init__(64, 1280, num_classes, False)
@@ -181,6 +185,7 @@ class EfficientNet_b0_64(BaseImageClassifier):
         return self.feat_dim
 
 
+@register_model(name='efficientnet_b1_64')
 class EfficientNet_b1_64(BaseImageClassifier):
     def __init__(self, num_classes=1000, prtrained=False):
         super(EfficientNet_b1_64, self).__init__(64, 1280, num_classes, False)
@@ -199,6 +204,7 @@ class EfficientNet_b1_64(BaseImageClassifier):
         return self.feat_dim
 
 
+@register_model(name='efficientnet_b2_64')
 class EfficientNet_b2_64(BaseImageClassifier):
     def __init__(self, num_classes=1408, prtrained=False):
         super(EfficientNet_b2_64, self).__init__(64, 1280, num_classes, False)

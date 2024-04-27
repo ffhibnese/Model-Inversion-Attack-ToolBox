@@ -3,6 +3,8 @@ from .base import (
     BaseImageEncoder,
     HOOK_NAME_FEATURE,
     HOOK_NAME_HIDDEN,
+    list_models,
+    construct_model_by_name,
 )
 from .wrappers import (
     TorchvisionClassifierModel,

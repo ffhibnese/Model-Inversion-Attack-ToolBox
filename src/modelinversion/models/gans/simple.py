@@ -2,9 +2,15 @@ from typing import Union, Optional
 
 import torch
 import torch.nn as nn
-from .base import BaseIntermediateImageGenerator, LambdaModule
+from .base import (
+    BaseIntermediateImageGenerator,
+    LambdaModule,
+    register_generator,
+    register_discriminator,
+)
 
 
+@register_generator('simple64', alias=['gmi64', 'kedmi64'])
 class SimpleGenerator64(BaseIntermediateImageGenerator):
     def __init__(self, in_dim=100):
         super(SimpleGenerator64, self).__init__(64, in_dim, 5)
@@ -53,6 +59,7 @@ class SimpleGenerator64(BaseIntermediateImageGenerator):
         return blocks(x)
 
 
+@register_generator('simple256', alias=['gmi256', 'kedmi256'])
 class SimpleGenerator256(BaseIntermediateImageGenerator):
     def __init__(self, in_dim=100):
 
@@ -104,6 +111,7 @@ class SimpleGenerator256(BaseIntermediateImageGenerator):
         return blocks(x)
 
 
+@register_discriminator('gmi64')
 class GmiDiscriminator64(nn.Module):
     def __init__(self):
         super(GmiDiscriminator64, self).__init__()
@@ -135,6 +143,7 @@ class GmiDiscriminator64(nn.Module):
         return y
 
 
+@register_discriminator('gmi256')
 class GmiDiscriminator256(nn.Module):
     def __init__(self):
         super(GmiDiscriminator256, self).__init__()
@@ -196,6 +205,7 @@ class _MinibatchDiscrimination(nn.Module):
         return x
 
 
+@register_discriminator('kedmi64')
 class KedmiDiscriminator64(nn.Module):
     def __init__(self, num_classes):
         super(KedmiDiscriminator64, self).__init__()
@@ -239,6 +249,7 @@ class KedmiDiscriminator64(nn.Module):
         return feat, y
 
 
+@register_discriminator('kedmi256')
 class KedmiDiscriminator256(nn.Module):
     def __init__(self, num_classes):
         super(KedmiDiscriminator256, self).__init__()

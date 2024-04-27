@@ -1,6 +1,7 @@
 import importlib
 from abc import abstractmethod
 from typing import Callable, Optional, Any
+from functools import wraps
 
 import torch
 from torch import nn
@@ -15,9 +16,30 @@ HOOK_NAME_FEATURE = 'feature'
 HOOK_NAME_HIDDEN = 'hidden'
 HOOK_NAME_DEEPINVERSION_BN = 'deepinversion_bn'
 
+BUILTIN_MODELS = {}
+TORCHVISION_MODEL_NAMES = tvmodel.list_models()
+
+
+def register_model(name: Optional[str] = None):
+    """Register model for construct.
+
+    Args:
+        name (Optional[str], optional): The key of the model. Defaults to None.
+    """
+
+    def wrapper(fn):
+        key = name if name is not None else fn.__name__
+        if key in BUILTIN_MODELS:
+            raise ValueError(f"An entry is already registered under the name '{key}'.")
+        BUILTIN_MODELS[key] = fn
+        return fn
+
+    return wrapper
+
 
 class ModelConstructException(Exception):
     pass
+
 
 class BaseImageModel(nn.Module):
 
@@ -123,7 +145,7 @@ def _operate_fc_impl(
 
     Returns:
         feature_dim (int): The input feature_dim of nn.Linear.
-    """    
+    """
 
     if isinstance(module, nn.Sequential):
 
@@ -171,3 +193,60 @@ def operate_fc(
     module: nn.Module, reset_num_classes: int = None, visit_fc_fn: Callable = None
 ) -> int:
     return _operate_fc_impl(module, reset_num_classes, visit_fc_fn)
+
+
+class TorchvisionClassifierModel(BaseImageClassifier):
+
+    def __init__(
+        self,
+        arch_name: str,
+        num_classes: int,
+        resolution=224,
+        weights=None,
+        arch_kwargs={},
+        register_last_feature_hook=False,
+        *args,
+        **kwargs,
+    ) -> None:
+        # weights: None, 'IMAGENET1K_V1', 'IMAGENET1K_V2' or 'DEFAULT'
+
+        self._feature_hook = None
+
+        def _add_hook_fn(m):
+            self._feature_hook = FirstInputHook(m)
+
+        tv_module = importlib.import_module('torchvision.models')
+        factory = getattr(tv_module, arch_name, None)
+        if factory is None:
+            raise RuntimeError(f'torchvision do not support model {arch_name}')
+        model = factory(weights=weights, **arch_kwargs)
+
+        feature_dim = operate_fc(model, num_classes, _add_hook_fn)
+
+        super().__init__(
+            resolution, feature_dim, num_classes, register_last_feature_hook
+        )
+
+        self.model = model
+
+    def _forward_impl(self, image: torch.Tensor, *args, **kwargs):
+        return self.model(image)
+
+    def get_last_feature_hook(self) -> BaseHook:
+        return self._feature_hook
+
+
+def construct_model_by_name(name: str, **kwargs):
+
+    if name in BUILTIN_MODELS:
+        return BUILTIN_MODELS[name](**kwargs)
+
+    if name in TORCHVISION_MODEL_NAMES:
+        return TorchvisionClassifierModel(name, **kwargs)
+
+    raise ModelConstructException(f'Module name {name} not found.')
+
+
+def list_models():
+    """List all valid module names"""
+    return sorted(BUILTIN_MODELS.keys()) + TORCHVISION_MODEL_NAMES
