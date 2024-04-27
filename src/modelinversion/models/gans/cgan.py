@@ -546,7 +546,7 @@ class LoktDiscriminator64(nn.Module):
         self.block5 = _DisBlock(
             num_features * 8, num_features * 16, activation=activation, downsample=True
         )
-        self.l6 = nn.utils.spectral_norm(nn.Linear(num_features * 16, 1))
+        self.l6 = nn.Linear(num_features * 16, 1)
         # if num_classes > 0:
         self.l_y = nn.Linear(num_features * 16, num_classes)
 
@@ -604,7 +604,7 @@ class LoktDiscriminator256(nn.Module):
         self.block7 = _DisBlock(
             num_features * 16, num_features * 16, activation=activation, downsample=True
         )
-        self.l6 = nn.utils.spectral_norm(nn.Linear(num_features * 16, 1))
+        self.l6 = nn.Linear(num_features * 16, 1)
         # if num_classes > 0:
         self.l_y = nn.Linear(num_features * 16, num_classes)
 
