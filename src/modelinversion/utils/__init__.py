@@ -8,8 +8,9 @@ from .io import (
     walk_imgs,
     print_as_yaml,
     print_split_line,
-    obj_to_yaml
+    obj_to_yaml,
 )
+from .config import ConfigMixin
 from .losses import (
     TorchLoss,
     LabelSmoothingCrossEntropyLoss,
