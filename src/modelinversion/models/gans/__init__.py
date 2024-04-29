@@ -7,6 +7,8 @@ from .base import (
     show_discriminators,
     list_generators,
     list_discriminators,
+    auto_generator_from_pretrained,
+    auto_discriminator_from_pretrained,
 )
 from .simple import (
     SimpleGenerator64,
