@@ -4,14 +4,18 @@ import torch
 import torch.nn as nn
 from .base import (
     BaseIntermediateImageGenerator,
+    BaseDiscriminator,
     LambdaModule,
     register_generator,
     register_discriminator,
 )
+from ..utils import ModelMixin
 
 
 @register_generator('simple64', alias=['gmi64', 'kedmi64'])
 class SimpleGenerator64(BaseIntermediateImageGenerator):
+
+    @ModelMixin.register_to_config_init
     def __init__(self, in_dim=100):
         super(SimpleGenerator64, self).__init__(64, in_dim, 5)
 
@@ -61,6 +65,8 @@ class SimpleGenerator64(BaseIntermediateImageGenerator):
 
 @register_generator('simple256', alias=['gmi256', 'kedmi256'])
 class SimpleGenerator256(BaseIntermediateImageGenerator):
+
+    @ModelMixin.register_to_config_init
     def __init__(self, in_dim=100):
 
         super(SimpleGenerator256, self).__init__(256, in_dim, 7)
@@ -112,7 +118,9 @@ class SimpleGenerator256(BaseIntermediateImageGenerator):
 
 
 @register_discriminator('gmi64')
-class GmiDiscriminator64(nn.Module):
+class GmiDiscriminator64(BaseDiscriminator):
+
+    @ModelMixin.register_to_config_init
     def __init__(self):
         super(GmiDiscriminator64, self).__init__()
 
@@ -144,7 +152,9 @@ class GmiDiscriminator64(nn.Module):
 
 
 @register_discriminator('gmi256')
-class GmiDiscriminator256(nn.Module):
+class GmiDiscriminator256(BaseDiscriminator):
+
+    @ModelMixin.register_to_config_init
     def __init__(self):
         super(GmiDiscriminator256, self).__init__()
 
@@ -206,7 +216,9 @@ class _MinibatchDiscrimination(nn.Module):
 
 
 @register_discriminator('kedmi64')
-class KedmiDiscriminator64(nn.Module):
+class KedmiDiscriminator64(BaseDiscriminator):
+
+    @ModelMixin.register_to_config_init
     def __init__(self, num_classes):
         super(KedmiDiscriminator64, self).__init__()
 
@@ -250,7 +262,9 @@ class KedmiDiscriminator64(nn.Module):
 
 
 @register_discriminator('kedmi256')
-class KedmiDiscriminator256(nn.Module):
+class KedmiDiscriminator256(BaseDiscriminator):
+
+    @ModelMixin.register_to_config_init
     def __init__(self, num_classes):
         super(KedmiDiscriminator256, self).__init__()
 

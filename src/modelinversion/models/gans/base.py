@@ -1,10 +1,11 @@
 from abc import abstractmethod
+from copy import deepcopy
 from typing import Union, Optional, Sequence, Callable
 
 import torch
 import torch.nn as nn
 
-from ...utils import unwrapped_parallel_module
+from ..utils import ModelMixin
 
 
 class _BUILDIN_INFO:
@@ -67,9 +68,15 @@ class _BUILDIN_INFO:
 BUILTIN_GENERATORS = _BUILDIN_INFO()
 BUILTIN_DISCRIMINATORS = _BUILDIN_INFO()
 
+GENERATOR_CLASSNAME_TO_NAME_MAPPTING = {}
+DISCRIMINATOR_CLASSNAME_TO_NAME_MAPPTING = {}
+
 
 def _register_model(
-    buildin_info: _BUILDIN_INFO, name: Optional[str] = None, alias: list[str] = None
+    buildin_info: _BUILDIN_INFO,
+    mapping,
+    name: Optional[str] = None,
+    alias: list[str] = None,
 ):
     """Register model.
 
@@ -79,28 +86,78 @@ def _register_model(
 
     def wrapper(fn):
         key = name if name is not None else fn.__name__
+        mapping[fn.__name__] = name
         buildin_info.register(fn, name=key, alias=alias)
         return fn
 
     return wrapper
 
 
-def register_generator(name: Optional[str] = None, alias: list[str] = None):
+def register_generator(name: Optional[str] = None, alias: Optional[list[str]] = None):
     """Register generator.
 
     Args:
         name (Optional[str], optional): The key of the generator. Defaults to None.
+        alias (Optional[list[str]], optional): The alias of the generator.
     """
-    return _register_model(BUILTIN_GENERATORS, name=name, alias=alias)
+    return _register_model(
+        BUILTIN_GENERATORS, GENERATOR_CLASSNAME_TO_NAME_MAPPTING, name=name, alias=alias
+    )
 
 
-def register_discriminator(name: Optional[str] = None, alias: list[str] = None):
+def register_discriminator(
+    name: Optional[str] = None, alias: Optional[list[str]] = None
+):
     """Register discriminator.
 
     Args:
         name (Optional[str], optional): The key of the discriminator. Defaults to None.
+        alias (Optional[list[str]], optional): The alias of the discriminator.
     """
-    return _register_model(BUILTIN_DISCRIMINATORS, name=name, alias=alias)
+    return _register_model(
+        BUILTIN_DISCRIMINATORS,
+        DISCRIMINATOR_CLASSNAME_TO_NAME_MAPPTING,
+        name=name,
+        alias=alias,
+    )
+
+
+def _construct_model_by_name(buildin_info: _BUILDIN_INFO, name: str, **kwargs):
+
+    builder = buildin_info.get_builder(name)
+    return builder(**kwargs)
+
+
+def construct_generator_by_name(name: str, **kwargs):
+    return _construct_model_by_name(BUILTIN_GENERATORS, name=name, **kwargs)
+
+
+def construct_discriminator_by_name(name: str, **kwargs):
+    return _construct_model_by_name(BUILTIN_DISCRIMINATORS, name=name, **kwargs)
+
+
+def _list_models(buildin_info: _BUILDIN_INFO, alias=False):
+    return buildin_info.list_items(alias=alias)
+
+
+def list_generators(alias=False):
+    return _list_models(BUILTIN_GENERATORS, alias=alias)
+
+
+def list_discriminators(alias=False):
+    return _list_models(BUILTIN_DISCRIMINATORS, alias=alias)
+
+
+def _show_models(buildin_info: _BUILDIN_INFO):
+    return buildin_info.show_items()
+
+
+def show_generators():
+    return _show_models(BUILTIN_GENERATORS)
+
+
+def show_discriminators():
+    return _show_models(BUILTIN_DISCRIMINATORS)
 
 
 class GanConstructException(Exception):
@@ -109,20 +166,18 @@ class GanConstructException(Exception):
 
 class LambdaModule(nn.Module):
 
-    def __init__(self, fn, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, fn) -> None:
+        super().__init__()
         self.fn = fn
 
     def forward(self, x):
         return self.fn(x)
 
 
-class BaseImageGenerator(nn.Module):
+class BaseImageGenerator(ModelMixin):
 
-    def __init__(
-        self, resolution, input_size: Union[int, Sequence[int]], *args, **kwargs
-    ) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, resolution, input_size: Union[int, Sequence[int]]) -> None:
+        super().__init__()
 
         self._resolution = resolution
         if isinstance(input_size, int):
@@ -143,6 +198,13 @@ class BaseImageGenerator(nn.Module):
     # def sample_latents(self, sample_num: int, batch_size: int, **kwargs):
     #     size = (sample_num, ) + unwrapped_parallel_module(self).input_size
     #     return torch.randn(size)
+
+    def save_pretrained(self, path, **add_infos):
+        return super().save_pretrained(
+            path,
+            model_name=GENERATOR_CLASSNAME_TO_NAME_MAPPTING[self.__class__.__name__],
+            **add_infos,
+        )
 
     @abstractmethod
     def _forward_impl(self, *inputs, labels=None, **kwargs):
@@ -204,39 +266,36 @@ class BaseIntermediateImageGenerator(BaseImageGenerator):
         )
 
 
-def _construct_model_by_name(buildin_info: _BUILDIN_INFO, name: str, **kwargs):
+class BaseDiscriminator(ModelMixin):
 
-    builder = buildin_info.get_builder(name)
-    return builder(**kwargs)
+    def __init__(self) -> None:
+        super().__init__()
 
-
-def construct_generator_by_name(name: str, **kwargs):
-    return _construct_model_by_name(BUILTIN_GENERATORS, name=name, **kwargs)
-
-
-def construct_discriminator_by_name(name: str, **kwargs):
-    return _construct_model_by_name(BUILTIN_DISCRIMINATORS, name=name, **kwargs)
-
-
-def _list_models(buildin_info: _BUILDIN_INFO, alias=False):
-    return buildin_info.list_items(alias=alias)
+    def save_pretrained(self, path, **add_infos):
+        return super().save_pretrained(
+            path,
+            model_name=DISCRIMINATOR_CLASSNAME_TO_NAME_MAPPTING[
+                self.__class__.__name__
+            ],
+            **add_infos,
+        )
 
 
-def list_generators(alias=False):
-    return _list_models(BUILTIN_GENERATORS, alias=alias)
+def _auto_model_from_pretrained(buildin_info: _BUILDIN_INFO, data_or_path: dict | str):
+
+    if isinstance(data_or_path, str):
+        data = torch.load(data_or_path, map_location='cpu')
+    else:
+        data = data_or_path
+    if 'model_name' not in data:
+        raise RuntimeError('model_name is not contained in the data')
+    cls: ModelMixin = buildin_info.get_builder(data['model_name'])
+    return cls.from_pretrained(data_or_path)
 
 
-def list_discriminators(alias=False):
-    return _list_models(BUILTIN_DISCRIMINATORS, alias=alias)
+def auto_generator_from_pretrained(data_or_path: dict | str):
+    return _auto_model_from_pretrained(BUILTIN_GENERATORS, data_or_path)
 
 
-def _show_models(buildin_info: _BUILDIN_INFO):
-    return buildin_info.show_items()
-
-
-def show_generators():
-    return _show_models(BUILTIN_GENERATORS)
-
-
-def show_discriminators():
-    return _show_models(BUILTIN_DISCRIMINATORS)
+def auto_discriminator_from_pretrained(data_or_path: dict | str):
+    return _auto_model_from_pretrained(BUILTIN_DISCRIMINATORS, data_or_path)

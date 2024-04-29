@@ -8,10 +8,12 @@ from torch.nn import init
 
 from .base import (
     BaseIntermediateImageGenerator,
+    BaseDiscriminator,
     LambdaModule,
     register_discriminator,
     register_generator,
 )
+from ..utils import ModelMixin
 
 
 class _ConditionalBatchNorm2d(nn.BatchNorm2d):
@@ -170,6 +172,7 @@ class _GenBlock(nn.Module):
 class PlgmiGenerator64(BaseIntermediateImageGenerator):
     """Generator generates 64x64."""
 
+    @ModelMixin.register_to_config_init
     def __init__(self, num_classes, dim_z=128, bottom_width=4):
         super(PlgmiGenerator64, self).__init__(64, dim_z, 6)
         activation = nn.ReLU()
@@ -246,6 +249,7 @@ class PlgmiGenerator64(BaseIntermediateImageGenerator):
 class PlgmiGenerator256(BaseIntermediateImageGenerator):
     """Generator generates 256x256."""
 
+    @ModelMixin.register_to_config_init
     def __init__(self, num_classes, dim_z=128, bottom_width=4):
         super(PlgmiGenerator256, self).__init__(256, dim_z, 8)
         activation = nn.ReLU()
@@ -414,8 +418,9 @@ class _OptimizedBlock(nn.Module):
 
 
 @register_discriminator(name='plgmi64')
-class PlgmiDiscriminator64(nn.Module):
+class PlgmiDiscriminator64(BaseDiscriminator):
 
+    @ModelMixin.register_to_config_init
     def __init__(self, num_classes):
         super(PlgmiDiscriminator64, self).__init__()
 
@@ -467,8 +472,9 @@ class PlgmiDiscriminator64(nn.Module):
 
 
 @register_discriminator(name='plgmi256')
-class PlgmiDiscriminator256(nn.Module):
+class PlgmiDiscriminator256(BaseDiscriminator):
 
+    @ModelMixin.register_to_config_init
     def __init__(self, num_classes):
         super(PlgmiDiscriminator256, self).__init__()
 
@@ -532,8 +538,9 @@ LoktGenerator256 = PlgmiGenerator256
 
 
 @register_discriminator(name='lokt64')
-class LoktDiscriminator64(nn.Module):
+class LoktDiscriminator64(BaseDiscriminator):
 
+    @ModelMixin.register_to_config_init
     def __init__(self, num_classes):
         super(LoktDiscriminator64, self).__init__()
 
@@ -585,8 +592,9 @@ class LoktDiscriminator64(nn.Module):
 
 
 @register_discriminator(name='lokt256')
-class LoktDiscriminator256(nn.Module):
+class LoktDiscriminator256(BaseDiscriminator):
 
+    @ModelMixin.register_to_config_init
     def __init__(self, num_classes):
         super(LoktDiscriminator256, self).__init__()
 
