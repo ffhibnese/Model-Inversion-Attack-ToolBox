@@ -211,17 +211,17 @@ class BaseTrainer(ABC):
         if bestckpt is None:
             self.save_state_dict()
         else:
-            self.save_state_dict(bestckpt)
+            self.save_state_dict(bestckpt, test_acc=bestacc)
 
         print(f'best acc: {bestacc}')
 
-    def save_state_dict(self, model=None):
+    def save_state_dict(self, model=None, **kwargs):
         if model is None:
             model = self.model
         if isinstance(model, (DataParallel, DistributedDataParallel)):
             model = model.module
 
-        torch.save({'state_dict': model.state_dict()}, self.save_path)
+        model.save_pretrained(self.save_path, **kwargs)
 
 
 @dataclass
