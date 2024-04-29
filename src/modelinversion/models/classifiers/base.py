@@ -10,6 +10,7 @@ import torchvision.models as tvmodel
 import torchvision.transforms.functional as TF
 from torchvision.models.inception import InceptionOutputs
 
+from ..utils import ModelConfigMixin
 from ...utils import traverse_name_module, FirstInputHook, BaseHook
 
 HOOK_NAME_FEATURE = 'feature'
@@ -41,10 +42,10 @@ class ModelConstructException(Exception):
     pass
 
 
-class BaseImageModel(nn.Module):
+class BaseImageModel(nn.Module, ModelConfigMixin):
 
     def __init__(self, resolution: int, feature_dim: int, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+        nn.Module.__init__(self, *args, **kwargs)
 
         self._resolution = resolution
         self._feature_dim = feature_dim
@@ -197,6 +198,7 @@ def operate_fc(
 
 class TorchvisionClassifierModel(BaseImageClassifier):
 
+    @ModelConfigMixin.register_to_config_init
     def __init__(
         self,
         arch_name: str,

@@ -1,6 +1,7 @@
 from torch import Tensor
 import torchvision
 
+from ..utils import ModelConfigMixin
 from ...utils import BaseHook
 
 from .base import *
@@ -9,6 +10,8 @@ from .evolve import evolve
 
 @register_model(name='facenet112')
 class FaceNet112(BaseImageClassifier):
+
+    @ModelConfigMixin.register_to_config_init
     def __init__(
         self,
         num_classes=1000,

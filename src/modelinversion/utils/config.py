@@ -8,7 +8,7 @@ from .io import safe_save
 
 class ConfigMixin:
 
-    def register_to_config(self, config_dict):
+    def register_to_config(self, **config_dict):
         self._config_mixin_dict = config_dict
 
     def save_config(self, save_path: str):

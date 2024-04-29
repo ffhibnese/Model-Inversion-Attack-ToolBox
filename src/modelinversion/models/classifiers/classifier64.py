@@ -1,6 +1,7 @@
 from torch import Tensor
 import torchvision
 
+from ..utils import ModelConfigMixin
 from ...utils import BaseHook
 
 from .base import *
@@ -9,6 +10,8 @@ from .evolve import evolve
 
 @register_model('vgg16_64')
 class VGG16_64(BaseImageClassifier):
+
+    @ModelConfigMixin.register_to_config_init
     def __init__(self, num_classes, pretrained=False, register_last_feature_hook=False):
         self.feat_dim = 512 * 2 * 2
         super(VGG16_64, self).__init__(
@@ -64,6 +67,8 @@ class VGG16_64(BaseImageClassifier):
 
 @register_model(name='ir152_64')
 class IR152_64(BaseImageClassifier):
+
+    @ModelConfigMixin.register_to_config_init
     def __init__(
         self,
         num_classes=1000,
@@ -126,6 +131,8 @@ class IR152_64(BaseImageClassifier):
 
 @register_model(name='facenet64')
 class FaceNet64(BaseImageClassifier):
+
+    @ModelConfigMixin.register_to_config_init
     def __init__(
         self,
         num_classes=1000,
@@ -168,6 +175,8 @@ class FaceNet64(BaseImageClassifier):
 
 @register_model(name='efficientnet_b0_64')
 class EfficientNet_b0_64(BaseImageClassifier):
+
+    @ModelConfigMixin.register_to_config_init
     def __init__(self, num_classes=1000, prtrained=False):
         super(EfficientNet_b0_64, self).__init__(64, 1280, num_classes, False)
         model = torchvision.models.efficientnet.efficientnet_b0(pretrained=prtrained)
@@ -187,6 +196,8 @@ class EfficientNet_b0_64(BaseImageClassifier):
 
 @register_model(name='efficientnet_b1_64')
 class EfficientNet_b1_64(BaseImageClassifier):
+
+    @ModelConfigMixin.register_to_config_init
     def __init__(self, num_classes=1000, prtrained=False):
         super(EfficientNet_b1_64, self).__init__(64, 1280, num_classes, False)
         model = torchvision.models.efficientnet.efficientnet_b1(pretrained=prtrained)
@@ -206,6 +217,8 @@ class EfficientNet_b1_64(BaseImageClassifier):
 
 @register_model(name='efficientnet_b2_64')
 class EfficientNet_b2_64(BaseImageClassifier):
+
+    @ModelConfigMixin.register_to_config_init
     def __init__(self, num_classes=1408, prtrained=False):
         super(EfficientNet_b2_64, self).__init__(64, 1280, num_classes, False)
         model = torchvision.models.efficientnet.efficientnet_b2(pretrained=prtrained)
