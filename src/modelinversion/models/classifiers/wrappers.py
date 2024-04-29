@@ -18,16 +18,12 @@ class BaseClassifierWrapper(BaseImageClassifier):
         self,
         module: BaseImageClassifier,
         register_last_feature_hook=False,
-        *args,
-        **kwargs,
     ) -> None:
         super().__init__(
             module.resolution,
             module.feature_dim,
             module.num_classes,
             register_last_feature_hook,
-            *args,
-            **kwargs,
         )
 
         self.module = module
@@ -35,7 +31,7 @@ class BaseClassifierWrapper(BaseImageClassifier):
     def preprocess_config_before_save(self, config):
         # return config
         process_config = {}
-        for k, v in config:
+        for k, v in config.items():
             if k != 'module':
                 process_config[k] = v
 
@@ -45,6 +41,8 @@ class BaseClassifierWrapper(BaseImageClassifier):
                 self.module._config_mixin_dict
             ),
         }
+
+        return super().preprocess_config_before_save(config)
 
     @staticmethod
     def postprocess_config_after_load(config):
@@ -60,8 +58,6 @@ class VibWrapper(BaseClassifierWrapper):
         self,
         module: BaseImageClassifier,
         register_last_feature_hook=False,
-        *args,
-        **kwargs,
     ) -> None:
         super().__init__(
             module,
@@ -69,8 +65,6 @@ class VibWrapper(BaseClassifierWrapper):
             # module.feature_dim,
             # module.num_classes,
             register_last_feature_hook,
-            *args,
-            **kwargs,
         )
 
         # self.module = module
@@ -156,8 +150,6 @@ class BiDOWrapper(BaseClassifierWrapper):
         module: BaseImageClassifier,
         register_last_feature_hook=False,
         create_hidden_hook_fn: Optional[Callable] = None,
-        *args,
-        **kwargs,
     ) -> None:
         super().__init__(
             module,
@@ -165,8 +157,6 @@ class BiDOWrapper(BaseClassifierWrapper):
             # module.feature_dim,
             # module.num_classes,
             register_last_feature_hook,
-            *args,
-            **kwargs,
         )
 
         # self.module = module
@@ -209,16 +199,12 @@ class DeepInversionWrapper(BaseImageClassifier):
         module: BaseImageClassifier,
         register_last_feature_hook=False,
         create_bn_hook_fn: Optional[Callable] = None,
-        *args,
-        **kwargs,
     ) -> None:
         super().__init__(
             module.resolution,
             module.feature_dim,
             module.num_classes,
             register_last_feature_hook,
-            *args,
-            **kwargs,
         )
 
         self.module = module

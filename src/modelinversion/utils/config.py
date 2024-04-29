@@ -69,10 +69,10 @@ class ConfigMixin:
             )
 
             # Take note of the parameters that were not present in the loaded config
-            if len(set(new_kwargs.keys()) - set(init_kwargs)) > 0:
-                new_kwargs["_use_default_values"] = list(
-                    set(new_kwargs.keys()) - set(init_kwargs)
-                )
+            # if len(set(new_kwargs.keys()) - set(init_kwargs)) > 0:
+            #     new_kwargs["_use_default_values"] = list(
+            #         set(new_kwargs.keys()) - set(init_kwargs)
+            #     )
 
             new_kwargs = {**config_init_kwargs, **new_kwargs}
             getattr(self, "register_to_config")(**new_kwargs)

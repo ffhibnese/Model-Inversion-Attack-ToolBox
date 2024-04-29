@@ -32,7 +32,7 @@ class ModelMixin(Module, ConfigMixin):
         torch.save(save_result, path)
 
     @classmethod
-    def from_pretrained(cls, data_or_path):
+    def from_pretrained(cls, data_or_path, **config_kwargs):
 
         if isinstance(data_or_path, str):
             data: dict = torch.load(data_or_path, map_location='cpu')
@@ -40,12 +40,15 @@ class ModelMixin(Module, ConfigMixin):
             data = data_or_path
 
         kwargs = cls.postprocess_config_after_load(data['config'])
+        for k in config_kwargs:
+            kwargs[k] = config_kwargs[k]
         init_kwargs = {k: v for k, v in kwargs.items() if not k.startswith("_")}
         model = cls(**init_kwargs)
 
         if 'state_dict' in data:
             state_dict = data['state_dict']
             if state_dict is not None:
+                # print(f'load state dict')
                 model.load_state_dict(state_dict)
 
         return model

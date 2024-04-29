@@ -1,5 +1,6 @@
 import importlib
 from abc import abstractmethod
+from copy import deepcopy
 from typing import Callable, Optional, Any
 from functools import wraps
 
@@ -75,8 +76,8 @@ def auto_classifier_from_pretrained(data_or_path):
 
 class BaseImageModel(ModelMixin):
 
-    def __init__(self, resolution: int, feature_dim: int, *args, **kwargs) -> None:
-        nn.Module.__init__(self, *args, **kwargs)
+    def __init__(self, resolution: int, feature_dim: int, **kwargs) -> None:
+        nn.Module.__init__(self, **kwargs)
 
         self._resolution = resolution
         self._feature_dim = feature_dim
@@ -133,8 +134,8 @@ class BaseImageModel(ModelMixin):
 
 class BaseImageEncoder(BaseImageModel):
 
-    def __init__(self, resolution: int, feature_dim: int, *args, **kwargs) -> None:
-        super().__init__(resolution, feature_dim, *args, **kwargs)
+    def __init__(self, resolution: int, feature_dim: int, **kwargs) -> None:
+        super().__init__(resolution, feature_dim, **kwargs)
 
 
 class BaseImageClassifier(BaseImageModel):
@@ -161,6 +162,11 @@ class BaseImageClassifier(BaseImageModel):
 
     def get_last_feature_hook(self) -> BaseHook:
         return None
+
+    def preprocess_config_before_save(self, config):
+        config = deepcopy(config)
+        del config['register_last_feature_hook']
+        return super().preprocess_config_before_save(config)
 
     def forward(self, image: torch.Tensor, *args, **kwargs):
         if not self._feature_flag and self.register_last_feature_hook:
@@ -246,8 +252,6 @@ class TorchvisionClassifierModel(BaseImageClassifier):
         weights=None,
         arch_kwargs={},
         register_last_feature_hook=False,
-        *args,
-        **kwargs,
     ) -> None:
         # weights: None, 'IMAGENET1K_V1', 'IMAGENET1K_V2' or 'DEFAULT'
 

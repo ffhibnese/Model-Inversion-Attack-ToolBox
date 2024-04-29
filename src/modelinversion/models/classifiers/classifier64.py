@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from torch import Tensor
 import torchvision
 
@@ -99,6 +101,11 @@ class IR152_64(BaseImageClassifier):
 
         self.feature_hook = FirstInputHook(self.fc_layer)
 
+    def preprocess_config_before_save(self, config):
+        config = deepcopy(config)
+        del config['backbone_path']
+        return super().preprocess_config_before_save(config)
+
     def get_last_feature_hook(self) -> BaseHook:
         return self.feature_hook
 
@@ -164,6 +171,11 @@ class FaceNet64(BaseImageClassifier):
 
     def get_last_feature_hook(self) -> BaseHook:
         return self.feature_hook
+
+    def preprocess_config_before_save(self, config):
+        config = deepcopy(config)
+        del config['backbone_path']
+        return super().preprocess_config_before_save(config)
 
     def _forward_impl(self, image: Tensor, *args, **kwargs):
         feat = self.feature(image)
