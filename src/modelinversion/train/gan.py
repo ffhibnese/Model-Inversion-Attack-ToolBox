@@ -113,10 +113,15 @@ class BaseGanTrainer(ABC):
         ]:
 
             save_path = os.path.join(self.config.experiment_dir, f'{name}.pth')
-            torch.save(
-                {'state_dict': unwrapped_parallel_module(module).state_dict()},
-                save_path,
-            )
+
+            if 'optim' in name:
+                torch.save(
+                    {'state_dict': module.state_dict()},
+                    save_path,
+                )
+            else:
+                module = unwrapped_parallel_module(module)
+                module.save_pretrained(save_path)
 
     @abstractmethod
     def sample_images(self, num: int):
