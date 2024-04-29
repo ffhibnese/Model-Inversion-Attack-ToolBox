@@ -11,7 +11,7 @@ import torchvision.models as tvmodel
 import torchvision.transforms.functional as TF
 from torchvision.models.inception import InceptionOutputs
 
-from ..utils import ModelMixin
+from ..base import ModelMixin
 from ...utils import traverse_name_module, FirstInputHook, BaseHook
 
 HOOK_NAME_FEATURE = 'feature'

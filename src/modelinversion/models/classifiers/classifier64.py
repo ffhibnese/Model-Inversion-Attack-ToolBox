@@ -3,7 +3,7 @@ from copy import deepcopy
 from torch import Tensor
 import torchvision
 
-from ..utils import ModelMixin
+from ..base import ModelMixin
 from ...utils import BaseHook
 
 from .base import *

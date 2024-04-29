@@ -5,7 +5,7 @@ from typing import Union, Optional, Sequence, Callable
 import torch
 import torch.nn as nn
 
-from ..utils import ModelMixin
+from ..base import ModelMixin
 
 
 class _BUILDIN_INFO:

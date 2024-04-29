@@ -31,14 +31,13 @@ class ConfigMixin:
 
         kwargs = torch.load(config_path, map_location='cpu')
         return ConfigMixin.postprocess_config_after_load(kwargs)
-        # init_kwargs = {k: v for k, v in kwargs.items() if not k.startswith("_")}
-        # return cls(**init_kwargs)
 
     @staticmethod
     def register_to_config_init(init):
 
         @functools.wraps(init)
         def inner_init(self, *args, **kwargs):
+
             # Ignore private kwargs in the init.
             init_kwargs = {k: v for k, v in kwargs.items() if not k.startswith("_")}
             config_init_kwargs = {k: v for k, v in kwargs.items() if k.startswith("_")}
@@ -75,7 +74,8 @@ class ConfigMixin:
             #     )
 
             new_kwargs = {**config_init_kwargs, **new_kwargs}
-            getattr(self, "register_to_config")(**new_kwargs)
+            # getattr(self, "register_to_config")(**new_kwargs)
+            self.register_to_config(**new_kwargs)
             init(self, *args, **init_kwargs)
 
         return inner_init

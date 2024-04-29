@@ -9,7 +9,7 @@ from .base import (
     register_generator,
     register_discriminator,
 )
-from ..utils import ModelMixin
+from ..base import ModelMixin
 
 
 @register_generator('simple64', alias=['gmi64', 'kedmi64'])

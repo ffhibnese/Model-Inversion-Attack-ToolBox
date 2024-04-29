@@ -13,7 +13,7 @@ from .base import (
     register_discriminator,
     register_generator,
 )
-from ..utils import ModelMixin
+from ..base import ModelMixin
 
 
 class _ConditionalBatchNorm2d(nn.BatchNorm2d):

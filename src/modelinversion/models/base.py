@@ -3,7 +3,7 @@ import json
 
 import torch
 from torch.nn import Module
-from ...utils import ConfigMixin, safe_save
+from ..utils import ConfigMixin
 
 
 class ModelMixin(Module, ConfigMixin):
