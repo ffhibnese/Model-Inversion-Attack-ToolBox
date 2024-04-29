@@ -585,8 +585,8 @@ class LoktGanTrainer(BaseGanTrainer):
     def train_gen_step(
         self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor | LongTensor]]
     ):
-        self.generator.train()
-        self.discriminator.eval()
+        # self.generator.train()
+        # self.discriminator.eval()
         fake, pseudo_y = self.sample_fake()
         dis_fake, dis_class = self.discriminator(fake)
 
@@ -620,8 +620,8 @@ class LoktGanTrainer(BaseGanTrainer):
     def train_dis_step(
         self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor | LongTensor]]
     ):
-        self.discriminator.train()
-        self.generator.eval()
+        # self.discriminator.train()
+        # self.generator.eval()
         with torch.no_grad():
             fake, pseudo_y = self.sample_fake()
         dis_fake, dis_fake_class = self.discriminator(fake)

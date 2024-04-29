@@ -10,14 +10,15 @@ import torchvision.models as tvmodel
 import torchvision.transforms.functional as TF
 from torchvision.models.inception import InceptionOutputs
 
-from ..utils import ModelConfigMixin
+from ..utils import ModelMixin
 from ...utils import traverse_name_module, FirstInputHook, BaseHook
 
 HOOK_NAME_FEATURE = 'feature'
 HOOK_NAME_HIDDEN = 'hidden'
 HOOK_NAME_DEEPINVERSION_BN = 'deepinversion_bn'
 
-BUILTIN_MODELS = {}
+BUILDIN_CLASSIFIERS = {}
+CLASSNAME_TO_NAME_MAPPING = {}
 TORCHVISION_MODEL_NAMES = tvmodel.list_models()
 
 
@@ -28,12 +29,13 @@ def register_model(name: Optional[str] = None):
         name (Optional[str], optional): The key of the model. Defaults to None.
     """
 
-    def wrapper(fn):
-        key = name if name is not None else fn.__name__
-        if key in BUILTIN_MODELS:
+    def wrapper(c):
+        key = name if name is not None else c.__name__
+        CLASSNAME_TO_NAME_MAPPING[c.__name__] = key
+        if key in BUILDIN_CLASSIFIERS:
             raise ValueError(f"An entry is already registered under the name '{key}'.")
-        BUILTIN_MODELS[key] = fn
-        return fn
+        BUILDIN_CLASSIFIERS[key] = c
+        return c
 
     return wrapper
 
@@ -42,7 +44,36 @@ class ModelConstructException(Exception):
     pass
 
 
-class BaseImageModel(nn.Module, ModelConfigMixin):
+def construct_classifiers_by_name(name: str, **kwargs):
+
+    if name in BUILDIN_CLASSIFIERS:
+        return BUILDIN_CLASSIFIERS[name](**kwargs)
+
+    if name in TORCHVISION_MODEL_NAMES:
+        return TorchvisionClassifierModel(name, **kwargs)
+
+    raise ModelConstructException(f'Module name {name} not found.')
+
+
+def list_classifiers():
+    """List all valid module names"""
+    return sorted(BUILDIN_CLASSIFIERS.keys()) + TORCHVISION_MODEL_NAMES
+
+
+def auto_classifier_from_pretrained(data_or_path):
+
+    if isinstance(data_or_path, str):
+        data = torch.load(data_or_path, map_location='cpu')
+    else:
+        data = data_or_path
+    if 'model_name' not in data:
+        raise RuntimeError('model_name is not contained in the data')
+
+    cls: BaseImageClassifier = BUILDIN_CLASSIFIERS[data['model_name']]
+    return cls.from_pretrained(data_or_path)
+
+
+class BaseImageModel(ModelMixin):
 
     def __init__(self, resolution: int, feature_dim: int, *args, **kwargs) -> None:
         nn.Module.__init__(self, *args, **kwargs)
@@ -69,6 +100,13 @@ class BaseImageModel(nn.Module, ModelConfigMixin):
     @abstractmethod
     def _forward_impl(self, image: torch.Tensor, *args, **kwargs):
         raise NotImplementedError()
+
+    def save_pretrained(self, path, **add_infos):
+        return super().save_pretrained(
+            path,
+            model_name=CLASSNAME_TO_NAME_MAPPING[self.__class__.__name__],
+            **add_infos,
+        )
 
     def forward(self, image: torch.Tensor, *args, **kwargs):
 
@@ -196,9 +234,10 @@ def operate_fc(
     return _operate_fc_impl(module, reset_num_classes, visit_fc_fn)
 
 
+@register_model('torchvision')
 class TorchvisionClassifierModel(BaseImageClassifier):
 
-    @ModelConfigMixin.register_to_config_init
+    @ModelMixin.register_to_config_init
     def __init__(
         self,
         arch_name: str,
@@ -236,19 +275,3 @@ class TorchvisionClassifierModel(BaseImageClassifier):
 
     def get_last_feature_hook(self) -> BaseHook:
         return self._feature_hook
-
-
-def construct_model_by_name(name: str, **kwargs):
-
-    if name in BUILTIN_MODELS:
-        return BUILTIN_MODELS[name](**kwargs)
-
-    if name in TORCHVISION_MODEL_NAMES:
-        return TorchvisionClassifierModel(name, **kwargs)
-
-    raise ModelConstructException(f'Module name {name} not found.')
-
-
-def list_models():
-    """List all valid module names"""
-    return sorted(BUILTIN_MODELS.keys()) + TORCHVISION_MODEL_NAMES

@@ -1,1 +1,1 @@
-from .config import ModelConfigMixin
+from .config import ModelMixin

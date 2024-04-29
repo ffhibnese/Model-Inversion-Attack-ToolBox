@@ -8,21 +8,31 @@ from .io import safe_save
 
 class ConfigMixin:
 
+    def preprocess_config_before_save(self, config):
+        return config
+
+    @staticmethod
+    def postprocess_config_after_load(config):
+        return config
+
     def register_to_config(self, **config_dict):
         self._config_mixin_dict = config_dict
 
     def save_config(self, save_path: str):
         os.makedirs(save_path, exist_ok=True)
-        safe_save(self._config_mixin_dict, save_path)
+        safe_save(
+            self.preprocess_config_before_save(self._config_mixin_dict), save_path
+        )
 
-    @classmethod
-    def load_config(cls, config_path: str):
+    @staticmethod
+    def load_config(config_path: str):
         if not os.path.exists(config_path):
             raise RuntimeError(f'config_path {config_path} is not existed.')
 
         kwargs = torch.load(config_path, map_location='cpu')
-        init_kwargs = {k: v for k, v in kwargs.items() if not k.startswith("_")}
-        return cls(**init_kwargs)
+        return ConfigMixin.postprocess_config_after_load(kwargs)
+        # init_kwargs = {k: v for k, v in kwargs.items() if not k.startswith("_")}
+        # return cls(**init_kwargs)
 
     @staticmethod
     def register_to_config_init(init):

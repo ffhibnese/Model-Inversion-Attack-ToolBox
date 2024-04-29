@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from torch import Tensor
 from torch.nn import MaxPool2d
 from ...utils import (
@@ -10,7 +12,7 @@ from ...utils import (
 from .base import *
 
 
-class VibWrapper(BaseImageClassifier):
+class BaseClassifierWrapper(BaseImageClassifier):
 
     def __init__(
         self,
@@ -29,6 +31,49 @@ class VibWrapper(BaseImageClassifier):
         )
 
         self.module = module
+
+    def preprocess_config_before_save(self, config):
+        # return config
+        process_config = {}
+        for k, v in config:
+            if k != 'module':
+                process_config[k] = v
+
+        config['module'] = {
+            'model_name': CLASSNAME_TO_NAME_MAPPING[self.module.__class__.__name__],
+            'config': self.module.preprocess_config_before_save(
+                self.module._config_mixin_dict
+            ),
+        }
+
+    @staticmethod
+    def postprocess_config_after_load(config):
+        config['module'] = auto_classifier_from_pretrained(config['module'])
+        return config
+
+
+@register_model('vib')
+class VibWrapper(BaseClassifierWrapper):
+
+    @ModelMixin.register_to_config_init
+    def __init__(
+        self,
+        module: BaseImageClassifier,
+        register_last_feature_hook=False,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            module,
+            # module.resolution,
+            # module.feature_dim,
+            # module.num_classes,
+            register_last_feature_hook,
+            *args,
+            **kwargs,
+        )
+
+        # self.module = module
         self.hidden_dim = module.feature_dim
         self.output_dim = module.num_classes
         self.k = self.hidden_dim // 2
@@ -102,8 +147,10 @@ def origin_vgg16_64_hidden_hook_fn(module):
     return hiddens_hooks
 
 
-class BiDOWrapper(BaseImageClassifier):
+@register_model('bido')
+class BiDOWrapper(BaseClassifierWrapper):
 
+    @ModelMixin.register_to_config_init
     def __init__(
         self,
         module: BaseImageClassifier,
@@ -113,15 +160,16 @@ class BiDOWrapper(BaseImageClassifier):
         **kwargs,
     ) -> None:
         super().__init__(
-            module.resolution,
-            module.feature_dim,
-            module.num_classes,
+            module,
+            # module.resolution,
+            # module.feature_dim,
+            # module.num_classes,
             register_last_feature_hook,
             *args,
             **kwargs,
         )
 
-        self.module = module
+        # self.module = module
 
         create_hidden_hook_fn = (
             create_hidden_hook_fn
