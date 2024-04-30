@@ -7,6 +7,32 @@ from .io import safe_save
 
 
 class ConfigMixin:
+    """
+       A Mixin to save parameters from `__init__` function. Inherit the `ConfigMixin` class and add the decorator `@register_to_config_init` to the `__init__` function.
+
+       The workflow of the class are as follows.
+                       +------------------------------+
+                       |                              |
+                       |      Initial Parameters      |
+                       |                              |
+                       +-----------+-----^------------+
+                                   |     |
+          register_to_config_init  |     |  __init__
+                                   |     |
+                       +-----------v-----+------------+
+                       |                              |
+                       |        Loaded Config         |
+                       |                              |
+                       +-----------+-----^------------+
+                                   |     |
+    preprocess_config_before_save  |     |  postprocess_config_after_load
+                                   |     |
+                       +-----------v-----+------------+
+                       |                              |
+                       |         Saved Config         |
+                       |                              |
+                       +------------------------------+
+    """
 
     def preprocess_config_before_save(self, config):
         return config
@@ -34,6 +60,7 @@ class ConfigMixin:
 
     @staticmethod
     def register_to_config_init(init):
+        """Decorator of `__init__` method of classses inherit from `ConfigMixin`. Automatically save the init parameters."""
 
         @functools.wraps(init)
         def inner_init(self, *args, **kwargs):
@@ -43,7 +70,7 @@ class ConfigMixin:
             config_init_kwargs = {k: v for k, v in kwargs.items() if k.startswith("_")}
             if not isinstance(self, ConfigMixin):
                 raise RuntimeError(
-                    f"`@register_for_config` was applied to {self.__class__.__name__} init method, but this class does "
+                    f"`@register_to_config_init` was applied to {self.__class__.__name__} init method, but this class does "
                     "not inherit from `ConfigMixin`."
                 )
 
