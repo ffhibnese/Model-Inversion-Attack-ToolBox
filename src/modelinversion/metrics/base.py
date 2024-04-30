@@ -121,10 +121,22 @@ class ImageClassifierAttackAccuracy(BaseImageMetric):
         )
 
         try:
-            acc_var = torch.std(accs, dim=0).mean().item()
-            acc5_var = torch.std(acc5s, dim=0).mean().item()
-            ret[f'{self.description} acc@1 std'] = acc_var
-            ret[f'{self.description} acc@5 std'] = acc5_var
+            target_values = list(set(labels.cpu().tolist()))
+
+            target_accs = []
+            target_acc5s = []
+
+            for step, target in enumerate(tqdm(target_values, leave=False)):
+                target_idx = labels == target
+                target_acc = accs[target_idx].mean().item()
+                target_acc5 = acc5s[target_idx].mean().item()
+                target_accs.append(target_acc)
+                target_acc5s.append(target_acc5)
+
+            acc_std = np.std(target_accs, axis=0).mean()
+            acc5_std = np.std(target_acc5s, axis=0).mean()
+            ret[f'{self.description} acc@1 std'] = float(acc_std)
+            ret[f'{self.description} acc@5 std'] = float(acc5_std)
         except:
             pass
 
@@ -220,7 +232,13 @@ class ImageDistanceMetric(BaseImageMetric):
             safe_save_csv(df, self.save_dir, save_name)
 
         result = (target_dists * target_nums).sum() / target_nums.sum()
-        return OrderedDict([[f'{self.description} square distance', float(result)]])
+        ret = OrderedDict([[f'{self.description} square distance', float(result)]])
+        try:
+            target_dists_std = np.std(ret, axis=0).mean()
+            ret[f'{self.description} square distance std'] = float(target_dists_std)
+        except:
+            pass
+        return ret
 
 
 class ImageFidPRDCMetric(BaseImageMetric):
@@ -420,5 +438,13 @@ class ImageFidPRDCMetric(BaseImageMetric):
             result['recall'] = float(recall.mean())
             result['density'] = float(density.mean())
             result['coverage'] = float(coverage.mean())
+
+            try:
+                result['precision std'] = float(np.std(precision, axis=0).mean())
+                result['recall std'] = float(np.std(recall, axis=0).mean())
+                result['density std'] = float(np.std(density, axis=0).mean())
+                result['coverage std'] = float(np.std(coverage, axis=0).mean())
+            except:
+                pass
 
         return result
