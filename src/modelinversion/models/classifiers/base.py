@@ -61,7 +61,7 @@ def list_classifiers():
     return sorted(BUILDIN_CLASSIFIERS.keys()) + TORCHVISION_MODEL_NAMES
 
 
-def auto_classifier_from_pretrained(data_or_path):
+def auto_classifier_from_pretrained(data_or_path, **kwargs):
 
     if isinstance(data_or_path, str):
         data = torch.load(data_or_path, map_location='cpu')
@@ -71,7 +71,7 @@ def auto_classifier_from_pretrained(data_or_path):
         raise RuntimeError('model_name is not contained in the data')
 
     cls: BaseImageClassifier = BUILDIN_CLASSIFIERS[data['model_name']]
-    return cls.from_pretrained(data_or_path)
+    return cls.from_pretrained(data_or_path, **kwargs)
 
 
 class BaseImageModel(ModelMixin):

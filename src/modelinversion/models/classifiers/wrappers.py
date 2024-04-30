@@ -80,6 +80,13 @@ class VibWrapper(BaseClassifierWrapper):
     def get_last_feature_hook(self) -> BaseHook:
         return self.feature_hook
 
+    @staticmethod
+    def postprocess_config_after_load(config):
+        config['module'] = auto_classifier_from_pretrained(
+            config['module'], register_last_feature_hook=True
+        )
+        return config
+
     def _forward_impl(self, image: torch.Tensor, *args, **kwargs):
 
         # self._inner_hook.clear_feature()

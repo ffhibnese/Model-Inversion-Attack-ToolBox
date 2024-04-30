@@ -20,7 +20,7 @@ from torchvision.transforms import (
 
 from modelinversion.models import (
     get_stylegan2ada_generator,
-    TorchvisionClassifierModel,
+    auto_classifier_from_pretrained,
 )
 from modelinversion.sampler import ImageAugmentSelectLatentsSampler
 from modelinversion.utils import (
@@ -90,14 +90,9 @@ if __name__ == '__main__':
     target_resolution = 224
     eval_resolution = 299
 
-    target_model = TorchvisionClassifierModel(
-        target_model_name, num_classes=num_classes
-    )
-    eval_model = TorchvisionClassifierModel(
-        eval_model_name,
-        num_classes=num_classes,
-        resolution=299,
-        register_last_feature_hook=True,
+    target_model = auto_classifier_from_pretrained(target_model_ckpt_path)
+    eval_model = auto_classifier_from_pretrained(
+        eval_model_ckpt_path, register_last_feature_hook=True
     )
 
     # print(torch.load(target_model_ckpt_path, map_location='cpu').keys())
