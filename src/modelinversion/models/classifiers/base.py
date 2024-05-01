@@ -152,29 +152,30 @@ class BaseImageClassifier(BaseImageModel):
         super().__init__(resolution, feature_dim, *args, **kwargs)
         self._num_classes = num_classes
 
-        self._feature_flag = False
+        # self._feature_flag = False
 
-        self.register_last_feature_hook = register_last_feature_hook
+        # self.register_last_feature_hook = register_last_feature_hook
 
     @property
     def num_classes(self):
         return self._num_classes
 
-    def get_last_feature_hook(self) -> BaseHook:
-        return None
+    # def get_last_feature_hook(self) -> BaseHook:
+    #     return None
 
     def preprocess_config_before_save(self, config):
         config = deepcopy(config)
-        del config['register_last_feature_hook']
+        if 'register_last_feature_hook' in config:
+            del config['register_last_feature_hook']
         return super().preprocess_config_before_save(config)
 
     def forward(self, image: torch.Tensor, *args, **kwargs):
-        if not self._feature_flag and self.register_last_feature_hook:
-            self._feature_flag = True
-            hook = self.get_last_feature_hook()
-            if hook is None:
-                raise RuntimeError('The last feature hook is not set.')
-            self.register_hook_for_forward(HOOK_NAME_FEATURE, hook=hook)
+        # if not self._feature_flag and self.register_last_feature_hook:
+        #     self._feature_flag = True
+        #     hook = self.get_last_feature_hook()
+        #     if hook is None:
+        #         raise RuntimeError('The last feature hook is not set.')
+        #     self.register_hook_for_forward(HOOK_NAME_FEATURE, hook=hook)
         return super().forward(image, *args, **kwargs)
 
 
@@ -257,8 +258,15 @@ class TorchvisionClassifierModel(BaseImageClassifier):
 
         self._feature_hook = None
 
-        def _add_hook_fn(m):
-            self._feature_hook = FirstInputHook(m)
+        _output_transform = None
+        if register_last_feature_hook:
+
+            def _output_transform(m: nn.Linear):
+                # self._feature_hook = FirstInputHook(m)
+                def hook_fn(module, input, output):
+                    return output, {HOOK_NAME_FEATURE: input[0]}
+
+                m.register_forward_hook(hook_fn)
 
         tv_module = importlib.import_module('torchvision.models')
         factory = getattr(tv_module, arch_name, None)
@@ -266,7 +274,7 @@ class TorchvisionClassifierModel(BaseImageClassifier):
             raise RuntimeError(f'torchvision do not support model {arch_name}')
         model = factory(weights=weights, **arch_kwargs)
 
-        feature_dim = operate_fc(model, num_classes, _add_hook_fn)
+        feature_dim = operate_fc(model, num_classes, _output_transform)
 
         super().__init__(
             resolution, feature_dim, num_classes, register_last_feature_hook
@@ -277,5 +285,5 @@ class TorchvisionClassifierModel(BaseImageClassifier):
     def _forward_impl(self, image: torch.Tensor, *args, **kwargs):
         return self.model(image)
 
-    def get_last_feature_hook(self) -> BaseHook:
-        return self._feature_hook
+    # def get_last_feature_hook(self) -> BaseHook:
+    #     return self._feature_hook

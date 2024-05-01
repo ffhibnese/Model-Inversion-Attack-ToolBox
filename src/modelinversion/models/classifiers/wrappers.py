@@ -75,10 +75,10 @@ class VibWrapper(BaseClassifierWrapper):
         # operate_fc(self.module, self.k * 2, None)
         self.fc_layer = nn.Linear(self.k, module.num_classes)
 
-        self.feature_hook = FirstInputHook(self.fc_layer)
+        # self.feature_hook = FirstInputHook(self.fc_layer)
 
-    def get_last_feature_hook(self) -> BaseHook:
-        return self.feature_hook
+    # def get_last_feature_hook(self) -> BaseHook:
+    #     return self.feature_hook
 
     @staticmethod
     def postprocess_config_after_load(config):
@@ -111,7 +111,7 @@ class VibWrapper(BaseClassifierWrapper):
         feat = mu + std * eps
         out = self.fc_layer(feat)
 
-        return out, {'mu': mu, 'std': std}
+        return out, {'mu': mu, 'std': std, HOOK_NAME_FEATURE: feat}
 
 
 def get_default_create_hidden_hook_fn(num: int = 3):
@@ -178,8 +178,8 @@ class BiDOWrapper(BaseClassifierWrapper):
         print(f'hidden hook num: {len(self.hidden_hooks)}')
         # exit()
 
-    def get_last_feature_hook(self) -> BaseHook:
-        return self.module.get_last_feature_hook()
+    # def get_last_feature_hook(self) -> BaseHook:
+    #     return self.module.get_last_feature_hook()
 
     def _forward_impl(self, image: Tensor, *args, **kwargs):
         forward_res, addition_info = self.module(image, *args, **kwargs)

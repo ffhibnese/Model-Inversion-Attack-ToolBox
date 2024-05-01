@@ -31,7 +31,7 @@ class FaceNet112(BaseImageClassifier):
 
         self.fc_layer = nn.Linear(self.feat_dim, self.num_classes)
 
-        self.feature_hook = FirstInputHook(self.fc_layer)
+        # self.feature_hook = FirstInputHook(self.fc_layer)
 
     def get_last_feature_hook(self) -> BaseHook:
         return self.feature_hook
@@ -45,4 +45,5 @@ class FaceNet112(BaseImageClassifier):
         feat = self.feature(image)
         feat = feat.view(feat.size(0), -1)
         out = self.fc_layer(feat)
-        return out
+
+        return out, {HOOK_NAME_FEATURE: feat}

@@ -26,10 +26,10 @@ class VGG16_64(BaseImageClassifier):
         self.bn.bias.requires_grad_(False)  # no shift
         self.fc_layer = nn.Linear(self.feat_dim, self.num_classes)
 
-        self.feature_hook = FirstInputHook(self.fc_layer)
+    #     self.feature_hook = FirstInputHook(self.fc_layer)
 
-    def get_last_feature_hook(self) -> BaseHook:
-        return self.feature_hook
+    # def get_last_feature_hook(self) -> BaseHook:
+    #     return self.feature_hook
 
     # def create_hidden_hooks(self) -> list:
 
@@ -59,7 +59,7 @@ class VGG16_64(BaseImageClassifier):
         feature = self.bn(feature)
         res = self.fc_layer(feature)
 
-        return res
+        return res, {HOOK_NAME_FEATURE: feature}
 
 
 # class Flatten(nn.Module):
@@ -99,15 +99,15 @@ class IR152_64(BaseImageClassifier):
 
         self.fc_layer = nn.Linear(self.feat_dim, self.num_classes)
 
-        self.feature_hook = FirstInputHook(self.fc_layer)
+        # self.feature_hook = FirstInputHook(self.fc_layer)
 
     def preprocess_config_before_save(self, config):
         config = deepcopy(config)
         del config['backbone_path']
         return super().preprocess_config_before_save(config)
 
-    def get_last_feature_hook(self) -> BaseHook:
-        return self.feature_hook
+    # def get_last_feature_hook(self) -> BaseHook:
+    #     return self.feature_hook
 
     # def create_hidden_hooks(self) -> list:
 
@@ -133,7 +133,7 @@ class IR152_64(BaseImageClassifier):
         feat = self.output_layer(feat)
         feat = feat.view(feat.size(0), -1)
         out = self.fc_layer(feat)
-        return out
+        return out, {HOOK_NAME_FEATURE: feat}
 
 
 @register_model(name='facenet64')
@@ -167,10 +167,10 @@ class FaceNet64(BaseImageClassifier):
 
         self.fc_layer = nn.Linear(self.feat_dim, self.num_classes)
 
-        self.feature_hook = FirstInputHook(self.fc_layer)
+        # self.feature_hook = FirstInputHook(self.fc_layer)
 
-    def get_last_feature_hook(self) -> BaseHook:
-        return self.feature_hook
+    # def get_last_feature_hook(self) -> BaseHook:
+    #     return self.feature_hook
 
     def preprocess_config_before_save(self, config):
         config = deepcopy(config)
@@ -182,7 +182,8 @@ class FaceNet64(BaseImageClassifier):
         feat = self.output_layer(feat)
         feat = feat.view(feat.size(0), -1)
         out = self.fc_layer(feat)
-        return out
+
+        return out, {HOOK_NAME_FEATURE: feat}
 
 
 @register_model(name='efficientnet_b0_64')
