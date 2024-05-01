@@ -133,8 +133,8 @@ class ImageClassifierAttackAccuracy(BaseImageMetric):
                 target_accs.append(target_acc)
                 target_acc5s.append(target_acc5)
 
-            acc_std = np.std(target_accs, axis=0).mean()
-            acc5_std = np.std(target_acc5s, axis=0).mean()
+            acc_std = np.std(np.array(target_accs), axis=0).mean()
+            acc5_std = np.std(np.array(target_acc5s), axis=0).mean()
             ret[f'{self.description} acc@1 std'] = float(acc_std)
             ret[f'{self.description} acc@5 std'] = float(acc5_std)
         except:
