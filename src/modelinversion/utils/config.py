@@ -45,7 +45,7 @@ class ConfigMixin:
         self._config_mixin_dict = config_dict
 
     def save_config(self, save_path: str):
-        os.makedirs(save_path, exist_ok=True)
+        # os.makedirs(save_path, exist_ok=True)
         safe_save(
             self.preprocess_config_before_save(self._config_mixin_dict), save_path
         )
