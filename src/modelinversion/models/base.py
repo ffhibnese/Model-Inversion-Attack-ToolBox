@@ -3,7 +3,7 @@ import json
 
 import torch
 from torch.nn import Module
-from ..utils import ConfigMixin
+from ..utils import ConfigMixin, safe_save
 
 
 class ModelMixin(Module, ConfigMixin):
@@ -29,7 +29,7 @@ class ModelMixin(Module, ConfigMixin):
             'config': self.preprocess_config_before_save(self._config_mixin_dict),
             **add_infos,
         }
-        torch.save(save_result, path)
+        safe_save(save_result, path)
 
     @classmethod
     def from_pretrained(cls, data_or_path, **config_kwargs):

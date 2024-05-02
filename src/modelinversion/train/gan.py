@@ -389,7 +389,7 @@ class KedmiGanTrainer(BaseGanTrainer):
             + torch.mean(F.softplus(torch.logsumexp(output_fake, dim=1)))
         )
         # torch.logsumexp()
-        loss = loss_lab + loss_unlab
+        loss = loss_lab + loss_unlab * 0.1
 
         self.dis_optimizer.zero_grad()
         loss.backward()

@@ -26,6 +26,11 @@ class VGG16_64(BaseImageClassifier):
         self.bn.bias.requires_grad_(False)  # no shift
         self.fc_layer = nn.Linear(self.feat_dim, self.num_classes)
 
+    def preprocess_config_before_save(self, config):
+        config = deepcopy(config)
+        del config['pretrained']
+        return super().preprocess_config_before_save(config)
+
     #     self.feature_hook = FirstInputHook(self.fc_layer)
 
     # def get_last_feature_hook(self) -> BaseHook:
@@ -190,12 +195,17 @@ class FaceNet64(BaseImageClassifier):
 class EfficientNet_b0_64(BaseImageClassifier):
 
     @ModelMixin.register_to_config_init
-    def __init__(self, num_classes=1000, prtrained=False):
+    def __init__(self, num_classes=1000, pretrained=False):
         super(EfficientNet_b0_64, self).__init__(64, 1280, num_classes, False)
-        model = torchvision.models.efficientnet.efficientnet_b0(pretrained=prtrained)
+        model = torchvision.models.efficientnet.efficientnet_b0(pretrained=pretrained)
         self.feature = nn.Sequential(*list(model.children())[:-1])
         self.feat_dim = 1280
         self.fc_layer = nn.Linear(self.feat_dim, num_classes)
+
+    def preprocess_config_before_save(self, config):
+        config = deepcopy(config)
+        del config['pretrained']
+        return super().preprocess_config_before_save(config)
 
     def forward(self, x):
         feature = self.feature(x)
@@ -211,12 +221,17 @@ class EfficientNet_b0_64(BaseImageClassifier):
 class EfficientNet_b1_64(BaseImageClassifier):
 
     @ModelMixin.register_to_config_init
-    def __init__(self, num_classes=1000, prtrained=False):
+    def __init__(self, num_classes=1000, pretrained=False):
         super(EfficientNet_b1_64, self).__init__(64, 1280, num_classes, False)
-        model = torchvision.models.efficientnet.efficientnet_b1(pretrained=prtrained)
+        model = torchvision.models.efficientnet.efficientnet_b1(pretrained=pretrained)
         self.feature = nn.Sequential(*list(model.children())[:-1])
         self.feat_dim = 1280
         self.fc_layer = nn.Linear(self.feat_dim, num_classes)
+
+    def preprocess_config_before_save(self, config):
+        config = deepcopy(config)
+        del config['pretrained']
+        return super().preprocess_config_before_save(config)
 
     def forward(self, x):
         feature = self.feature(x)
@@ -232,12 +247,17 @@ class EfficientNet_b1_64(BaseImageClassifier):
 class EfficientNet_b2_64(BaseImageClassifier):
 
     @ModelMixin.register_to_config_init
-    def __init__(self, num_classes=1408, prtrained=False):
+    def __init__(self, num_classes=1408, pretrained=False):
         super(EfficientNet_b2_64, self).__init__(64, 1280, num_classes, False)
-        model = torchvision.models.efficientnet.efficientnet_b2(pretrained=prtrained)
+        model = torchvision.models.efficientnet.efficientnet_b2(pretrained=pretrained)
         self.feature = nn.Sequential(*list(model.children())[:-1])
         self.feat_dim = 1408
         self.fc_layer = nn.Linear(self.feat_dim, num_classes)
+
+    def preprocess_config_before_save(self, config):
+        config = deepcopy(config)
+        del config['pretrained']
+        return super().preprocess_config_before_save(config)
 
     def forward(self, x):
         feature = self.feature(x)
