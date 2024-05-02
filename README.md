@@ -1,4 +1,4 @@
-# 🔥Model Inversion Attack ToolBox v1.0🔥
+# 🔥Model Inversion Attack ToolBox v2.0🔥
 
 ![Python 3.10](https://img.shields.io/badge/python-3.10-DodgerBlue.svg?style=plastic)
 ![Pytorch 2.0.1](https://img.shields.io/badge/pytorch-2.0.1-DodgerBlue.svg?style=plastic)
@@ -20,15 +20,6 @@ If you have any concerns about our toolbox, feel free to contact us at qiuyixian
 
 Also, you are always welcome to contribute and make this repository better! 
 
-
-### :construction: MIA v2.0 is coming soon
-We are already in the second development stage where the following updates will be implemented soon.
-- More recently emerging attacks
-- Representative defense algorithms
-- MI attacks on graph and language modalities
-- Able to train your generative model
-- Better refactor code with `trainer`
-- A package that can be installed with pip
 
 ## :rocket: Introduction
 
