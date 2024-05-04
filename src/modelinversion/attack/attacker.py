@@ -2,6 +2,7 @@ import os
 import yaml
 import warnings
 import shutil
+import traceback
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -311,14 +312,24 @@ class ImageClassifierAttacker(ABC):
 
     def _evaluation(self, features_list, labels, description):
 
+        print_split_line(description)
+
         result = OrderedDict()
         for features, metric in zip(features_list, self.config.eval_metrics):
-            for k, v in metric(features, labels).items():
-                result[k] = v
 
-        print_split_line(description)
-        print_as_yaml(result)
+            try:
+                for k, v in metric(features, labels).items():
+                    result[k] = v
+                    print_as_yaml({k: v})
+            except Exception as e:
+                print_split_line()
+                print(f'exception metric: {metric.__class__.__name__}')
+                traceback.print_exc()
+                print_split_line()
+
         print_split_line()
+
+        return result
 
     def save_images(self, root_dir: str, images: Tensor, labels: LongTensor):
         assert len(images) == len(labels)

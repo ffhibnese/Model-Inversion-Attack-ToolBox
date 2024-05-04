@@ -415,7 +415,7 @@ class ImageFidPRDCMetric(BaseImageMetric):
                 coverage = (num_neighbors > 0).float().mean()
                 coverage_list.append(coverage.cpu().item())
 
-            target_values = np.array(target_values, dtype=np.int32)
+            target_values = np.array(target_list, dtype=np.int32)
             precision = np.array(precision_list)
             recall = np.array(recall_list)
             density = np.array(density_list)
