@@ -299,14 +299,14 @@ class PlgmiGenerator256(BaseIntermediateImageGenerator):
             num_classes=num_classes,
         )
         self.block6 = _GenBlock(
-            num_features * 2,
+            num_features,
             num_features,
             activation=activation,
             upsample=True,
             num_classes=num_classes,
         )
         self.block7 = _GenBlock(
-            num_features * 2,
+            num_features,
             num_features,
             activation=activation,
             upsample=True,

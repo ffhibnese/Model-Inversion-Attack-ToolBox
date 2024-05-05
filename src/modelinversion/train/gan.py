@@ -340,7 +340,7 @@ class KedmiGanTrainer(BaseGanTrainer):
 
         entropy_loss = self._entropy_loss(output_fake)
         feature_loss = torch.mean((mom_gen - mom_unlabel).abs())
-        loss = feature_loss  # + 1e-4 * entropy_loss
+        loss = feature_loss + 1e-4 * entropy_loss
 
         self.gen_optimizer.zero_grad()
         loss.backward()
@@ -389,7 +389,7 @@ class KedmiGanTrainer(BaseGanTrainer):
             + torch.mean(F.softplus(torch.logsumexp(output_fake, dim=1)))
         )
         # torch.logsumexp()
-        loss = loss_lab + loss_unlab * 0.1
+        loss = loss_lab + loss_unlab
 
         self.dis_optimizer.zero_grad()
         loss.backward()
@@ -492,7 +492,7 @@ class PlgmiGanTrainer(BaseGanTrainer):
         )
 
     def train_dis_step(
-        self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor | LongTensor]]
+        self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor, LongTensor]]
     ):
         fake, pseudo_y = self.sample_fake()
         dis_fake = self.discriminator(fake, pseudo_y)

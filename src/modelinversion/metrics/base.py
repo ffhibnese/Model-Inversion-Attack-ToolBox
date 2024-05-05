@@ -338,6 +338,13 @@ class ImageFidPRDCMetric(BaseImageMetric):
             real_feature_np, rowvar=False
         )
 
+        # print(
+        #     f'fake shapes: {fake_feature_np.shape} {mu_fake.shape} {sigma_fake.shape}'
+        # )
+        # print(
+        #     f'real shapes: {real_feature_np.shape} {mu_real.shape} {sigma_real.shape}'
+        # )
+
         result = OrderedDict()
 
         # FID
