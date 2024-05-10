@@ -230,6 +230,8 @@ class VarienceWhiteboxOptimization(SimpleWhiteBoxOptimization):
         bar = tqdm(range(1, config.iter_times + 1), leave=False)
         for i in bar:
 
+            description = None
+
             z = self._reparameterize(mu, logvar)
 
             fake = self.generator(z, labels=labels)
@@ -237,19 +239,23 @@ class VarienceWhiteboxOptimization(SimpleWhiteBoxOptimization):
             loss = self.image_loss_fn(fake, labels)
             if isinstance(loss, tuple):
                 loss, metric_dict = loss
-                if (
-                    metric_dict is not None
-                    and len(metric_dict) > 0
-                    and (i == 1 or i % config.show_loss_info_iters == 0)
-                ):
-                    ls = [f'{k}: {v}' for k, v in metric_dict.items()]
-                    right_str = '  '.join(ls)
-                    description = f'iter {i}: {right_str}'
-                    bar.set_description_str(description)
+                if i == 1 or i % config.show_loss_info_iters == 0:
+                    # ls = [f'{k}: {v}' for k, v in metric_dict.items()]
+                    # right_str = '  '.join(ls)
+                    # description = f'iter {i}: {right_str}'
+                    description = get_info_description(i, metric_dict)
+                    # description = obj_to_yaml()
+                    bar.write(description)
+                if i == config.iter_times:
+                    # ls = [f'{k}: {v}' for k, v in metric_dict.items()]
+                    description = get_info_description(i, metric_dict)
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
+        if description is not None:
+            bar.write(description)
 
         final_fake = []
         final_labels = []

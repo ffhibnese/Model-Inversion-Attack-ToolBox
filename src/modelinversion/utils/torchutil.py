@@ -50,14 +50,45 @@ def traverse_name_module(module: nn.Module, fn: Callable, call_middle=False):
         _traverse_name_module_impl(child, fn, call_middle=call_middle)
 
 
-def freeze(net):
-    for p in net.parameters():
+def freeze(module):
+    for p in module.parameters():
         p.requires_grad_(False)
 
 
-def unfreeze(net):
-    for p in net.parameters():
+def unfreeze(module):
+    for p in module.parameters():
         p.requires_grad_(True)
+
+
+def freeze_front_layers(module, ratio=0.5):
+
+    if ratio < 0 or ratio > 1:
+        raise RuntimeError('Ratio should be in [0, 1]')
+
+    if ratio == 0:
+        unfreeze(module)
+        return
+
+    if ratio == 1:
+        freeze(module)
+        return
+
+    all_modules = []
+
+    def _visit_fn(module):
+        all_modules.append(module)
+
+    traverse_module(module, _visit_fn)
+    length = len(all_modules)
+    if length == 0:
+        return
+
+    freeze_line = ratio * length
+    for i, m in enumerate(all_modules):
+        if i < freeze_line:
+            m.requires_grad_(False)
+        else:
+            m.requires_grad_(True)
 
 
 def unwrapped_parallel_module(module):
@@ -96,6 +127,7 @@ def augment_images_fn_generator(
         augment (Optional[Callable], optional): The augmentation to perform. Defaults to None.
         augment_times (int, optional): Times for augmentation to repeat. Defaults to 0.
     """
+
     def fn(image):
         if initial_transform is not None:
             image = initial_transform(image)

@@ -125,16 +125,44 @@ class ImageClassifierAttackAccuracy(BaseImageMetric):
 
             target_accs = []
             target_acc5s = []
+            target_numbers = []
+            max_nums = 0
 
             for step, target in enumerate(tqdm(target_values, leave=False)):
                 target_idx = labels == target
-                target_acc = accs[target_idx].mean().item()
-                target_acc5 = acc5s[target_idx].mean().item()
+                target_acc = accs[target_idx]  # .mean().item()
+                target_acc5 = acc5s[target_idx]  # .mean().item()
                 target_accs.append(target_acc)
                 target_acc5s.append(target_acc5)
+                target_numbers.append(len(target_idx))
+                max_nums = max(max_nums, len(target_idx))
 
-            acc_std = np.std(np.array(target_accs), axis=0).mean()
-            acc5_std = np.std(np.array(target_acc5s), axis=0).mean()
+            weights = torch.zeros(
+                (max_nums,), dtype=features.dtype, device=features.device
+            )
+            acc_cumsum = torch.zeros(
+                (max_nums,), dtype=features.dtype, device=features.device
+            )
+            acc5_cumsum = torch.zeros(
+                (max_nums,), dtype=features.dtype, device=features.device
+            )
+            mask_ranges = torch.arange(0, max_nums, device=features.device)
+            for target_acc, target_acc5, target_num in zip(
+                target_accs, target_acc5s, target_numbers
+            ):
+                if target_num == 0:
+                    continue
+                mask = (mask_ranges < target_num).to(weights.dtype)
+                weights += mask
+                acc_cumsum[:target_num] += target_acc
+                acc5_cumsum[:target_num] += target_acc5
+
+            div_weights = torch.clamp_min(weights, torch.ones_like(weights))
+            acc_mean = (acc_cumsum / div_weights).cpu().numpy()
+            acc5_mean = (acc5_cumsum / div_weights).cpu().numpy()
+
+            acc_std = np.std(acc_mean, axis=0).mean()
+            acc5_std = np.std(acc5_mean, axis=0).mean()
             ret[f'{self.description} acc@1 std'] = float(acc_std)
             ret[f'{self.description} acc@5 std'] = float(acc5_std)
         except:
@@ -433,20 +461,21 @@ class ImageFidPRDCMetric(BaseImageMetric):
                     f'The number of images for those classes are too small, skip the evaluation: {unfinish_list}'
                 )
 
-            if self.save_dir is not None:
-                df = pd.DataFrame()
-                df['target'] = target_values
-                df['precision'] = precision
-                df['recall'] = recall
-                df['density'] = density
-                df['coverage'] = coverage
-
             result['precision'] = float(precision.mean())
             result['recall'] = float(recall.mean())
             result['density'] = float(density.mean())
             result['coverage'] = float(coverage.mean())
 
             try:
+                if self.save_dir is not None:
+                    df = pd.DataFrame()
+                    df['target'] = target_values
+                    df['precision'] = precision
+                    df['recall'] = recall
+                    df['density'] = density
+                    df['coverage'] = coverage
+                    save_name = f'{self.description}_prdc.csv'
+                    safe_save_csv(df, self.save_dir, save_name)
                 result['precision std'] = float(np.std(precision, axis=0).mean())
                 result['recall std'] = float(np.std(recall, axis=0).mean())
                 result['density std'] = float(np.std(density, axis=0).mean())

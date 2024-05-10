@@ -35,19 +35,21 @@ def train_gan(
     show_train_info_iters: Optional[int] = 1000,
     before_iters_step: Callable[[int], None] = None,
     ncritic=5,
+    start_iters=0,
 ):
 
-    bar = tqdm(range(max_iters), leave=False)
+    bar = tqdm(range(start_iters, start_iters + max_iters), leave=False)
 
+    gen_infos = None
     for i in bar:
 
         if before_iters_step is not None:
             before_iters_step(i)
 
+        dis_infos = train_discriminator_step(i, dataloader)
+
         if i % ncritic == 0:
             gen_infos = train_generator_step(i, dataloader)
-
-        dis_infos = train_discriminator_step(i, dataloader)
 
         if (i + 1) % save_ckpt_iters == 0:
             save_fn(i)
@@ -140,22 +142,27 @@ class BaseGanTrainer(ABC):
         pass
 
     def before_iter_step(self, iters: int):
-        self.generator.train()
-        self.discriminator.train()
 
         with torch.no_grad():
             if (
                 self.config.show_images_iters is not None
                 and (iters + 1) % self.config.show_images_iters == 0
             ):
+                self.generator.eval()
+                self.discriminator.eval()
                 save_image_num = min(self.config.batch_size, 16)
                 images = self.sample_images(save_image_num).detach().cpu()
                 nrow = int(math.sqrt(save_image_num))
                 save_path = os.path.join(self.save_img_dir, f'iter_{iters+1}.png')
                 save_image(images, save_path, nrow=nrow, normalize=True)
+        self.generator.train()
+        self.discriminator.train()
 
     def train(
-        self, dataloader: Iterator[Tensor | Tuple[Tensor, LongTensor]], max_iters: int
+        self,
+        dataloader: Iterator[Tensor | Tuple[Tensor, LongTensor]],
+        max_iters: int,
+        start_iters: int = 0,
     ):
         if not isinstance(dataloader, Iterator):
             dataloader = iter(dataloader)
@@ -169,6 +176,7 @@ class BaseGanTrainer(ABC):
             self.config.show_train_info_iters,
             self.before_iter_step,
             self.config.ncritic,
+            start_iters,
         )
 
 
@@ -336,7 +344,7 @@ class KedmiGanTrainer(BaseGanTrainer):
         mom_unlabel, _ = self.discriminator(real)
 
         mom_gen = torch.mean(mom_gen, dim=0)
-        mom_unlabel = torch.mean(mom_gen, dim=0)
+        mom_unlabel = torch.mean(mom_unlabel, dim=0)
 
         entropy_loss = self._entropy_loss(output_fake)
         feature_loss = torch.mean((mom_gen - mom_unlabel).abs())
@@ -359,9 +367,9 @@ class KedmiGanTrainer(BaseGanTrainer):
         logprobs = nn.functional.log_softmax(input, dim=-1)
         return -(targetprobs * logprobs).sum() / input.shape[0]
 
-    def log_sum_exp(x, axis=1):
+    def log_sum_exp(self, x, dim=1):
         m = torch.max(x, dim=1)[0]
-        return m + torch.log(torch.sum(torch.exp(x - m.unsqueeze(1)), dim=axis))
+        return m + torch.log(torch.sum(torch.exp(x - m.unsqueeze(1)), dim=dim))
 
     def train_dis_step(
         self, iters: int, dataloader: Iterator[Tensor | Tuple[Tensor | LongTensor]]
@@ -384,11 +392,14 @@ class KedmiGanTrainer(BaseGanTrainer):
 
         loss_lab = self._softXEnt(output_label, y_prob)
         loss_unlab = 0.5 * (
+            # torch.mean(F.softplus(self.log_sum_exp(output_unlabel, dim=1)))
+            # - torch.mean(self.log_sum_exp(output_unlabel, dim=1))
+            # + torch.mean(F.softplus(self.log_sum_exp(output_fake, dim=1)))
             torch.mean(F.softplus(torch.logsumexp(output_unlabel, dim=1)))
             - torch.mean(torch.logsumexp(output_unlabel, dim=1))
             + torch.mean(F.softplus(torch.logsumexp(output_fake, dim=1)))
         )
-        # torch.logsumexp()
+        # self.log_sum_exp()
         loss = loss_lab + loss_unlab
 
         self.dis_optimizer.zero_grad()
