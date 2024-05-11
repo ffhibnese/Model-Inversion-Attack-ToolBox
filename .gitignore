@@ -127,3 +127,4 @@ nohup.txt
 /test*
 .vscode
 test*.py
+test*.sh
