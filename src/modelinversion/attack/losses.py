@@ -304,10 +304,12 @@ class ImageVariationPriorLoss(BaseImageLoss):
 
 class DeepInversionBatchNormPriorLoss(BaseImageLoss):
 
-    def __init__(self, model, *args, **kwargs) -> None:
+    def __init__(self, model, first_bn_weight=10, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.feature_hooks: list[DeepInversionBNFeatureHook] = []
+
+        self.first_bn_weight = first_bn_weight
 
         def _find_bn_fn(module):
             if isinstance(module, nn.BatchNorm2d):
@@ -315,10 +317,15 @@ class DeepInversionBatchNormPriorLoss(BaseImageLoss):
 
         traverse_module(model, _find_bn_fn, call_middle=True)
 
+        if len(self.feature_hooks) == 0:
+            raise RuntimeError(f'The model do not have BN layers.')
+
     def __call__(self, images: Tensor, labels: LongTensor, *args, **kwargs):
 
         r_features_losses = [hook.get_feature() for hook in self.feature_hooks]
         r_features_losses = [l.sum() for l in r_features_losses if l is not None]
+        r_features_losses[0] *= self.first_bn_weight
+
         loss = sum(r_features_losses)
         return loss, OrderedDict(loss=loss.item())
 

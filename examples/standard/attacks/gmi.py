@@ -11,10 +11,9 @@ from modelinversion.datasets import CelebA112
 from torchvision.transforms import ToTensor, Compose, Resize
 
 from modelinversion.models import (
-    SimpleGenerator64,
-    GmiDiscriminator64,
-    IR152_64,
-    FaceNet112,
+    auto_classifier_from_pretrained,
+    auto_generator_from_pretrained,
+    auto_discriminator_from_pretrained,
 )
 from modelinversion.sampler import SimpleLatentsSampler
 from modelinversion.utils import Logger
@@ -68,23 +67,12 @@ if __name__ == '__main__':
 
     latents_sampler = SimpleLatentsSampler(z_dim, batch_size)
 
-    target_model = IR152_64(num_classes=num_classes)
-    eval_model = FaceNet112(num_classes, register_last_feature_hook=True)
-    generator = SimpleGenerator64(in_dim=z_dim)
-    discriminator = GmiDiscriminator64()
-
-    target_model.load_state_dict(
-        torch.load(target_model_ckpt_path, map_location='cpu')['state_dict']
+    target_model = auto_classifier_from_pretrained(target_model_ckpt_path)
+    eval_model = auto_classifier_from_pretrained(
+        eval_model_ckpt_path, register_last_feature_hook=True
     )
-    eval_model.load_state_dict(
-        torch.load(eval_model_ckpt_path, map_location='cpu')['state_dict']
-    )
-    generator.load_state_dict(
-        torch.load(generator_ckpt_path, map_location='cpu')['state_dict']
-    )
-    discriminator.load_state_dict(
-        torch.load(discriminator_ckpt_path, map_location='cpu')['state_dict']
-    )
+    generator = auto_generator_from_pretrained(generator_ckpt_path)
+    discriminator = auto_discriminator_from_pretrained(discriminator_ckpt_path)
 
     target_model = nn.DataParallel(target_model, device_ids=gpu_devices).to(device)
     eval_model = nn.DataParallel(eval_model, device_ids=gpu_devices).to(device)

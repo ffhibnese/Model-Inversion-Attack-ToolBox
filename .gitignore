@@ -112,6 +112,7 @@ cache/
 *.pkl
 *.tar.gz
 results/*
+/results*
 # checkpoints/*/*
 dataset/*/*
 
