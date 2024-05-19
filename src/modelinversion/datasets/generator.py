@@ -37,6 +37,7 @@ class GeneratorDataset(TensorDataset):
         if isinstance(input_shape, int):
             input_shape = (input_shape,)
 
+        @torch.no_grad()
         def generation(labels):
             shape = (len(labels), *input_shape)
             pseudo_y = labels.to(device)

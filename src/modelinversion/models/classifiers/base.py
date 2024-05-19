@@ -287,3 +287,50 @@ class TorchvisionClassifierModel(BaseImageClassifier):
 
     # def get_last_feature_hook(self) -> BaseHook:
     #     return self._feature_hook
+
+
+@register_model('resnest')
+class ResNeSt(BaseImageClassifier):
+
+    @ModelMixin.register_to_config_init
+    def __init__(
+        self,
+        arch_name: str,
+        num_classes: int,
+        pretrained=False,
+        arch_kwargs={},
+        register_last_feature_hook=False,
+    ) -> None:
+        # weights: None, 'IMAGENET1K_V1', 'IMAGENET1K_V2' or 'DEFAULT'
+
+        self._feature_hook = None
+
+        _output_transform = None
+        if register_last_feature_hook:
+
+            def _output_transform(m: nn.Linear):
+                # self._feature_hook = FirstInputHook(m)
+                def hook_fn(module, input, output):
+                    return output, {HOOK_NAME_FEATURE: input[0]}
+
+                m.register_forward_hook(hook_fn)
+
+        try:
+            tv_module = importlib.import_module('resnest.torch')
+        except ModuleNotFoundError as e:
+            raise RuntimeError(
+                'ResNeSt module not found. Please install the module by `pip install git+https://github.com/zhanghang1989/ResNeSt`'
+            )
+        factory = getattr(tv_module, arch_name, None)
+        if factory is None:
+            raise RuntimeError(f'ResNeSt do not support model {arch_name}')
+        model = factory(pretrained=pretrained, **arch_kwargs)
+
+        feature_dim = operate_fc(model, num_classes, _output_transform)
+
+        super().__init__(224, feature_dim, num_classes, register_last_feature_hook)
+
+        self.model = model
+
+    def _forward_impl(self, image: torch.Tensor, *args, **kwargs):
+        return self.model(image)

@@ -1,4 +1,6 @@
 from .base import (
+    TorchvisionClassifierModel,
+    ResNeSt,
     BaseImageClassifier,
     BaseImageEncoder,
     HOOK_NAME_FEATURE,
@@ -8,7 +10,6 @@ from .base import (
     auto_classifier_from_pretrained,
 )
 from .wrappers import (
-    TorchvisionClassifierModel,
     VibWrapper,
     BiDOWrapper,
     get_default_create_hidden_hook_fn,
