@@ -27,6 +27,7 @@ from .hook import (
     DeepInversionBNFeatureHook,
 )
 from .constraint import BaseConstraint, MinMaxConstraint, L1ballConstraint
+from .outputs import BaseOutput
 
 ClassificationLoss = TorchLoss
 Tee = Logger

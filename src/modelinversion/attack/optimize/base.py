@@ -10,7 +10,13 @@ from torch import Tensor, LongTensor
 from torch.optim import Optimizer, Adam
 from tqdm import tqdm
 
-from ...utils import ClassificationLoss, BaseConstraint, DictAccumulator, obj_to_yaml
+from ...utils import (
+    ClassificationLoss,
+    BaseConstraint,
+    DictAccumulator,
+    obj_to_yaml,
+    BaseOutput,
+)
 from ...models import BaseImageClassifier, BaseImageGenerator
 from ...scores import BaseLatentScore
 
@@ -36,6 +42,14 @@ class BaseImageOptimizationConfig:
     device: torch.device
 
 
+@dataclass
+class ImageOptimizationOutput(BaseOutput):
+
+    images: Tensor
+    labels: LongTensor
+    latents: Optional[Tensor] = None
+
+
 class BaseImageOptimization(ABC):
     """Base class for all optimization class. Optimize the initial latent vectors and generate the optimized images.
 
@@ -53,9 +67,7 @@ class BaseImageOptimization(ABC):
         return self._config
 
     @abstractmethod
-    def __call__(
-        self, latents: Tensor, labels: LongTensor
-    ) -> Tuple[Tensor, LongTensor]:
+    def __call__(self, latents: Tensor, labels: LongTensor) -> ImageOptimizationOutput:
         """Optimize the initial latent vectors and generate the optimized images.
 
         Args:
@@ -63,7 +75,7 @@ class BaseImageOptimization(ABC):
             labels (LongTensor): The labels for the latent vectors. It has the same length with `latents`.
 
         Returns:
-            Tuple[Tensor, LongTensor]: Returns (images, labels) that has the same length.
+            ImageOptimizationOutput.
         """
         pass
 
@@ -179,7 +191,12 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
 
         final_labels = labels.cpu()
 
-        return final_fake.detach(), final_labels.detach()
+        # return final_fake.detach(), final_labels.detach()
+        return ImageOptimizationOutput(
+            images=final_fake,
+            labels=final_labels,
+            latents=latents.detach().cpu(),
+        )
 
 
 @dataclass
@@ -257,6 +274,7 @@ class VarienceWhiteboxOptimization(SimpleWhiteBoxOptimization):
         if description is not None:
             bar.write(description)
 
+        final_latents = []
         final_fake = []
         final_labels = []
 
@@ -264,12 +282,18 @@ class VarienceWhiteboxOptimization(SimpleWhiteBoxOptimization):
             for _ in range(config.generate_num):
                 z = self._reparameterize(mu, logvar)
                 fake = self.generator(z, labels=labels).detach().cpu()
+                final_latents.append(z.detach().cpu())
                 final_fake.append(fake)
                 final_labels.append(labels.detach().cpu())
             final_fake = torch.cat(final_fake, dim=0)
             final_labels = torch.cat(final_labels, dim=0)
+            final_latents = torch.cat(final_latents, dim=0)
 
-        return final_fake, final_labels
+        return ImageOptimizationOutput(
+            images=final_fake,
+            labels=final_labels,
+            latents=final_latents,
+        )
 
 
 @dataclass
@@ -440,4 +464,10 @@ class BrepOptimization(BaseImageOptimization):
         if description is not None:
             bar.write(description)
 
-        return self.generator(latents, labels=labels).detach().cpu(), labels.cpu()
+        final_fake = self.generator(latents, labels=labels).detach().cpu()
+
+        return ImageOptimizationOutput(
+            images=final_fake,
+            labels=labels.detach().cpu(),
+            latents=latents.detach().cpu(),
+        )

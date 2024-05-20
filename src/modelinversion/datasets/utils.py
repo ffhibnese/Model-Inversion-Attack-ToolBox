@@ -67,6 +67,7 @@ class ClassSubset(Subset):
         super().__init__(dataset, indices)
 
 
+@torch.no_grad()
 def top_k_selection(
     top_k: int,
     src_dataset_path: str,

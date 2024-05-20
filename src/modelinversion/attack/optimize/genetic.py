@@ -22,7 +22,11 @@ from tqdm import tqdm
 from ...utils import ClassificationLoss, BaseConstraint, DictAccumulator, batch_apply
 from ...models import BaseImageClassifier, BaseImageGenerator
 from ...scores import BaseLatentScore
-from .base import BaseImageOptimizationConfig, BaseImageOptimization
+from .base import (
+    BaseImageOptimizationConfig,
+    BaseImageOptimization,
+    ImageOptimizationOutput,
+)
 
 
 @dataclass
@@ -207,4 +211,7 @@ class GeneticOptimization(BaseImageOptimization):
             description=f'generate optimized images',
         )
 
-        return result_images, result_labels.detach().cpu()
+        # return result_images, result_labels.detach().cpu()
+        return ImageOptimizationOutput(
+            images=result_images, labels=result_labels, latents=latents
+        )

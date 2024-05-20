@@ -147,7 +147,9 @@ class ImageClassifierAttacker(ABC):
         self.final_scores = []
         self.optimized_labels = []
         self.optimized_filenames = []
+        self.optimized_latents = []
 
+        os.makedirs(config.save_dir, exist_ok=True)
         self.optimized_save_dir = os.path.join(config.save_dir, 'optimized_images')
         self.final_save_dir = os.path.join(config.save_dir, 'final_images')
 
@@ -247,7 +249,17 @@ class ImageClassifierAttacker(ABC):
         final_scores = (
             None if len(self.final_scores) == 0 else torch.cat(self.final_scores)
         )
-        return optimized_metric_features, optimized_labels, final_scores
+        optimized_latents = (
+            None
+            if len(self.optimized_latents) == 0
+            else torch.cat(self.optimized_latents, dim=0)
+        )
+        return (
+            optimized_metric_features,
+            optimized_labels,
+            optimized_latents,
+            final_scores,
+        )
 
     def final_selection(
         self,
@@ -279,7 +291,9 @@ class ImageClassifierAttacker(ABC):
 
         return results
 
-    def update_optimized_images(self, images: Tensor, labels: LongTensor):
+    def update_optimized_images(
+        self, images: Tensor, labels: LongTensor, latents: Tensor
+    ):
 
         config = self.config
         assert len(images) == len(labels)
@@ -298,6 +312,8 @@ class ImageClassifierAttacker(ABC):
             self.final_scores.append(scores)
 
         self.optimized_labels.append(labels)
+        if latents is not None:
+            self.optimized_latents.append(latents)
 
         if self.config.save_optimized_images or self.config.save_final_images:
             self.optimized_filenames += self.save_images(
@@ -307,8 +323,12 @@ class ImageClassifierAttacker(ABC):
             )
 
     def batch_optimize(self, init_latents: Tensor, labels: Tensor):
-        images, labels = self.config.optimize_fn(init_latents, labels)
-        self.update_optimized_images(images.detach().cpu(), labels.detach().cpu())
+        images, labels, latents = self.config.optimize_fn(
+            init_latents, labels
+        ).to_tuple()
+        self.update_optimized_images(
+            images.detach().cpu(), labels.detach().cpu(), latents.detach().cpu()
+        )
 
     def _evaluation(self, features_list, labels, description):
 
@@ -361,6 +381,25 @@ class ImageClassifierAttacker(ABC):
                 if os.path.exists(src_path):
                     shutil.copy(src_path, dst_path)
 
+    def save_final_selection_latents(
+        self, indices_dict: dict[int, list[str]], all_latents
+    ):
+        if all_latents is None or len(all_latents) == 0:
+            return
+        labels = []
+        indices = []
+        for target, target_indices in indices_dict.items():
+            labels += [target] * len(target_indices)
+            indices += target_indices
+
+        labels = np.array(labels, dtype=np.int32)
+        indices = np.array(indices, dtype=np.int32)
+        if isinstance(all_latents, Tensor):
+            all_latents = all_latents.numpy()
+        latents = all_latents[indices]
+        np.save(os.path.join(self.config.save_dir, 'final_latents.npy'), latents)
+        np.save(os.path.join(self.config.save_dir, 'final_labels.npy'), labels)
+
     def get_final_selection_features_labels(
         self, indices_dict: dict[int, list[str]], features_list
     ):
@@ -409,9 +448,22 @@ class ImageClassifierAttacker(ABC):
         )
 
         # concat optimized images and labels
-        optimized_metric_features, optimized_labels, optimized_scores = (
-            self.concat_optimized_results()
-        )
+        (
+            optimized_metric_features,
+            optimized_labels,
+            optimized_latents,
+            optimized_scores,
+        ) = self.concat_optimized_results()
+
+        if self.config.save_optimized_images and optimized_latents is not None:
+            np.save(
+                os.path.join(self.config.save_dir, f'optimized_latents.npy'),
+                optimized_latents.numpy(),
+            )
+            np.save(
+                os.path.join(self.config.save_dir, f'optimized_labels.npy'),
+                optimized_labels.numpy(),
+            )
 
         if self.config.eval_optimized_result or (
             optimized_scores is None and config.eval_final_result
@@ -436,6 +488,7 @@ class ImageClassifierAttacker(ABC):
                 print('save final images')
 
                 self.save_selection_images(final_res)
+                self.save_final_selection_latents(final_res, optimized_latents)
 
             if self.config.eval_final_result:
                 print('evaluate final result')
