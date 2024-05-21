@@ -12,11 +12,12 @@ from torch import Tensor, nn, LongTensor
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, TensorDataset
 from torchvision.datasets import DatasetFolder
-from torchvision.transforms import ToTensor
+from torchvision.transforms import ToTensor, Resize, Compose
 from tqdm import tqdm
 from pytorch_fid.inception import InceptionV3
 import pandas as pd
 import traceback
+
 
 # from ..foldermanager import FolderManager
 from ..models import BaseImageClassifier, BaseImageEncoder, HOOK_NAME_FEATURE
@@ -279,6 +280,57 @@ class ImageDistanceMetric(BaseImageMetric):
             traceback.print_exc()
             print_split_line()
         return ret
+
+
+from facenet_pytorch import InceptionResnetV1
+
+
+class _InceptionResnetV1_adapter(InceptionResnetV1):
+
+    def __init__(
+        self,
+        pretrained=None,
+        classify=False,
+        num_classes=None,
+        dropout_prob=0.6,
+        device=None,
+    ):
+        super().__init__(pretrained, classify, num_classes, dropout_prob, device)
+        self.resize = Resize((160, 160), antialias=True)
+
+    def forward(self, x):
+        x = self.resize(x)
+        result = super().forward(x)
+        return result, {'feature': result}
+
+
+class FaceDistanceMetric(ImageDistanceMetric):
+
+    def __init__(
+        self,
+        batch_size: int,
+        dataset: DatasetFolder,
+        device: torch.device,
+        description: str = 'incv1-vggface',
+        transform: Callable | None = None,
+        save_individual_res_dir: str | None = None,
+        num_workers=8,
+    ):
+
+        facenet = _InceptionResnetV1_adapter(pretrained='vggface2')
+        facenet.to(device)
+        facenet.eval()
+
+        super().__init__(
+            batch_size,
+            facenet,
+            dataset,
+            device,
+            description,
+            transform,
+            save_individual_res_dir,
+            num_workers,
+        )
 
 
 class ImageFidPRDCMetric(BaseImageMetric):

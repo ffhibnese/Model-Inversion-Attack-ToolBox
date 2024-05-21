@@ -11,6 +11,7 @@ from typing import Any, Union, Optional, Tuple, Callable
 import torch
 from torch import Tensor, LongTensor
 from torchvision.utils import save_image
+import pandas as pd
 
 from ..models import *
 from ..metrics import *
@@ -335,11 +336,13 @@ class ImageClassifierAttacker(ABC):
         print_split_line(description)
 
         result = OrderedDict()
+        df = pd.DataFrame()
         for features, metric in zip(features_list, self.config.eval_metrics):
 
             try:
                 for k, v in metric(features, labels).items():
                     result[k] = v
+                    df[str(k)] = [v]
                     print_as_yaml({k: v})
             except Exception as e:
                 print_split_line()
@@ -348,6 +351,8 @@ class ImageClassifierAttacker(ABC):
                 print_split_line()
 
         print_split_line()
+
+        df.to_csv(os.path.join(self.config.save_dir, f'{description}.csv'))
 
         return result
 
@@ -472,7 +477,7 @@ class ImageClassifierAttacker(ABC):
             self._evaluation(
                 optimized_metric_features,
                 optimized_labels,
-                'Optimized Image Evaluation',
+                'Optimized-Image-Evaluation',
             )
 
         # # final selection
@@ -495,4 +500,4 @@ class ImageClassifierAttacker(ABC):
                 final_features, final_labels = self.get_final_selection_features_labels(
                     final_res, optimized_metric_features
                 )
-                self._evaluation(final_features, final_labels, 'Final Image Evaluation')
+                self._evaluation(final_features, final_labels, 'Final-Image-Evaluation')

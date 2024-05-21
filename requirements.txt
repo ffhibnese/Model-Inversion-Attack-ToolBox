@@ -39,3 +39,4 @@ torchvision==0.15.2
 tqdm==4.66.1
 turbojpeg==0.0.2
 wandb==0.15.12
+facenet_pytorch==2.5.3
