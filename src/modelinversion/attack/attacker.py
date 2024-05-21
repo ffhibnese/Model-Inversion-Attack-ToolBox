@@ -501,3 +501,63 @@ class ImageClassifierAttacker(ABC):
                     final_res, optimized_metric_features
                 )
                 self._evaluation(final_features, final_labels, 'Final-Image-Evaluation')
+
+
+# class PostMetricCalculator:
+
+#     def __init__(
+#         self,
+#         experiment_dir: str,
+#         metrics: list[BaseImageMetric],
+#         generator: BaseImageGenerator,
+#     ) -> None:
+#         self.experiment_dir = experiment_dir
+#         self.datas = []
+#         self.metrics = metrics
+
+from collections import defaultdict
+
+
+def post_metric_calculate(
+    experiment_dir: str,
+    batch_size: int,
+    metrics: list[BaseImageMetric],
+    generator: BaseImageGenerator,
+    device: torch.device,
+):
+    datas = defaultdict(dict)
+    filenames = [
+        fname
+        for fname in os.listdir(experiment_dir)
+        if fname.endswith('.npy') and '_' in fname
+    ]
+    for fname in filenames:
+        result_description, data_type = fname.rsplit('_', 1)
+        if data_type == 'labels.npy':
+            datas[result_description]['labels'] = os.path.join(experiment_dir, fname)
+        elif data_type == 'latents.npy':
+            datas[result_description]['latents'] = os.path.join(experiment_dir, fname)
+
+    for result_description, info_fnames in datas.items():
+        if len(info_fnames) != 2:
+            continue
+
+        latents = torch.from_numpy(np.load(info_fnames['latents']))
+        labels = torch.from_numpy(np.load(info_fnames['labels']))
+
+        def _generate(latents, labels):
+            return generator(latents.to(device), labels=labels.to(device)).cpu()
+
+        print_split_line(result_description)
+        images = batch_apply(
+            _generate, latents, labels, batch_size=batch_size, use_tqdm=True
+        )
+
+        result_dict = OrderedDict()
+        for metric in metrics:
+            features = metric.get_features(images, labels)
+            metric_ret = metric(features, labels)
+            for k, v in metric_ret.items():
+                result_dict[k] = v
+
+        print_as_yaml(result_dict)
