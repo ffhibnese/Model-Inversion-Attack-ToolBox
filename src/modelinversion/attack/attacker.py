@@ -352,7 +352,7 @@ class ImageClassifierAttacker(ABC):
 
         print_split_line()
 
-        df.to_csv(os.path.join(self.config.save_dir, f'{description}.csv'))
+        df.to_csv(os.path.join(self.config.save_dir, f'{description}.csv'), index=None)
 
         return result
 
