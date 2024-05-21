@@ -16,11 +16,17 @@ from torchvision.transforms import ToTensor
 from tqdm import tqdm
 from pytorch_fid.inception import InceptionV3
 import pandas as pd
+import traceback
 
 # from ..foldermanager import FolderManager
 from ..models import BaseImageClassifier, BaseImageEncoder, HOOK_NAME_FEATURE
 from ..datasets.utils import ClassSubset
-from ..utils import batch_apply, safe_save_csv, unwrapped_parallel_module
+from ..utils import (
+    batch_apply,
+    safe_save_csv,
+    unwrapped_parallel_module,
+    print_split_line,
+)
 from .fid import fid_utils
 
 
@@ -134,8 +140,8 @@ class ImageClassifierAttackAccuracy(BaseImageMetric):
                 target_acc5 = acc5s[target_idx]  # .mean().item()
                 target_accs.append(target_acc)
                 target_acc5s.append(target_acc5)
-                target_numbers.append(len(target_idx))
-                max_nums = max(max_nums, len(target_idx))
+                target_numbers.append(len(target_acc))
+                max_nums = max(max_nums, len(target_acc))
 
             weights = torch.zeros(
                 (max_nums,), dtype=features.dtype, device=features.device
@@ -154,6 +160,7 @@ class ImageClassifierAttackAccuracy(BaseImageMetric):
                     continue
                 mask = (mask_ranges < target_num).to(weights.dtype)
                 weights += mask
+                # print('>>', target_num, target_acc.shape)
                 acc_cumsum[:target_num] += target_acc
                 acc5_cumsum[:target_num] += target_acc5
 
@@ -165,8 +172,10 @@ class ImageClassifierAttackAccuracy(BaseImageMetric):
             acc5_std = np.std(acc5_mean, axis=0).mean()
             ret[f'{self.description} acc@1 std'] = float(acc_std)
             ret[f'{self.description} acc@5 std'] = float(acc5_std)
-        except:
-            pass
+        except Exception as e:
+            print_split_line()
+            traceback.print_exc()
+            print_split_line()
 
         return ret
 
@@ -262,10 +271,13 @@ class ImageDistanceMetric(BaseImageMetric):
         result = (target_dists * target_nums).sum() / target_nums.sum()
         ret = OrderedDict([[f'{self.description} square distance', float(result)]])
         try:
-            target_dists_std = np.std(ret, axis=0).mean()
+            target_dists_std = np.std(target_dists, axis=0).mean()
             ret[f'{self.description} square distance std'] = float(target_dists_std)
         except:
-            pass
+
+            print_split_line()
+            traceback.print_exc()
+            print_split_line()
         return ret
 
 
@@ -292,6 +304,7 @@ class ImageFidPRDCMetric(BaseImageMetric):
         prdc=True,
         save_individual_prdc_dir: Optional[str] = None,
         num_workers=8,
+        description='incv3',
     ):
         super().__init__(batch_size, transform)
 
@@ -302,6 +315,7 @@ class ImageFidPRDCMetric(BaseImageMetric):
         )
         self.num_workers = num_workers
         self.prdc_k = prdc_k
+        self.description = description
 
         self.calc_fid = fid
         self.calc_prdc = prdc
@@ -366,12 +380,12 @@ class ImageFidPRDCMetric(BaseImageMetric):
             real_feature_np, rowvar=False
         )
 
-        print(
-            f'fake shapes: {fake_feature_np.shape} {mu_fake.shape} {sigma_fake.shape}'
-        )
-        print(
-            f'real shapes: {real_feature_np.shape} {mu_real.shape} {sigma_real.shape}'
-        )
+        # print(
+        #     f'fake shapes: {fake_feature_np.shape} {mu_fake.shape} {sigma_fake.shape}'
+        # )
+        # print(
+        #     f'real shapes: {real_feature_np.shape} {mu_real.shape} {sigma_real.shape}'
+        # )
 
         result = OrderedDict()
 
@@ -467,6 +481,7 @@ class ImageFidPRDCMetric(BaseImageMetric):
             result['coverage'] = float(coverage.mean())
 
             try:
+                # print('>>>>>>>>>>>>>>>>>> std prdc')
                 if self.save_dir is not None:
                     df = pd.DataFrame()
                     df['target'] = target_values
@@ -481,6 +496,9 @@ class ImageFidPRDCMetric(BaseImageMetric):
                 result['density std'] = float(np.std(density, axis=0).mean())
                 result['coverage std'] = float(np.std(coverage, axis=0).mean())
             except:
-                pass
+
+                print_split_line()
+                traceback.print_exc()
+                print_split_line()
 
         return result
