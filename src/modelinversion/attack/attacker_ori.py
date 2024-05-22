@@ -6,7 +6,7 @@ import traceback
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import Any, Union, Optional, Tuple, Callable, Dict
+from typing import Any, Union, Optional, Tuple, Callable
 
 import torch
 from torch import Tensor, LongTensor
@@ -17,28 +17,8 @@ from ..models import *
 from ..metrics import *
 from ..scores import *
 from ..sampler import *
-from ..utils import (
-    batch_apply,
-    print_as_yaml,
-    print_split_line,
-    get_random_string,
-    BaseOutput,
-)
+from ..utils import batch_apply, print_as_yaml, print_split_line, get_random_string
 from .optimize import BaseImageOptimization
-
-
-def label_dict_to_pairs(label_dict: Dict[int, Tensor | list[int]]):
-    tensors = []
-    labels = []
-    for target, latents in label_dict.items():
-        if not isinstance(latents, Tensor):
-            latents = torch.Tensor(latents)
-        tensors.append(latents)
-        labels += [target] * len(latents)
-
-    labels = LongTensor(labels)
-    tensors = torch.cat(tensors, dim=0)
-    return tensors, labels
 
 
 @dataclass
@@ -112,15 +92,6 @@ class ImageClassifierAttackConfig:
     eval_final_result: bool = False
 
 
-@dataclass
-class _ImageClassifierAttackerOptimizedOutput(BaseOutput):
-    latents: Tensor
-    labels: LongTensor
-    metric_features: list[Tensor]
-    scores: Tensor
-    filenames: list[str]
-
-
 class ImageClassifierAttacker(ABC):
     """This is the model inversion attack class for image classification task.
 
@@ -172,10 +143,16 @@ class ImageClassifierAttacker(ABC):
     def __init__(self, config: ImageClassifierAttackConfig) -> None:
         self.config = self._preprocess_config(config)
 
-        os.makedirs(config.save_dir, exist_ok=True)
+        # self.optimized_images = []
+        self.metric_features = [[] for _ in range(len(config.eval_metrics))]
+        self.final_scores = []
+        self.optimized_labels = []
+        self.optimized_filenames = []
+        self.optimized_latents = []
 
-        self.optimized_save_dir = os.path.join(config.save_dir, 'optimized')
-        self.final_save_dir = os.path.join(config.save_dir, 'final')
+        os.makedirs(config.save_dir, exist_ok=True)
+        self.optimized_save_dir = os.path.join(config.save_dir, 'optimized_images')
+        self.final_save_dir = os.path.join(config.save_dir, 'final_images')
 
     def _preprocess_config(self, config: ImageClassifierAttackConfig):
 
@@ -217,28 +194,6 @@ class ImageClassifierAttacker(ABC):
 
         return config
 
-    # def post_evaluation(self, metric)
-
-    def save_images(self, root_dir: str, images: Tensor, labels: LongTensor):
-        assert len(images) == len(labels)
-
-        root_dir = os.path.join(root_dir, 'images')
-
-        all_savenames = []
-
-        for i in range(len(images)):
-            image = images[i].detach()
-            label = labels[i].item()
-            save_dir = os.path.join(root_dir, f'{label}')
-            os.makedirs(save_dir, exist_ok=True)
-            random_str = get_random_string(length=6)
-            save_name = f'{label}_{random_str}.png'
-            all_savenames.append(save_name)
-            save_path = os.path.join(save_dir, save_name)
-            save_image(image, save_path, **self.config.save_kwargs)
-
-        return all_savenames
-
     def initial_latents(
         self,
         batch_size: int,
@@ -250,6 +205,11 @@ class ImageClassifierAttacker(ABC):
 
         if isinstance(labels, Tensor):
             labels = labels.tolist()
+
+        # if sample_num < select_num:
+        #     warnings.warn('sample_num < select_num. set sample_num = select_num')
+        #     sample_num = select_num
+
         latents_dict = self.config.latents_sampler(labels, sample_num)
 
         if latent_score_fn is None or sample_num == select_num:
@@ -270,77 +230,37 @@ class ImageClassifierAttacker(ABC):
                 _, indices = torch.topk(scores, k=select_num)
                 results[label] = latents[indices]
 
-        return label_dict_to_pairs(results)
+        return self.concat_tensor_labels(results)
 
-    def _batch_optimize(self, latents: Tensor, labels: LongTensor):
-        config = self.config
+    def concat_tensor_labels(self, target_dict: dict):
+        tensors = []
+        labels = []
+        for target, latents in target_dict.items():
+            tensors.append(latents)
+            labels += [target] * len(latents)
 
-        images, labels, latents = self.config.optimize_fn(latents, labels).to_tuple()
+        labels = LongTensor(labels)
+        tensors = torch.cat(tensors, dim=0)
+        return tensors, labels
 
-        metric_features = [
-            metric.get_features(images, labels) for metric in self.config.eval_metrics
-        ]
-
-        scores = None
-        if self.config.final_images_score_fn is not None:
-            scores = batch_apply(
-                config.final_images_score_fn,
-                images,
-                labels,
-                batch_size=config.final_select_batch_size,
-                use_tqdm=True,
-            )
-
-        optimized_filenames = None
-        if self.config.save_optimized_images or self.config.save_final_images:
-            optimized_filenames = self.save_images(
-                self.optimized_save_dir,
-                images=images,
-                labels=labels,
-            )
-
-        return _ImageClassifierAttackerOptimizedOutput(
-            latents=latents,
-            labels=labels,
-            metric_features=metric_features,
-            scores=scores,
-            filenames=optimized_filenames,
+    def concat_optimized_results(self):
+        # optimized_images = torch.cat(self.optimized_images, dim=0)
+        optimized_metric_features = [torch.cat(f, dim=0) for f in self.metric_features]
+        optimized_labels = torch.cat(self.optimized_labels, dim=0)
+        final_scores = (
+            None if len(self.final_scores) == 0 else torch.cat(self.final_scores)
         )
-
-    def optimize(self, latents: Tensor, labels: LongTensor, batch_size: int):
-        return batch_apply(
-            self._batch_optimize,
-            latents,
-            labels,
-            batch_size=batch_size,
-            description='Optimized Batch',
+        optimized_latents = (
+            None
+            if len(self.optimized_latents) == 0
+            else torch.cat(self.optimized_latents, dim=0)
         )
-
-    def _evaluation(self, features_list, labels, description, save_dir):
-
-        print_split_line(description)
-
-        result = OrderedDict()
-        df = pd.DataFrame()
-        for features, metric in zip(features_list, self.config.eval_metrics):
-
-            try:
-                for k, v in metric(features, labels).items():
-                    result[k] = v
-                    df[str(k)] = [v]
-                    print_as_yaml({k: v})
-            except Exception as e:
-                print_split_line()
-                print(f'exception metric: {metric.__class__.__name__}')
-                traceback.print_exc()
-                print_split_line()
-
-        print_split_line()
-
-        os.makedirs(save_dir, exist_ok=True)
-        df.to_csv(os.path.join(save_dir, f'evaluation.csv'), index=None)
-
-        return result
+        return (
+            optimized_metric_features,
+            optimized_labels,
+            optimized_latents,
+            final_scores,
+        )
 
     def final_selection(
         self,
@@ -372,10 +292,147 @@ class ImageClassifierAttacker(ABC):
 
         return results
 
-    def attack(self, target_list: list[int]):
+    def update_optimized_images(
+        self, images: Tensor, labels: LongTensor, latents: Tensor
+    ):
 
         config = self.config
+        assert len(images) == len(labels)
+        # self.optimized_images.append(images)
+        for dst, metric in zip(self.metric_features, config.eval_metrics):
+            dst.append(metric.get_features(images, labels))
 
+        if self.config.final_images_score_fn is not None:
+            scores = batch_apply(
+                config.final_images_score_fn,
+                images,
+                labels,
+                batch_size=config.final_select_batch_size,
+                use_tqdm=True,
+            )
+            self.final_scores.append(scores)
+
+        self.optimized_labels.append(labels)
+        if latents is not None:
+            self.optimized_latents.append(latents)
+
+        if self.config.save_optimized_images or self.config.save_final_images:
+            self.optimized_filenames += self.save_images(
+                self.optimized_save_dir,
+                images=images,
+                labels=labels,
+            )
+
+    def batch_optimize(self, init_latents: Tensor, labels: Tensor):
+        images, labels, latents = self.config.optimize_fn(
+            init_latents, labels
+        ).to_tuple()
+        self.update_optimized_images(
+            images.detach().cpu(), labels.detach().cpu(), latents.detach().cpu()
+        )
+
+    def _evaluation(self, features_list, labels, description):
+
+        print_split_line(description)
+
+        result = OrderedDict()
+        df = pd.DataFrame()
+        for features, metric in zip(features_list, self.config.eval_metrics):
+
+            try:
+                for k, v in metric(features, labels).items():
+                    result[k] = v
+                    df[str(k)] = [v]
+                    print_as_yaml({k: v})
+            except Exception as e:
+                print_split_line()
+                print(f'exception metric: {metric.__class__.__name__}')
+                traceback.print_exc()
+                print_split_line()
+
+        print_split_line()
+
+        df.to_csv(os.path.join(self.config.save_dir, f'{description}.csv'), index=None)
+
+        return result
+
+    def save_images(self, root_dir: str, images: Tensor, labels: LongTensor):
+        assert len(images) == len(labels)
+
+        all_savenames = []
+
+        for i in range(len(images)):
+            image = images[i].detach()
+            label = labels[i].item()
+            save_dir = os.path.join(root_dir, f'{label}')
+            os.makedirs(save_dir, exist_ok=True)
+            random_str = get_random_string(length=6)
+            save_name = f'{label}_{random_str}.png'
+            all_savenames.append(save_name)
+            save_path = os.path.join(save_dir, save_name)
+            save_image(image, save_path, **self.config.save_kwargs)
+
+        return all_savenames
+
+    def save_selection_images(self, indices_dict: dict[int, list[str]]):
+        for target, indices in indices_dict.items():
+            src_dir = os.path.join(self.optimized_save_dir, f'{target}')
+            dst_dir = os.path.join(self.final_save_dir, f'{target}')
+            os.makedirs(dst_dir, exist_ok=True)
+            for idx in indices:
+                filename = self.optimized_filenames[idx]
+                src_path = os.path.join(src_dir, filename)
+                dst_path = os.path.join(dst_dir, filename)
+                if os.path.exists(src_path):
+                    shutil.copy(src_path, dst_path)
+
+    def save_final_selection_latents(
+        self, indices_dict: dict[int, list[str]], all_latents
+    ):
+        if all_latents is None or len(all_latents) == 0:
+            return
+        labels = []
+        indices = []
+        for target, target_indices in indices_dict.items():
+            labels += [target] * len(target_indices)
+            indices += target_indices
+
+        labels = np.array(labels, dtype=np.int32)
+        indices = np.array(indices, dtype=np.int32)
+        if isinstance(all_latents, Tensor):
+            all_latents = all_latents.numpy()
+        latents = all_latents[indices]
+        np.save(os.path.join(self.config.save_dir, 'final_latents.npy'), latents)
+        np.save(os.path.join(self.config.save_dir, 'final_labels.npy'), labels)
+
+    def get_final_selection_features_labels(
+        self, indices_dict: dict[int, list[str]], features_list
+    ):
+
+        res_indices = []
+        res_labels = []
+
+        for target, indices in indices_dict.items():
+            indices = torch.LongTensor(indices)
+            labels = torch.ones_like(indices) * target
+
+            res_indices.append(indices)
+            res_labels.append(labels)
+
+        res_indices = torch.cat(res_indices, dim=0)
+        res_labels = torch.cat(res_labels, dim=0)
+
+        return [feature[res_indices] for feature in features_list], res_labels
+
+    def attack(self, target_list: list[int]):
+        config = self.config
+        os.makedirs(config.save_dir, exist_ok=True)
+
+        # print_split_line('Attack Config')
+        # print(config)
+        # print_split_line()
+
+        # initial selection for each target
         print('execute initial selection')
         init_latents, init_labels = self.initial_latents(
             config.initial_select_batch_size,
@@ -387,91 +444,120 @@ class ImageClassifierAttacker(ABC):
 
         # execute optimize
         print('execute optimization')
-        optimized_output: _ImageClassifierAttackerOptimizedOutput = self.optimize(
-            latents=init_latents,
-            labels=init_labels,
+        batch_apply(
+            self.batch_optimize,
+            init_latents,
+            init_labels,
             batch_size=config.optimize_batch_size,
+            description='Optimized Batch',
         )
 
-        if config.save_optimized_images and optimized_output.latents is not None:
-            save_dir = os.path.join(self.optimized_save_dir, 'cache')
-            os.makedirs(save_dir, exist_ok=True)
+        # concat optimized images and labels
+        (
+            optimized_metric_features,
+            optimized_labels,
+            optimized_latents,
+            optimized_scores,
+        ) = self.concat_optimized_results()
 
+        if self.config.save_optimized_images and optimized_latents is not None:
             np.save(
-                os.path.join(save_dir, f'latents.npy'),
-                optimized_output.latents.numpy(),
+                os.path.join(self.config.save_dir, f'optimized_latents.npy'),
+                optimized_latents.numpy(),
             )
             np.save(
-                os.path.join(save_dir, f'labels.npy'),
-                optimized_output.labels.numpy(),
+                os.path.join(self.config.save_dir, f'optimized_labels.npy'),
+                optimized_labels.numpy(),
             )
 
-        if config.eval_optimized_result or (
-            optimized_output.scores is None and config.eval_final_result
+        if self.config.eval_optimized_result or (
+            optimized_scores is None and config.eval_final_result
         ):
             print('evaluate optimized result')
             self._evaluation(
-                optimized_output.metric_features,
-                optimized_output.labels,
-                'optimized',
-                self.optimized_save_dir,
+                optimized_metric_features,
+                optimized_labels,
+                'Optimized-Image-Evaluation',
             )
 
-        if optimized_output.scores is not None:
+        # # final selection
+        if optimized_scores is not None:
             print('execute final selection')
-            final_label_indices_dict = self.final_selection(
+            final_res = self.final_selection(
                 config.final_num,
-                optimized_output.scores,
-                optimized_output.labels,
+                optimized_scores,
+                optimized_labels,
             )
 
             if config.save_final_images:
                 print('save final images')
 
-                self.save_selection_images(
-                    final_label_indices_dict, optimized_output.filenames
+                self.save_selection_images(final_res)
+                self.save_final_selection_latents(final_res, optimized_latents)
+
+            if self.config.eval_final_result:
+                print('evaluate final result')
+                final_features, final_labels = self.get_final_selection_features_labels(
+                    final_res, optimized_metric_features
                 )
+                self._evaluation(final_features, final_labels, 'Final-Image-Evaluation')
 
-                final_labels, final_indices = label_dict_to_pairs(
-                    final_label_indices_dict
-                )
 
-                if optimized_output.latents is not None:
-                    assert final_indices.ndim == 1
-                    final_latents = optimized_output.latents[final_indices]
+# class PostMetricCalculator:
 
-                    save_dir = os.path.join(self.final_save_dir, 'cache')
-                    os.makedirs(save_dir, exist_ok=True)
+#     def __init__(
+#         self,
+#         experiment_dir: str,
+#         metrics: list[BaseImageMetric],
+#         generator: BaseImageGenerator,
+#     ) -> None:
+#         self.experiment_dir = experiment_dir
+#         self.datas = []
+#         self.metrics = metrics
 
-                    np.save(
-                        os.path.join(save_dir, f'latents.npy'),
-                        final_latents.numpy(),
-                    )
-                    np.save(
-                        os.path.join(save_dir, f'labels.npy'),
-                        final_labels.numpy(),
-                    )
+from collections import defaultdict
 
-                if config.eval_final_result:
-                    print('evaluate final result')
-                    final_features = [
-                        features[final_indices]
-                        for features in optimized_output.metric_features
-                    ]
-                    self._evaluation(
-                        final_features, final_labels, 'final', self.final_save_dir
-                    )
 
-    def save_selection_images(
-        self, indices_dict: dict[int, list[str]], filenames: list[str]
-    ):
-        for target, indices in indices_dict.items():
-            src_dir = os.path.join(self.optimized_save_dir, 'images', f'{target}')
-            dst_dir = os.path.join(self.final_save_dir, 'images', f'{target}')
-            os.makedirs(dst_dir, exist_ok=True)
-            for idx in indices:
-                filename = filenames[idx]
-                src_path = os.path.join(src_dir, filename)
-                dst_path = os.path.join(dst_dir, filename)
-                if os.path.exists(src_path):
-                    shutil.copy(src_path, dst_path)
+def post_metric_calculate(
+    experiment_dir: str,
+    batch_size: int,
+    metrics: list[BaseImageMetric],
+    generator: BaseImageGenerator,
+    device: torch.device,
+):
+    datas = defaultdict(dict)
+    filenames = [
+        fname
+        for fname in os.listdir(experiment_dir)
+        if fname.endswith('.npy') and '_' in fname
+    ]
+    for fname in filenames:
+        result_description, data_type = fname.rsplit('_', 1)
+        if data_type == 'labels.npy':
+            datas[result_description]['labels'] = os.path.join(experiment_dir, fname)
+        elif data_type == 'latents.npy':
+            datas[result_description]['latents'] = os.path.join(experiment_dir, fname)
+
+    for result_description, info_fnames in datas.items():
+        if len(info_fnames) != 2:
+            continue
+
+        latents = torch.from_numpy(np.load(info_fnames['latents']))
+        labels = torch.from_numpy(np.load(info_fnames['labels']))
+
+        def _generate(latents, labels):
+            return generator(latents.to(device), labels=labels.to(device)).cpu()
+
+        print_split_line(result_description)
+        images = batch_apply(
+            _generate, latents, labels, batch_size=batch_size, use_tqdm=True
+        )
+
+        result_dict = OrderedDict()
+        for metric in metrics:
+            features = metric.get_features(images, labels)
+            metric_ret = metric(features, labels)
+            for k, v in metric_ret.items():
+                result_dict[k] = v
+
+        print_as_yaml(result_dict)

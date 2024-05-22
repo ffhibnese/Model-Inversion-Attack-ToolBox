@@ -58,8 +58,8 @@ class BaseOutput(OrderedDict):
         else:
             for field in class_fields:
                 v = getattr(self, field.name)
-                if v is not None:
-                    self[field.name] = v
+                # if v is not None:
+                self[field.name] = v
 
     def __delitem__(self, *args, **kwargs):
         raise Exception(

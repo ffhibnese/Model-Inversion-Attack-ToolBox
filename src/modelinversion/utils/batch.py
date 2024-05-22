@@ -4,6 +4,7 @@ import torch
 from tqdm import tqdm
 
 from .io import print_split_line
+from .outputs import BaseOutput
 
 
 def _is_namedtuple(obj):
@@ -19,14 +20,21 @@ def _gather(outputs, dim=0):
     Args:
         outputs (_type_): The data to gather.
         dim (int, optional): The specified dimension used when the type of input data is torch.Tensor. Defaults to 0.
-    """    
-    
+    """
+
     def gather_map(outputs):
         out = outputs[0]
         if isinstance(out, torch.Tensor):
             return torch.cat(outputs, dim=dim)
+        if isinstance(out, str):
+            return outputs
         if out is None:
             return None
+        if isinstance(out, BaseOutput):
+            # print((out.keys()))
+            # exit()
+            return type(out)(*gather_map([d.to_tuple() for d in outputs]))
+
         if isinstance(out, dict):
             if not all(len(out) == len(d) for d in outputs):
                 raise ValueError('All dicts must have the same number of keys')
@@ -58,7 +66,8 @@ def batch_apply(
         batch_size (int): The specified batch size.
         description (Optional[str], optional): The content to print when processing the input data. Defaults to None.
         use_tqdm (bool, optional): Determine whether to use tqdm when printing. Defaults to False.
-    """    
+    """
+
     def _check_valid(inputs):
         if len(inputs) == 0:
             return
