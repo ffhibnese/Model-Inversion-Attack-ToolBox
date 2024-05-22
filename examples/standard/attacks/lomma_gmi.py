@@ -173,7 +173,7 @@ if __name__ == '__main__':
 
     for aug_model in [aug_model_0, aug_model_1, aug_model_2]:
         aug_loss_fn = ImageAugmentClassificationLoss(
-            classifier=target_model, loss_fn='nll_loss', create_aug_images_fn=None
+            classifier=aug_model, loss_fn='nll_loss', create_aug_images_fn=None
         )
         loss_fns.append(aug_loss_fn)
 
