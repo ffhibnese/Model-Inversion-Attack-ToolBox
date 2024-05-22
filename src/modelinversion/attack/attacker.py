@@ -32,7 +32,10 @@ def label_dict_to_pairs(label_dict: Dict[int, Tensor | list[int]]):
     labels = []
     for target, latents in label_dict.items():
         if not isinstance(latents, Tensor):
-            latents = torch.Tensor(latents)
+            if isinstance(latents[0], int):
+                latents = LongTensor(latents)
+            else:
+                latents = Tensor(latents)
         tensors.append(latents)
         labels += [target] * len(latents)
 

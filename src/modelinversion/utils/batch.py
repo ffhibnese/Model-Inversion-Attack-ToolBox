@@ -1,4 +1,5 @@
 from typing import Callable, Optional
+from functools import reduce
 
 import torch
 from tqdm import tqdm
@@ -26,8 +27,8 @@ def _gather(outputs, dim=0):
         out = outputs[0]
         if isinstance(out, torch.Tensor):
             return torch.cat(outputs, dim=dim)
-        if isinstance(out, str):
-            return outputs
+        if isinstance(out, (list, tuple)) and isinstance(out[0], str):
+            return list(reduce(lambda x, y: x + y, outputs))
         if out is None:
             return None
         if isinstance(out, BaseOutput):
