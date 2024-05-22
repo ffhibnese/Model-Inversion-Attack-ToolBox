@@ -436,31 +436,31 @@ class ImageClassifierAttacker(ABC):
                     final_label_indices_dict
                 )
 
-                if optimized_output.latents is not None:
-                    assert final_indices.ndim == 1
-                    final_latents = optimized_output.latents[final_indices]
+            if optimized_output.latents is not None:
+                assert final_indices.ndim == 1
+                final_latents = optimized_output.latents[final_indices]
 
-                    save_dir = os.path.join(self.final_save_dir, 'cache')
-                    os.makedirs(save_dir, exist_ok=True)
+                save_dir = os.path.join(self.final_save_dir, 'cache')
+                os.makedirs(save_dir, exist_ok=True)
 
-                    np.save(
-                        os.path.join(save_dir, f'latents.npy'),
-                        final_latents.numpy(),
-                    )
-                    np.save(
-                        os.path.join(save_dir, f'labels.npy'),
-                        final_labels.numpy(),
-                    )
+                np.save(
+                    os.path.join(save_dir, f'latents.npy'),
+                    final_latents.numpy(),
+                )
+                np.save(
+                    os.path.join(save_dir, f'labels.npy'),
+                    final_labels.numpy(),
+                )
 
-                if config.eval_final_result:
-                    print('evaluate final result')
-                    final_features = [
-                        features[final_indices]
-                        for features in optimized_output.metric_features
-                    ]
-                    self._evaluation(
-                        final_features, final_labels, 'final', self.final_save_dir
-                    )
+            if config.eval_final_result:
+                print('evaluate final result')
+                final_features = [
+                    features[final_indices]
+                    for features in optimized_output.metric_features
+                ]
+                self._evaluation(
+                    final_features, final_labels, 'final', self.final_save_dir
+                )
 
     def save_selection_images(
         self, indices_dict: dict[int, list[str]], filenames: list[str]
