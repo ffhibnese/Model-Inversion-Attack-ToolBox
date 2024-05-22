@@ -435,7 +435,7 @@ class ImageClassifierAttacker(ABC):
                     final_label_indices_dict, optimized_output.filenames
                 )
 
-                final_labels, final_indices = label_dict_to_pairs(
+                final_indices, final_labels = label_dict_to_pairs(
                     final_label_indices_dict
                 )
 
