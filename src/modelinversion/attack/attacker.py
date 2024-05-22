@@ -435,9 +435,7 @@ class ImageClassifierAttacker(ABC):
                     final_label_indices_dict, optimized_output.filenames
                 )
 
-                final_indices, final_labels = label_dict_to_pairs(
-                    final_label_indices_dict
-                )
+            final_indices, final_labels = label_dict_to_pairs(final_label_indices_dict)
 
             if optimized_output.latents is not None:
                 assert final_indices.ndim == 1
