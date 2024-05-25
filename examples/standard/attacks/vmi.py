@@ -126,5 +126,9 @@ if __name__ == '__main__':
         batch_size=sample_batch_size,
         generator=generator,
         k=z_dim,
-        l=num_ws
+        l=num_ws,
+        flow_permutation=permute,
+        flow_K=K,
+        flow_glow=glow,
+        
     )
