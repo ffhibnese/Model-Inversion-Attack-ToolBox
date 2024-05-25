@@ -476,3 +476,57 @@ class ImageClassifierAttacker(ABC):
                 dst_path = os.path.join(dst_dir, filename)
                 if os.path.exists(src_path):
                     shutil.copy(src_path, dst_path)
+
+    def evaluate_from_pre_generate(
+        self,
+        generator: BaseImageGenerator,
+        select_classes: Optional[list[int]] = None,
+        description: str = 'alteval',
+        device: torch.device = 'cpu',
+    ):
+        config = self.config
+        for foldername in os.listdir(config.save_dir):
+            folder = os.path.join(config.save_dir, foldername)
+            cache_folder = os.path.join(folder, 'cache')
+            if not os.path.isdir(cache_folder):
+                continue
+            labels_file = os.path.join(cache_folder, 'labels.npy')
+            latents_file = os.path.join(cache_folder, 'latents.npy')
+
+            if not os.path.exists(labels_file) or not os.path.exists(latents_file):
+                continue
+
+            print_split_line(foldername)
+
+            labels = torch.from_numpy(np.load(labels_file)).long()
+            latents = torch.from_numpy(np.load(latents_file))
+
+            if select_classes is not None:
+                select_indices = torch.zeros_like(labels, dtype=torch.bool)
+                for target in select_classes:
+                    select_indices |= labels == target
+                labels = labels[select_indices]
+                latents = latents[select_indices]
+
+            print(len(labels))
+
+            def _batch_get_features(latents, labels):
+                images = generator(latents.to(device), labels=labels.to(device)).cpu()
+                return [
+                    metric.get_features(images, labels)
+                    for metric in config.eval_metrics
+                ]
+
+            metric_features = batch_apply(
+                _batch_get_features,
+                latents,
+                labels,
+                batch_size=config.optimize_batch_size,
+            )
+
+            self._evaluation(
+                metric_features,
+                labels,
+                description=f'{foldername}_{description}',
+                save_dir=f'{folder}_{description}',
+            )
