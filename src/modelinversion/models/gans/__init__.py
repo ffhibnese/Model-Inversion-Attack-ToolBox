@@ -28,4 +28,8 @@ from .cgan import (
     LoktGenerator64,
     LoktGenerator256,
 )
-from .stylegan2ada import get_stylegan2ada_generator
+from .stylegan2ada import (
+    get_stylegan2ada_generator,
+    StyleGan2adaMappingWrapper,
+    StyleGAN2adaSynthesisWrapper,
+)

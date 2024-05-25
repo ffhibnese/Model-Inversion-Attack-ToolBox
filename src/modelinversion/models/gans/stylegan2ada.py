@@ -28,6 +28,8 @@ class StyleGan2adaMappingWrapper(nn.Module):
         self.truncation_psi = truncation_psi
         self.truncation_cutoff = truncation_cutoff
         self.w_dim = mapping.w_dim
+        self.z_dim = mapping.z_dim
+        self.num_ws = mapping.num_ws
 
     def forward(self, z):
         w = self.mapping(

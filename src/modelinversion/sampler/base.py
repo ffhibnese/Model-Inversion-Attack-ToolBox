@@ -5,7 +5,12 @@ from typing import Callable, Optional, Iterable, Sequence
 import torch
 from torch import Tensor, LongTensor
 
-from ..models import BaseImageGenerator, BaseImageClassifier
+from ..models import (
+    BaseImageGenerator,
+    BaseImageClassifier,
+    StyleGAN2adaSynthesisWrapper,
+)
+from .flow import MixtureOfGMM, LayeredMineGAN, LayeredFlowMiner
 from ..utils import batch_apply
 
 
@@ -19,7 +24,7 @@ class BaseLatentsSampler(ABC):
         Args:
             labels (list[int]): The labels where latent vectors are sampled.
             sample_num (int): The number of latent vectors sampled.
-        """             
+        """
         pass
 
 
@@ -137,3 +142,113 @@ class ImageAugmentSelectLatentsSampler(SimpleLatentsSampler):
             _, indices = torch.topk(scores_label, k=sample_num)
             results[label] = latents[indices].detach().cpu()
         return results
+
+
+def num_range(s: str) -> list[int]:
+    '''Accept either a comma separated list of numbers 'a,b,c' or a range 'a-c' and return as a list of ints.'''
+    import re
+
+    range_re = re.compile(r'^(\d+)-(\d+)$')
+    m = range_re.match(s)
+    if m:
+        return list(range(int(m.group(1)), int(m.group(2)) + 1))
+    vals = s.split(',')
+    return [int(x) for x in vals]
+
+
+class GaussianMixtureLatentsSampler(SimpleLatentsSampler):
+
+    def __init__(
+        self,
+        input_size: int | Sequence[int],
+        batch_size: int,
+        generator: BaseImageGenerator,
+        k: int,
+        n_components: int,
+        l: int,
+        l_identity: str,
+        device: torch.device,
+        latents_mapping: Optional[Callable] = None,
+    ) -> None:
+        """
+        input
+                k: num dim
+                l: num component
+        """
+        super().__init__(input_size, batch_size, latents_mapping)
+        self.miner = MixtureOfGMM(k, n_components, l).to(device).double()
+        self.minegan_Gmapping = LayeredMineGAN(self.miner, self.latents_mapping)
+        self.l_identity = num_range(l_identity)
+        self.device = device
+        self.generator = generator
+
+        self.identity_mask = torch.zeros(1, l, 1).to(device)
+        self.identity_mask[:, self.l_identity, :] = 1
+
+    def __call__(self, labels: list[int], sample_num: int):
+        size = self.get_batch_latent_size(sample_num)
+
+        z_nuisance = torch.randn(size).to(self.device).double()
+        z_identity = torch.randn(size).to(self.device).double()
+        w_nuisance = self.latents_mapping(z_nuisance, None)
+        w_identity = self.minegan_Gmapping(z_identity)
+        w = (1 - self.identity_mask) * w_nuisance + self.identity_mask * w_identity
+        return {label: w.detach().clone() for label in labels}
+
+
+class LayeredFlowLatentsSampler(SimpleLatentsSampler):
+
+    def __init__(
+        self,
+        input_size: int | Sequence[int],
+        batch_size: int,
+        generator: BaseImageGenerator,
+        k: int,
+        l: int,
+        flow_permutation: str,
+        flow_K: int,
+        flow_glow: bool,
+        flow_coupling: str,
+        flow_L: int,
+        flow_use_actnorm: bool,
+        l_identity: str,
+        device: torch.device,
+        latents_mapping: Optional[Callable] = None,
+    ) -> None:
+        """
+        input
+                k: num dim
+                l: num component
+        """
+        super().__init__(input_size, batch_size, latents_mapping)
+        self.miner = (
+            LayeredFlowMiner(
+                k,
+                l,
+                flow_permutation,
+                flow_K,
+                flow_glow,
+                flow_coupling,
+                flow_L,
+                flow_use_actnorm,
+            )
+            .to(device)
+            .double()
+        )
+        self.minegan_Gmapping = LayeredMineGAN(self.miner, self.latents_mapping)
+        self.l_identity = num_range(l_identity)
+        self.device = device
+        self.generator = generator
+
+        self.identity_mask = torch.zeros(1, l, 1).to(device)
+        self.identity_mask[:, self.l_identity, :] = 1
+
+    def __call__(self, labels: list[int], sample_num: int):
+        size = self.get_batch_latent_size(sample_num)
+
+        z_nuisance = torch.randn(size).to(self.device).double()
+        z_identity = torch.randn(size).to(self.device).double()
+        w_nuisance = self.latents_mapping(z_nuisance, None)
+        w_identity = self.minegan_Gmapping(z_identity)
+        w = (1 - self.identity_mask) * w_nuisance + self.identity_mask * w_identity
+        return {label: w.detach().clone() for label in labels}
