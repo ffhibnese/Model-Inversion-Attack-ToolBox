@@ -125,6 +125,8 @@ class GeneticOptimizationConfig(BaseImageOptimizationConfig):
     latent_constraint: BaseConstraint = None
     noise_apply_fn: Callable[[Tensor, Tensor], Tensor] = default_noise_apply_fn
 
+    final_num: int = 5
+
 
 class GeneticOptimization(BaseImageOptimization):
 
@@ -197,8 +199,12 @@ class GeneticOptimization(BaseImageOptimization):
             for _ in tqdm(range(config.iter_times)):
                 agent.step()
 
-            result_labels.append(target_labels)
-            result_latents.append(agent.populations)
+            result_labels.append(target_labels[: config.final_num])
+            agent._compute_scores()
+
+            _, use_indices = torch.topk(agent.scores, config.final_num)
+
+            result_latents.append(agent.populations[use_indices])
 
         result_labels = torch.cat(result_labels, dim=0)
         result_latents = torch.cat(result_latents, dim=0)
