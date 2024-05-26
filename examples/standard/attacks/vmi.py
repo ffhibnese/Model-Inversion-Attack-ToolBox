@@ -195,4 +195,22 @@ if __name__ == '__main__':
         transform=None,
     )
     
-    
+    # prepare attack
+
+    attack_config = ImageClassifierAttackConfig(
+        latent_sampler,
+        optimize_num=optimize_num,
+        optimize_batch_size=optimize_batch_size,
+        optimize_fn=optimization_fn,
+        save_dir=experiment_dir,
+        save_optimized_images=True,
+        save_final_images=False,
+        save_kwargs={'normalize': True},
+        eval_metrics=[accuracy_metric, distance_metric, fid_prdc_metric],
+        eval_optimized_result=False,
+        eval_final_result=True,
+    )
+
+    attacker = ImageClassifierAttacker(attack_config)
+
+    attacker.attack(attack_targets)
