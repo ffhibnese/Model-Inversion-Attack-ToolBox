@@ -21,6 +21,8 @@ from ..models import (
     HOOK_NAME_FEATURE,
 )
 
+from ..sampler import LayeredFlowMiner, MixtureOfGMM
+
 
 class BaseImageLoss(ABC):
 
@@ -182,6 +184,115 @@ class KedmiDiscriminatorLoss(BaseImageLoss):
 
     def __repr__(self) -> str:
         return 'kedmi discriminator loss'
+
+
+class VmiLoss(BaseImageLoss):
+
+    def __init__(
+        self,
+        classifier: BaseImageClassifier,
+        miner: nn.Module,
+        batch_size: int,
+        device: torch.device,
+        lambda_attack: float = 1,
+        lambda_miner_entropy: float = 0,
+        lambda_kl: float = 1e-3,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.lambda_attack = lambda_attack
+        self.lambda_miner_entropy = lambda_miner_entropy
+        self.lambda_kl = lambda_kl
+        self.classifier = classifier
+        self.miner = miner
+        self.batch_size = (batch_size,)
+        self.device = device
+
+    def extract_feat(self, x, mb=100):
+        assert x.min() >= 0  # in case passing in x in [-1,1] by accident
+        zs = []
+        C, H, W = x.shape[1:]
+        print(C, H, W)
+        for start in range(0, len(x), mb):
+            _x = x[start : start + mb]
+            zs.append(self.classifier((_x.view(_x.size(0), C, H, W) - 0.5) / 0.5))
+        return torch.cat(zs)
+
+    def attack_criterion(self, lsm, target):
+        true_dist = torch.zeros_like(lsm)
+        true_dist.fill_(0)
+        true_dist.scatter_(1, target.data.unsqueeze(1), 1.0)
+        return torch.mean(torch.sum(-true_dist * lsm, dim=-1))
+
+    def gaussian_logp(self, mean, logstd, x, detach=False):
+        """
+        lnL = -1/2 * { ln|Var| + ((X - Mu)^T)(Var^-1)(X - Mu) + kln(2*PI) }
+                k = 1 (Independent)
+                Var = logstd ** 2
+        """
+        import numpy as np
+
+        c = np.log(2 * np.pi)
+        v = -0.5 * (logstd * 2.0 + ((x - mean) ** 2) / torch.exp(logstd * 2.0) + c)
+        if detach:
+            v = v.detach()
+        return v
+
+    def __call__(self, images: Tensor, labels: LongTensor, *args, **kwargs):
+        lsm = self.extract_feat(images / 2 + 0.5)
+        loss_attack = 0
+        return_dict = OrderedDict()
+        if self.lambda_attack > 0:
+            loss_attack = self.attack_criterion(lsm, labels)
+            return_dict['attack loss'] = loss_attack.item()
+
+        loss_miner_entropy = 0
+        if self.lambda_miner_entropy > 0:
+            loss_miner_entropy = -self.miner.entropy()
+            return_dict['miner_entropy loss'] = loss_miner_entropy.item()
+
+        loss_kl = 0
+        if self.lambda_kl > 0:
+            if isinstance(self.miner, MixtureOfGMM):
+                for gmm in self.miner.gmms:
+                    samples = gmm(
+                        torch.randn(self.batchSize, gmm.nz0).to(self.device).double()
+                    )
+                    loss_kl += torch.mean(
+                        gmm.logp(samples)
+                        - self.gaussian_logp(
+                            torch.zeros_like(samples),
+                            torch.zeros_like(samples),
+                            samples,
+                        ).sum(-1)
+                    )
+                loss_kl /= len(self.miner.gmms)
+            elif isinstance(self.miner, LayeredFlowMiner):
+                # 1/L * \sum_l KL(Flow_l || N(0,1))
+                for flow in self.miner.flow_miners:
+                    samples = flow(
+                        torch.randn(self.batchSize, flow.nz0).to(self.device).double()
+                    )
+                    loss_kl += torch.mean(
+                        flow.logp(samples)
+                        - self.gaussian_logp(
+                            torch.zeros_like(samples),
+                            torch.zeros_like(samples),
+                            samples,
+                        ).sum(-1)
+                    )
+                loss_kl /= len(self.miner.flow_miners)
+            return_dict['kl loss'] = loss_kl.item()
+
+        loss = (self.lambda_attack * loss_attack
+                    + self.lambda_miner_entropy * loss_miner_entropy
+                    + self.lambda_kl * loss_kl)
+        return_dict['loss'] = loss.item()
+        return loss, return_dict
+
+    def __repr__(self) -> str:
+        return 'vmi loss'
 
 
 class ComposeImageLoss(BaseImageLoss):

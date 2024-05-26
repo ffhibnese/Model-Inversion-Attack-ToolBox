@@ -3,6 +3,8 @@ from .base import (
     SimpleLatentsSampler,
     ImageAugmentSelectLatentsSampler,
     GaussianMixtureLatentsSampler,
-    LayeredFlowLatentsSampler
+    LayeredFlowLatentsSampler,
 )
 from .labelonly import LabelOnlySelectLatentsSampler
+
+from .flow import LayeredFlowMiner, MixtureOfGMM

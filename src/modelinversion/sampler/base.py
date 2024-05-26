@@ -189,16 +189,19 @@ class GaussianMixtureLatentsSampler(SimpleLatentsSampler):
     def __call__(self, labels: list[int], sample_num: int):
         size = self.get_batch_latent_size(sample_num)
 
-        z_nuisance = torch.randn(size).to(self.device).double()
-        z_identity = torch.randn(size).to(self.device).double()
-        w_nuisance = batch_apply(
-            self.latents_mapping, z_nuisance, batch_size=self.batch_size
-        )
-        w_identity = batch_apply(
-            self.minegan_Gmapping, z_identity, batch_size=self.batch_size
-        )
-        w = (1 - self.identity_mask) * w_nuisance + self.identity_mask * w_identity
-        return {label: w.detach().clone() for label in labels}
+        results = {}
+        for label in labels:
+            z_nuisance = torch.randn(size).to(self.device).double()
+            z_identity = torch.randn(size).to(self.device).double()
+            w_nuisance = batch_apply(
+                self.latents_mapping, z_nuisance, batch_size=self.batch_size
+            )
+            w_identity = batch_apply(
+                self.minegan_Gmapping, z_identity, batch_size=self.batch_size
+            )            
+            w = (1 - self.identity_mask) * w_nuisance + self.identity_mask * w_identity
+            results[label] = w.detach().clone()
+        return results
 
 
 class LayeredFlowLatentsSampler(SimpleLatentsSampler):
@@ -252,13 +255,16 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
     def __call__(self, labels: list[int], sample_num: int):
         size = self.get_batch_latent_size(sample_num)
 
-        z_nuisance = torch.randn(size).to(self.device).double()
-        z_identity = torch.randn(size).to(self.device).double()
-        w_nuisance = batch_apply(
-            self.latents_mapping, z_nuisance, batch_size=self.batch_size
-        )
-        w_identity = batch_apply(
-            self.minegan_Gmapping, z_identity, batch_size=self.batch_size
-        )            
-        w = (1 - self.identity_mask) * w_nuisance + self.identity_mask * w_identity
-        return {label: w.detach().clone() for label in labels}
+        results = {}
+        for label in labels:
+            z_nuisance = torch.randn(size).to(self.device).double()
+            z_identity = torch.randn(size).to(self.device).double()
+            w_nuisance = batch_apply(
+                self.latents_mapping, z_nuisance, batch_size=self.batch_size
+            )
+            w_identity = batch_apply(
+                self.minegan_Gmapping, z_identity, batch_size=self.batch_size
+            )            
+            w = (1 - self.identity_mask) * w_nuisance + self.identity_mask * w_identity
+            results[label] = w.detach().clone()
+        return results

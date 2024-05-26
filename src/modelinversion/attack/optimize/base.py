@@ -304,6 +304,7 @@ class MinerWhiteBoxOptimizationConfig(SimpleWhiteBoxOptimizationConfig):
     generate_num: int = 50
     batch_size: int = 64
 
+
 class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
 
     def __init__(
@@ -317,17 +318,17 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
         super().__init__(config, generator, image_loss_fn)
 
     def __call__(
-        self, minor: nn.Module, labels: LongTensor
+        self, miner: nn.Module, labels: LongTensor
     ) -> Tuple[Tensor | LongTensor]:
         config: MinerWhiteBoxOptimization = self.config
         sampler: BaseLatentsSampler = config.sampler
         bs = config.batch_size
 
         labels = labels.to(config.device)
-        minor.train()
+        miner.train()
 
         optimizer: Optimizer = self.optimizer_class(
-            minor.parameters(), **config.optimizer_kwargs
+            miner.parameters(), **config.optimizer_kwargs
         )
 
         bar = tqdm(range(1, config.iter_times + 1), leave=False)
@@ -362,7 +363,9 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
         with torch.no_grad():
             for _ in range(config.generate_num):
                 latents = sampler(labels, config.generate_num)
-                fake = self.generator(latents, labels=labels).clamp(-1, 1).detach().cpu()
+                fake = (
+                    self.generator(latents, labels=labels).clamp(-1, 1).detach().cpu()
+                )
                 final_latents.append(latents.detach().cpu())
                 final_fake.append(fake)
                 final_labels.append(labels.detach().cpu())
