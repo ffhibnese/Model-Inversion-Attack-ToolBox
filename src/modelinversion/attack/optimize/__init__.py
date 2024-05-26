@@ -7,6 +7,8 @@ from .base import (
     ImageAugmentWhiteBoxOptimizationConfig,
     VarienceWhiteboxOptimization,
     VarienceWhiteboxOptimizationConfig,
+    MinerWhiteBoxOptimization,
+    MinerWhiteBoxOptimizationConfig,
     BrepOptimization,
     BrepOptimizationConfig,
 )

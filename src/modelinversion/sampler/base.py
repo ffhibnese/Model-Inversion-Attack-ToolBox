@@ -176,6 +176,7 @@ class GaussianMixtureLatentsSampler(SimpleLatentsSampler):
                 l: num component
         """
         super().__init__(input_size, batch_size, latents_mapping)
+        assert latents_mapping != None
         self.miner = MixtureOfGMM(k, n_components, l).to(device).double()
         self.minegan_Gmapping = LayeredMineGAN(self.miner, self.latents_mapping)
         self.l_identity = num_range(l_identity)
@@ -190,15 +191,12 @@ class GaussianMixtureLatentsSampler(SimpleLatentsSampler):
 
         z_nuisance = torch.randn(size).to(self.device).double()
         z_identity = torch.randn(size).to(self.device).double()
-        w_nuisance = z_nuisance
-        w_identity = z_identity
-        if self.latents_mapping is not None:
-            w_nuisance = batch_apply(
-                self.latents_mapping, z_nuisance, batch_size=self.batch_size
-            )
-            w_identity = batch_apply(
-                self.minegan_Gmapping, z_identity, batch_size=self.batch_size
-            )
+        w_nuisance = batch_apply(
+            self.latents_mapping, z_nuisance, batch_size=self.batch_size
+        )
+        w_identity = batch_apply(
+            self.minegan_Gmapping, z_identity, batch_size=self.batch_size
+        )
         w = (1 - self.identity_mask) * w_nuisance + self.identity_mask * w_identity
         return {label: w.detach().clone() for label in labels}
 
@@ -228,6 +226,7 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
                 l: num component
         """
         super().__init__(input_size, batch_size, latents_mapping)
+        assert latents_mapping != None
         self.miner = (
             LayeredFlowMiner(
                 k,
@@ -255,14 +254,11 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
 
         z_nuisance = torch.randn(size).to(self.device).double()
         z_identity = torch.randn(size).to(self.device).double()
-        w_nuisance = z_nuisance
-        w_identity = z_identity
-        if self.latents_mapping is not None:
-            w_nuisance = batch_apply(
-                self.latents_mapping, z_nuisance, batch_size=self.batch_size
-            )
-            w_identity = batch_apply(
-                self.minegan_Gmapping, z_identity, batch_size=self.batch_size
-            )
+        w_nuisance = batch_apply(
+            self.latents_mapping, z_nuisance, batch_size=self.batch_size
+        )
+        w_identity = batch_apply(
+            self.minegan_Gmapping, z_identity, batch_size=self.batch_size
+        )            
         w = (1 - self.identity_mask) * w_nuisance + self.identity_mask * w_identity
         return {label: w.detach().clone() for label in labels}

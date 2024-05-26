@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Tuple, Callable, Optional, Iterable
 
 import torch
+import torch.nn as nn
 from torch import Tensor, LongTensor
 from torch.optim import Optimizer, Adam
 from tqdm import tqdm
@@ -19,6 +20,7 @@ from ...utils import (
 )
 from ...models import BaseImageClassifier, BaseImageGenerator
 from ...scores import BaseLatentScore
+from ...sampler import BaseLatentsSampler
 
 
 def get_info_description(it: int, info: OrderedDict):
@@ -283,6 +285,85 @@ class VarienceWhiteboxOptimization(SimpleWhiteBoxOptimization):
                 z = self._reparameterize(mu, logvar)
                 fake = self.generator(z, labels=labels).detach().cpu()
                 final_latents.append(z.detach().cpu())
+                final_fake.append(fake)
+                final_labels.append(labels.detach().cpu())
+            final_fake = torch.cat(final_fake, dim=0)
+            final_labels = torch.cat(final_labels, dim=0)
+            final_latents = torch.cat(final_latents, dim=0)
+
+        return ImageOptimizationOutput(
+            images=final_fake,
+            labels=final_labels,
+            latents=final_latents,
+        )
+
+
+@dataclass
+class MinerWhiteBoxOptimizationConfig(SimpleWhiteBoxOptimizationConfig):
+    sampler: BaseLatentsSampler = None
+    generate_num: int = 50
+    batch_size: int = 64
+
+class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
+
+    def __init__(
+        self,
+        config: MinerWhiteBoxOptimizationConfig,
+        generator: BaseImageGenerator,
+        image_loss_fn: Callable[
+            [Tensor, LongTensor], Tensor | Tuple[Tensor, OrderedDict]
+        ],
+    ) -> None:
+        super().__init__(config, generator, image_loss_fn)
+
+    def __call__(
+        self, minor: nn.Module, labels: LongTensor
+    ) -> Tuple[Tensor | LongTensor]:
+        config: MinerWhiteBoxOptimization = self.config
+        sampler: BaseLatentsSampler = config.sampler
+        bs = config.batch_size
+
+        labels = labels.to(config.device)
+        minor.train()
+
+        optimizer: Optimizer = self.optimizer_class(
+            minor.parameters(), **config.optimizer_kwargs
+        )
+
+        bar = tqdm(range(1, config.iter_times + 1), leave=False)
+        for i in bar:
+            optimizer.zero_grad()
+
+            description = None
+
+            latents = sampler(labels, bs)
+            fake = self.generator(latents, labels=labels).clamp(-1, 1)
+
+            loss = self.image_loss_fn(fake, labels)
+            if isinstance(loss, tuple):
+                loss, metric_dict = loss
+                if i == 1 or i % config.show_loss_info_iters == 0:
+                    description = get_info_description(i, metric_dict)
+                    bar.write(description)
+                if i == config.iter_times:
+                    description = get_info_description(i, metric_dict)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        if description is not None:
+            bar.write(description)
+
+        final_latents = []
+        final_fake = []
+        final_labels = []
+
+        with torch.no_grad():
+            for _ in range(config.generate_num):
+                latents = sampler(labels, config.generate_num)
+                fake = self.generator(latents, labels=labels).clamp(-1, 1).detach().cpu()
+                final_latents.append(latents.detach().cpu())
                 final_fake.append(fake)
                 final_labels.append(labels.detach().cpu())
             final_fake = torch.cat(final_fake, dim=0)

@@ -11,6 +11,8 @@ from .optimize import (
     VarienceWhiteboxOptimizationConfig,
     BrepOptimization,
     BrepOptimizationConfig,
+    MinerWhiteBoxOptimization,
+    MinerWhiteBoxOptimizationConfig,
     RlbOptimization,
     RlbOptimizationConfig,
     GeneticOptimizationConfig,
