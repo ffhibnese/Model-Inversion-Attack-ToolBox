@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils import torch_mvn_logp
 import numpy as np
 from .model import Glow
 

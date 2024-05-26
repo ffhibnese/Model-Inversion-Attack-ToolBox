@@ -46,16 +46,16 @@ from modelinversion.metrics import (
 
 if __name__ == '__main__':
 
-    device_ids_available = '2,3'
+    device_ids_available = '5'
     num_classes = 1000
 
-    experiment_dir = '<fill it>'
+    experiment_dir = '/data/qyx/Model-Inversion-Attack-ToolBox/test/vmi'
     """Download stylegan2-ada from https://github.com/NVlabs/stylegan2-ada-pytorch and record the file path as 'stylegan2ada_path' 
     """
-    stylegan2ada_path = '<fill it>'
-    stylegan2ada_ckpt_path = '<fill it>'
+    stylegan2ada_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/stylegan2_ada'
+    stylegan2ada_ckpt_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/neurips2021-celeba-stylegan/network-snapshot-002298.pkl'
     target_model_name = 'resnet34'
-    target_model_ckpt_path = '<fill it>'
+    target_model_ckpt_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/neurips2021-celeba-cls/best_ckpt.pt'
     eval_model_name = 'ir_se'
     eval_model_ckpt_path = '<fill it>'
     eval_dataset_path = '<fill it>'
@@ -69,6 +69,7 @@ if __name__ == '__main__':
     coupling = 'additive'
     L = 3
     use_actnorm = True
+    l_identity = '0-9'
 
     # prepare logger
 
@@ -130,5 +131,12 @@ if __name__ == '__main__':
         flow_permutation=permute,
         flow_K=K,
         flow_glow=glow,
-        
+        flow_coupling=coupling,
+        flow_L=L,
+        flow_use_actnorm=use_actnorm,
+        l_identity=l_identity,
+        device=device,
+        latents_mapping=mapping
     )
+    
+    print(latent_sampler(attack_targets, sample_num=64))
