@@ -31,8 +31,8 @@ from modelinversion.utils import (
     Logger,
 )
 from modelinversion.attack import (
-    ImageAugmentWhiteBoxOptimizationConfig,
-    ImageAugmentWhiteBoxOptimization,
+    MinerWhiteBoxOptimizationConfig,
+    MinerWhiteBoxOptimization,
     ImageClassifierAttackConfig,
     ImageClassifierAttacker,
 )
@@ -54,11 +54,11 @@ if __name__ == '__main__':
     """
     stylegan2ada_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/stylegan2_ada'
     stylegan2ada_ckpt_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/neurips2021-celeba-stylegan/network-snapshot-002298.pkl'
-    target_model_name = 'resnet34'
-    target_model_ckpt_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/neurips2021-celeba-cls/best_ckpt.pt'
-    eval_model_name = 'ir_se'
-    eval_model_ckpt_path = '<fill it>'
-    eval_dataset_path = '<fill it>'
+    target_model_name = 'ir152_64'
+    target_model_ckpt_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba64/celeba64_ir152_93.71.pth'
+    eval_model_name = 'facenet112'
+    eval_model_ckpt_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba112/celeba112_facenet112_95.88.pth'
+    eval_dataset_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba/private_train'
     attack_targets = list(range(100))
 
     # prepare flow params
@@ -139,4 +139,18 @@ if __name__ == '__main__':
         latents_mapping=mapping
     )
     
-    print(latent_sampler(attack_targets, sample_num=64))
+    # prepare optimization
+    
+    optimization_config = MinerWhiteBoxOptimizationConfig(
+        experiment_dir=experiment_dir,
+        device=device,
+        optimizer='SGD',
+        optimizer_kwargs={'lr': 1e-4, 'momentum':0.9, 'weight_decay': 0},
+        iter_times=150,
+        show_loss_info_iters=10,
+        sampler=latent_sampler
+    )
+
+    optimization_fn = MinerWhiteBoxOptimization(
+        optimization_config, generator, target_model
+    )
