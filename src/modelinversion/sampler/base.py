@@ -143,19 +143,6 @@ class ImageAugmentSelectLatentsSampler(SimpleLatentsSampler):
             results[label] = latents[indices].detach().cpu()
         return results
 
-
-def num_range(s: str) -> list[int]:
-    '''Accept either a comma separated list of numbers 'a,b,c' or a range 'a-c' and return as a list of ints.'''
-    import re
-
-    range_re = re.compile(r'^(\d+)-(\d+)$')
-    m = range_re.match(s)
-    if m:
-        return list(range(int(m.group(1)), int(m.group(2)) + 1))
-    vals = s.split(',')
-    return [int(x) for x in vals]
-
-
 class GaussianMixtureLatentsSampler(SimpleLatentsSampler):
 
     def __init__(
@@ -218,7 +205,7 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
         flow_coupling: str,
         flow_L: int,
         flow_use_actnorm: bool,
-        l_identity: str,
+        l_identity: list,
         device: torch.device,
         latents_mapping: Optional[Callable] = None,
     ) -> None:
@@ -244,7 +231,7 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
             .double()
         )
         self.minegan_Gmapping = LayeredMineGAN(self.miner, self.latents_mapping)
-        self.l_identity = num_range(l_identity)
+        self.l_identity = l_identity
         self.device = device
         self.generator = generator
 

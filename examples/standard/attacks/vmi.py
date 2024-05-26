@@ -73,7 +73,7 @@ if __name__ == '__main__':
     coupling = 'additive'
     L = 3
     use_actnorm = True
-    l_identity = '0-9'
+    l_identity = range(9)
 
     # prepare logger
 
