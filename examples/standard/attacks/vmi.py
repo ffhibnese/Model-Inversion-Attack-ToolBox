@@ -35,6 +35,7 @@ from modelinversion.attack import (
     MinerWhiteBoxOptimization,
     ImageClassifierAttackConfig,
     ImageClassifierAttacker,
+    VmiLoss,
 )
 from modelinversion.datasets import CelebA112
 from modelinversion.scores import ImageClassificationAugmentConfidence
@@ -58,11 +59,14 @@ if __name__ == '__main__':
     target_model_ckpt_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba64/celeba64_ir152_93.71.pth'
     eval_model_name = 'facenet112'
     eval_model_ckpt_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba112/celeba112_facenet112_95.88.pth'
-    eval_dataset_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba/private_train'
+    eval_dataset_path = (
+        '/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba/private_train'
+    )
     attack_targets = list(range(100))
 
     # prepare flow params
     sample_batch_size = 16
+    evaluation_batch_size = 50
     permute = 'shuffle'
     K = 10
     glow = True
@@ -136,21 +140,59 @@ if __name__ == '__main__':
         flow_use_actnorm=use_actnorm,
         l_identity=l_identity,
         device=device,
-        latents_mapping=mapping
+        latents_mapping=mapping,
     )
-    
+
     # prepare optimization
-    
+    loss_fn = VmiLoss(
+        classifier=target_model, 
+        miner=latent_sampler.miner,
+        batch_size=sample_batch_size,
+        device=device,
+    )
+
     optimization_config = MinerWhiteBoxOptimizationConfig(
         experiment_dir=experiment_dir,
         device=device,
         optimizer='SGD',
-        optimizer_kwargs={'lr': 1e-4, 'momentum':0.9, 'weight_decay': 0},
+        optimizer_kwargs={'lr': 1e-4, 'momentum': 0.9, 'weight_decay': 0},
         iter_times=150,
         show_loss_info_iters=10,
-        sampler=latent_sampler
+        sampler=latent_sampler,
     )
 
     optimization_fn = MinerWhiteBoxOptimization(
-        optimization_config, generator, target_model
+        optimization_config, generator, image_loss_fn=loss_fn
     )
+
+    # prepare metrics
+
+    accuracy_metric = ImageClassifierAttackAccuracy(
+        evaluation_batch_size,
+        eval_model,
+        device=device,
+        description='evaluation',
+        transform=None,
+    )
+
+    distance_metric = ImageDistanceMetric(
+        evaluation_batch_size,
+        eval_model,
+        eval_dataset,
+        device=device,
+        description='evaluation',
+        save_individual_res_dir=experiment_dir,
+        transform=None,
+    )
+
+    fid_prdc_metric = ImageFidPRDCMetric(
+        evaluation_batch_size,
+        eval_dataset,
+        device=device,
+        save_individual_prdc_dir=experiment_dir,
+        fid=True,
+        prdc=True,
+        transform=None,
+    )
+    
+    
