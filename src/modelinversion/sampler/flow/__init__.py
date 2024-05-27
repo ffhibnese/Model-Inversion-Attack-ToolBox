@@ -27,4 +27,4 @@ class FlowConfig:
     flow_coupling: str = 'additive'
     flow_L: int = 1
     flow_use_actnorm: bool = True
-    l_identity: list = range(9)
+    l_identity: list = range(10)
