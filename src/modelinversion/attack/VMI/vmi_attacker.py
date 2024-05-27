@@ -78,7 +78,7 @@ class VmiTrainer:
         # save miner
         label_path = os.path.join(root_path, str(label))
         safe_save(
-            {'state_dict': sampler.miner.state_dict()},
+            sampler.miner.state_dict(),
             label_path,
             f'{label}_minor_{self.epochs}.pt',
         )
@@ -87,9 +87,9 @@ class VmiTrainer:
         safe_save(
             output.images,
             img_path,
-            f'training_samples_{self.optimize_config.generate_num}_{label}.pt',
+            f'{label}_training_samples_{self.optimize_config.generate_num}.pt',
         )
-        safe_save(output.images[:5], img_path, f'training_samples_{5}_{label}.pt')
+        safe_save(output.images[:5], img_path, f'{label}_training_samples_{5}.pt')
 
     def train_miners(self, cores: int, targets: list[int], root_path: str):
         img_path = os.path.join(root_path, 'samples')
@@ -138,32 +138,54 @@ class VmiAttacker:
             mode='eval',
             path=path,
         )
+    
+    def generate_samples(self, latents, labels):
+        images = self.generator(latents, labels=labels).clamp(-1, 1)
+        metric_features = [
+            metric.get_features(images, labels) for metric in self.metrics
+        ]
+        optimized_filenames = self.save_images(
+            self.experiment_dir,
+            images=images,
+            labels=labels,
+        )
+        return _ImageClassifierAttackerOptimizedOutput(
+            latents=latents,
+            labels=labels,
+            metric_features=metric_features,
+            scores=None,
+            filenames=optimized_filenames,
+        )
 
     def attack(self, targets: list[int]):
         root_path = os.path.join(self.experiment_dir, 'minors')
+        latents = []
+        labels = []
         for label in targets:
             path = os.path.join(
                 root_path, str(label), f'{label}_minor_{self.epochs}.pt'
             )
             sampler = self.trained_flow_sampler(path)
-            latents = sampler(label, self.eval_bs)[label]
-            images = self.generator(latents, labels=labels).clamp(-1, 1)
-            labels = label * torch.ones(self.eval_bs).to(self.device).long()
-            metric_features = [
-                metric.get_features(images, labels) for metric in self.metrics
-            ]
-            optimized_filenames = self.save_images(
+            latents.append(sampler(label, self.eval_bs)[label])
+            labels.append(label * torch.ones(self.eval_bs).to(self.device).long())
+        latents = torch.cat(latents)
+        labels = torch.cat(labels)
+        
+        optimized_output: _ImageClassifierAttackerOptimizedOutput = batch_apply(
+            self.generate_samples,
+            latents,
+            labels,
+            batch_size=self.batch_size,
+            description='Optimized Batch',
+        )
+        
+        self._evaluation(
+                optimized_output.metric_features,
+                optimized_output.labels,
+                'optimized',
                 self.experiment_dir,
-                images=images,
-                labels=labels,
             )
-            return _ImageClassifierAttackerOptimizedOutput(
-                latents=latents,
-                labels=labels,
-                metric_features=metric_features,
-                scores=None,
-                filenames=optimized_filenames,
-            )
+            
 
     def save_images(self, root_dir: str, images: Tensor, labels: LongTensor):
         assert len(images) == len(labels)
@@ -184,3 +206,29 @@ class VmiAttacker:
             save_image(image, save_path, **self.config.save_kwargs)
 
         return all_savenames
+
+    def _evaluation(self, features_list, labels, description, save_dir):
+
+        print_split_line(description)
+
+        result = OrderedDict()
+        df = pd.DataFrame()
+        for features, metric in zip(features_list, self.config.eval_metrics):
+
+            try:
+                for k, v in metric(features, labels).items():
+                    result[k] = v
+                    df[str(k)] = [v]
+                    print_as_yaml({k: v})
+            except Exception as e:
+                print_split_line()
+                print(f'exception metric: {metric.__class__.__name__}')
+                traceback.print_exc()
+                print_split_line()
+
+        print_split_line()
+
+        os.makedirs(save_dir, exist_ok=True)
+        df.to_csv(os.path.join(save_dir, f'evaluation.csv'), index=None)
+
+        return result
