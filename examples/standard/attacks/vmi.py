@@ -1,7 +1,5 @@
 import sys
 import os
-import argparse
-import time
 
 sys.path.append('../../../src')
 
@@ -69,11 +67,6 @@ if __name__ == '__main__':
     sample_batch_size = 16
     evaluation_batch_size = 50
     train_epochs = 30
-
-    # prepare logger
-
-    now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-    logger = Logger(experiment_dir, f'attack_{now_time}.log')
 
     # prepare devices
 
@@ -158,6 +151,8 @@ if __name__ == '__main__':
         loss_weights={'lambda_attack':1.0, 'lambda_miner_entropy':0.0, 'lambda_kl':1e-3},
         optimize_config=optimization_config
     )
+    
+    trainer.train_single_miner(0, experiment_dir, experiment_dir)
 
     # prepare metrics
 
@@ -191,20 +186,20 @@ if __name__ == '__main__':
 
     # prepare attack
 
-    attack_config = ImageClassifierAttackConfig(
-        latent_sampler,
-        optimize_num=optimize_num,
-        optimize_batch_size=optimize_batch_size,
-        optimize_fn=optimization_fn,
-        save_dir=experiment_dir,
-        save_optimized_images=True,
-        save_final_images=False,
-        save_kwargs={'normalize': True},
-        eval_metrics=[accuracy_metric, distance_metric, fid_prdc_metric],
-        eval_optimized_result=False,
-        eval_final_result=True,
-    )
+    # attack_config = ImageClassifierAttackConfig(
+    #     latent_sampler,
+    #     optimize_num=optimize_num,
+    #     optimize_batch_size=optimize_batch_size,
+    #     optimize_fn=optimization_fn,
+    #     save_dir=experiment_dir,
+    #     save_optimized_images=True,
+    #     save_final_images=False,
+    #     save_kwargs={'normalize': True},
+    #     eval_metrics=[accuracy_metric, distance_metric, fid_prdc_metric],
+    #     eval_optimized_result=False,
+    #     eval_final_result=True,
+    # )
 
-    attacker = ImageClassifierAttacker(attack_config)
+    # attacker = ImageClassifierAttacker(attack_config)
 
-    attacker.attack(attack_targets)
+    # attacker.attack(attack_targets)

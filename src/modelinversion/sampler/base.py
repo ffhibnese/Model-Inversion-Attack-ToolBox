@@ -156,7 +156,7 @@ class GaussianMixtureLatentsSampler(SimpleLatentsSampler):
         l: int,
         l_identity: list,
         device: torch.device,
-        latents_mapping: Optional[Callable],
+        latents_mapping: Optional[Callable] = None,
         mode: str = 'eval',
         **kwargs
     ) -> None:

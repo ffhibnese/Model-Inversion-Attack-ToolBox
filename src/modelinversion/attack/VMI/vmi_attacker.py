@@ -1,7 +1,9 @@
 from ..attacker import *
 from ..losses import VmiLoss
+from ...utils import Logger
 from ..optimize import BaseImageOptimizationConfig, MinerWhiteBoxOptimization
 from typing import *
+import time
 
 
 class VmiTrainer:
@@ -17,7 +19,7 @@ class VmiTrainer:
         latents_mapping: Optional[Callable],
         classifier: BaseImageClassifier,
         loss_weights: dict,
-        optimize_config: BaseImageOptimizationConfig
+        optimize_config: BaseImageOptimizationConfig,
     ) -> None:
         self.epochs = epochs
         self.experiment_dir = experiment_dir
@@ -60,14 +62,28 @@ class VmiTrainer:
             config=config, generator=self.generator, image_loss_fn=loss_fn
         )
 
-    def train_single_miner(self, label: int):
+    def train_single_miner(self, label: int, root_path: str, img_path: str):
+        # prepare logger
+        now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
+        logger = Logger(root_path, f'attack_{now_time}.log')
+
         sampler = self.init_flow_sampler()
         loss_fn = self.init_loss_fn(sampler.miner)
         optimization = self.init_optimization(self.optimize_config, loss_fn)
-        labels = label*torch.ones(self.batch_size).to(self.device).long()
-        for epoch in range(self.epochs):
-            optimization(sampler, labels)
         
+        optimizer = None
+        for epoch in range(self.epochs):
+            output, optimizer = optimization(sampler, label, optimizer)
+        
+        # save miner
+        label_path = os.path.join(root_path, str(label))
+        safe_save({'state_dict':sampler.miner.state_dict()}, label_path, f'{label}_minor_{self.epochs}.pt')
+        
+        # save images
+        safe_save(output.images, img_path, f'training_samples_{self.optimize_config.generate_num}_{label}.pt')
+        safe_save(output.images[:5], img_path, f'training_samples_{5}_{label}.pt')
+    
+    
 
 
 class VmiAttacker(ImageClassifierAttacker):

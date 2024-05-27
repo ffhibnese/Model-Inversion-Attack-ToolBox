@@ -204,22 +204,21 @@ class VmiLoss(BaseImageLoss):
         self.lambda_kl = weights['lambda_kl']
         self.classifier = classifier
         self.miner = miner
-        self.batch_size = (batch_size,)
+        self.batch_size = batch_size
         self.device = device
 
     def extract_feat(self, x, mb=100):
         assert x.min() >= 0  # in case passing in x in [-1,1] by accident
         zs = []
         C, H, W = x.shape[1:]
-        print(C, H, W)
         for start in range(0, len(x), mb):
             _x = x[start : start + mb]
-            zs.append(self.classifier((_x.view(_x.size(0), C, H, W) - 0.5) / 0.5))
+            zs.append(self.classifier((_x.view(_x.size(0), C, H, W) - 0.5) / 0.5)[0])
         return torch.cat(zs)
 
     def attack_criterion(self, lsm, target):
         true_dist = torch.zeros_like(lsm)
-        true_dist.fill_(0)
+        true_dist.fill_(0.0)
         true_dist.scatter_(1, target.data.unsqueeze(1), 1.0)
         return torch.mean(torch.sum(-true_dist * lsm, dim=-1))
 
@@ -255,7 +254,7 @@ class VmiLoss(BaseImageLoss):
             if isinstance(self.miner, MixtureOfGMM):
                 for gmm in self.miner.gmms:
                     samples = gmm(
-                        torch.randn(self.batchSize, gmm.nz0).to(self.device).double()
+                        torch.randn(self.batch_size, gmm.nz0).to(self.device).double()
                     )
                     loss_kl += torch.mean(
                         gmm.logp(samples)
@@ -270,7 +269,7 @@ class VmiLoss(BaseImageLoss):
                 # 1/L * \sum_l KL(Flow_l || N(0,1))
                 for flow in self.miner.flow_miners:
                     samples = flow(
-                        torch.randn(self.batchSize, flow.nz0).to(self.device).double()
+                        torch.randn(self.batch_size, flow.nz0).to(self.device).double()
                     )
                     loss_kl += torch.mean(
                         flow.logp(samples)

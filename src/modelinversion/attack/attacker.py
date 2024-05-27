@@ -23,6 +23,7 @@ from ..utils import (
     print_split_line,
     get_random_string,
     BaseOutput,
+    safe_save
 )
 from .optimize import BaseImageOptimization
 
