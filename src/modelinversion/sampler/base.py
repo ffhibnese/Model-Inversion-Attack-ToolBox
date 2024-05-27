@@ -239,7 +239,7 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
         self.device = device
         self.generator = generator
 
-        self.identity_mask = torch.zeros(1, flow_params['l'], 1).to(device)
+        self.identity_mask = torch.zeros(1, flow_params.l, 1).to(device)
         self.identity_mask[:, self.l_identity, :] = 1
 
     def __call__(self, label: int, sample_num: int):

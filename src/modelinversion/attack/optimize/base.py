@@ -361,14 +361,13 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
         final_labels = []
 
         with torch.no_grad():
-            for _ in range(config.generate_num):
-                latents = sampler(labels, config.generate_num)[label]
-                fake = (
-                    self.generator(latents, labels=labels).clamp(-1, 1).detach().cpu()
-                )
-                final_latents.append(latents.detach().cpu())
-                final_fake.append(fake)
-                final_labels.append(labels.detach().cpu())
+            latents = sampler(label, config.generate_num)[label]
+            fake = (
+                self.generator(latents, labels=labels).clamp(-1, 1).detach().cpu()
+            )
+            final_latents.append(latents.detach().cpu())
+            final_fake.append(fake)
+            final_labels.append(labels.detach().cpu())
             final_fake = torch.cat(final_fake, dim=0)
             final_labels = torch.cat(final_labels, dim=0)
             final_latents = torch.cat(final_latents, dim=0)

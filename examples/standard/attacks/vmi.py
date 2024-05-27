@@ -157,7 +157,7 @@ if __name__ == '__main__':
         optimize_config=optimization_config,
     )
 
-    trainer.train_single_miner(0, experiment_dir, experiment_dir)
+    trainer.train_miners(cores=3, targets=attack_targets, root_path=experiment_dir)
 
     # prepare metrics
 
