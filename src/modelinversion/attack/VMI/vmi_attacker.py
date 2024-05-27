@@ -23,6 +23,7 @@ class VmiTrainer:
         classifier: BaseImageClassifier,
         loss_weights: dict,
         optimize_config: BaseImageOptimizationConfig,
+        transform: nn.Module = None
     ) -> None:
         self.epochs = epochs
         self.experiment_dir = experiment_dir
@@ -37,6 +38,7 @@ class VmiTrainer:
         self.classifier = classifier
         self.loss_weights = loss_weights
         self.optimize_config = optimize_config
+        self.transform = transform
 
     def init_flow_sampler(self):
         return LayeredFlowLatentsSampler(
@@ -167,7 +169,7 @@ class VmiAttacker:
             )
             sampler = self.trained_flow_sampler(path)
             latents.append(sampler(label, self.eval_bs)[label])
-            labels.append(label * torch.ones(self.eval_bs))
+            labels.append(label * torch.ones(self.eval_bs).long())
         latents = torch.cat(latents)
         labels = torch.cat(labels)
         
@@ -203,7 +205,7 @@ class VmiAttacker:
             save_name = f'{label}_{random_str}.png'
             all_savenames.append(save_name)
             save_path = os.path.join(save_dir, save_name)
-            save_image(image, save_path, **self.config.save_kwargs)
+            save_image(image, save_path)
 
         return all_savenames
 
@@ -213,7 +215,7 @@ class VmiAttacker:
 
         result = OrderedDict()
         df = pd.DataFrame()
-        for features, metric in zip(features_list, self.config.eval_metrics):
+        for features, metric in zip(features_list, self.metrics):
 
             try:
                 for k, v in metric(features, labels).items():

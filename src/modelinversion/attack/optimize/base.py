@@ -302,6 +302,7 @@ class VarienceWhiteboxOptimization(SimpleWhiteBoxOptimization):
 class MinerWhiteBoxOptimizationConfig(SimpleWhiteBoxOptimizationConfig):
     generate_num: int = 50
     batch_size: int = 64
+    transform: nn.Module = None
 
 
 class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
@@ -339,6 +340,8 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
 
             latents = sampler(label, bs)[label]
             fake = self.generator(latents, labels=labels).clamp(-1, 1)
+            if config.transform is not None:
+                fake = config.transform(fake).clamp(-1, 1)
 
             loss = self.image_loss_fn(fake, labels)
             if isinstance(loss, tuple):
@@ -362,9 +365,9 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
 
         with torch.no_grad():
             latents = sampler(label, config.generate_num)[label]
-            fake = (
-                self.generator(latents, labels=labels).clamp(-1, 1).detach().cpu()
-            )
+            fake = self.generator(latents, labels=labels).clamp(-1, 1).detach().cpu()
+            if config.transform is not None:
+                fake = config.transform(fake).clamp(-1, 1)
             final_latents.append(latents.detach().cpu())
             final_fake.append(fake)
             final_labels.append(labels.detach().cpu())
@@ -372,11 +375,14 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
             final_labels = torch.cat(final_labels, dim=0)
             final_latents = torch.cat(final_latents, dim=0)
 
-        return ImageOptimizationOutput(
-            images=final_fake,
-            labels=final_labels,
-            latents=final_latents,
-        ), optimizer
+        return (
+            ImageOptimizationOutput(
+                images=final_fake,
+                labels=final_labels,
+                latents=final_latents,
+            ),
+            optimizer,
+        )
 
 
 @dataclass

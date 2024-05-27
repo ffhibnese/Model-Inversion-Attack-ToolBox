@@ -120,6 +120,7 @@ if __name__ == '__main__':
     w_dim = mapping.module.w_dim
     z_dim = mapping.module.z_dim
     num_ws = mapping.module.num_ws
+    img_transform = None
 
     # prepare flow params
     flow_params = FlowConfig(
@@ -143,6 +144,7 @@ if __name__ == '__main__':
         iter_times=150,
         show_loss_info_iters=10,
         batch_size=sample_batch_size,
+        transform=img_transform
     )
 
     trainer = VmiTrainer(
@@ -166,13 +168,14 @@ if __name__ == '__main__':
     trainer.train_miners(cores=3, targets=attack_targets, root_path=experiment_dir)
 
     # prepare metrics
+    to_eval_transform = None
 
     accuracy_metric = ImageClassifierAttackAccuracy(
         evaluation_batch_size,
         eval_model,
         device=device,
         description='evaluation',
-        transform=None,
+        transform=to_eval_transform,
     )
 
     distance_metric = ImageDistanceMetric(
@@ -182,7 +185,7 @@ if __name__ == '__main__':
         device=device,
         description='evaluation',
         save_individual_res_dir=experiment_dir,
-        transform=None,
+        transform=to_eval_transform,
     )
 
     fid_prdc_metric = ImageFidPRDCMetric(
@@ -192,7 +195,7 @@ if __name__ == '__main__':
         save_individual_prdc_dir=experiment_dir,
         fid=True,
         prdc=True,
-        transform=None,
+        transform=to_eval_transform,
     )
 
     # prepare attack
