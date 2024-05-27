@@ -167,7 +167,7 @@ class VmiAttacker:
             )
             sampler = self.trained_flow_sampler(path)
             latents.append(sampler(label, self.eval_bs)[label])
-            labels.append(label * torch.ones(self.eval_bs).to(self.device).long())
+            labels.append(label * torch.ones(self.eval_bs))
         latents = torch.cat(latents)
         labels = torch.cat(labels)
         
