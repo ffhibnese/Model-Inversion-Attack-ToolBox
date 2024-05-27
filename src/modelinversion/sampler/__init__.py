@@ -7,4 +7,4 @@ from .base import (
 )
 from .labelonly import LabelOnlySelectLatentsSampler
 
-from .flow import LayeredFlowMiner, MixtureOfGMM
+from .flow import LayeredFlowMiner, MixtureOfGMM, FlowConfig

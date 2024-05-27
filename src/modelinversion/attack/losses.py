@@ -213,7 +213,7 @@ class VmiLoss(BaseImageLoss):
         C, H, W = x.shape[1:]
         for start in range(0, len(x), mb):
             _x = x[start : start + mb]
-            zs.append(self.classifier((_x.view(_x.size(0), C, H, W) - 0.5) / 0.5)[0])
+            zs.append(self.classifier((_x.view(_x.size(0), C, H, W) - 0.5) / 0.5))
         return torch.cat(zs)
 
     def attack_criterion(self, lsm, target):

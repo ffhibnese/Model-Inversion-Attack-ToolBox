@@ -23,6 +23,7 @@ from modelinversion.models import (
 from modelinversion.sampler import (
     LayeredFlowLatentsSampler,
     GaussianMixtureLatentsSampler,
+    FlowConfig,
 )
 from modelinversion.utils import (
     augment_images_fn_generator,
@@ -115,17 +116,17 @@ if __name__ == '__main__':
     num_ws = mapping.module.num_ws
 
     # prepare flow params
-    flow_params = {}
-    flow_params['k'] = z_dim
-    flow_params['l'] = num_ws
-    flow_params['permute'] = 'shuffle'
-    flow_params['K'] = 10
-    flow_params['glow'] = True
-    flow_params['coupling'] = 'additive'
-    flow_params['L'] = 3
-    flow_params['use_actnorm'] = True
-    flow_params['l_identity'] = range(9)
-    
+    flow_params = FlowConfig(
+        k=z_dim,
+        l=num_ws,
+        flow_permutation='shuffle',
+        flow_K=10,
+        flow_glow=True,
+        flow_coupling='additive',
+        flow_L=3,
+        flow_use_actnorm=True,
+    )
+
     # prepare optimization
 
     optimization_config = MinerWhiteBoxOptimizationConfig(
@@ -148,10 +149,14 @@ if __name__ == '__main__':
         device=device,
         latents_mapping=mapping,
         classifier=target_model,
-        loss_weights={'lambda_attack':1.0, 'lambda_miner_entropy':0.0, 'lambda_kl':1e-3},
-        optimize_config=optimization_config
+        loss_weights={
+            'lambda_attack': 1.0,
+            'lambda_miner_entropy': 0.0,
+            'lambda_kl': 1e-3,
+        },
+        optimize_config=optimization_config,
     )
-    
+
     trainer.train_single_miner(0, experiment_dir, experiment_dir)
 
     # prepare metrics

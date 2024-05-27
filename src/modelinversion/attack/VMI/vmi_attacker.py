@@ -2,6 +2,7 @@ from ..attacker import *
 from ..losses import VmiLoss
 from ...utils import Logger
 from ..optimize import BaseImageOptimizationConfig, MinerWhiteBoxOptimization
+from ...sampler import FlowConfig
 from typing import *
 import time
 
@@ -14,7 +15,7 @@ class VmiTrainer:
         input_size: int | Sequence[int],
         batch_size: int,
         generator: BaseImageGenerator,
-        flow_params: dict,
+        flow_params: FlowConfig,
         device: torch.device,
         latents_mapping: Optional[Callable],
         classifier: BaseImageClassifier,

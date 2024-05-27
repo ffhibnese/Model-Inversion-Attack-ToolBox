@@ -362,7 +362,7 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
 
         with torch.no_grad():
             for _ in range(config.generate_num):
-                latents = sampler(labels, config.generate_num)
+                latents = sampler(labels, config.generate_num)[label]
                 fake = (
                     self.generator(latents, labels=labels).clamp(-1, 1).detach().cpu()
                 )

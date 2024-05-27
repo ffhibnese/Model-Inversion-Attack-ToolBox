@@ -10,7 +10,7 @@ from ..models import (
     BaseImageClassifier,
     StyleGAN2adaSynthesisWrapper,
 )
-from .flow import MixtureOfGMM, LayeredMineGAN, LayeredFlowMiner
+from .flow import MixtureOfGMM, LayeredMineGAN, LayeredFlowMiner, FlowConfig
 from ..utils import batch_apply
 
 
@@ -205,7 +205,7 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
         input_size: int | Sequence[int],
         batch_size: int,
         generator: BaseImageGenerator,
-        flow_params: dict,
+        flow_params: FlowConfig,
         device: torch.device,
         latents_mapping: Optional[Callable],
         mode: str = 'eval',
@@ -220,14 +220,14 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
         assert latents_mapping != None
         self.miner = (
             LayeredFlowMiner(
-                flow_params['k'],
-                flow_params['l'],
-                flow_params['permute'],
-                flow_params['K'],
-                flow_params['glow'],
-                flow_params['coupling'],
-                flow_params['L'],
-                flow_params['use_actnorm'],
+                flow_params.k,
+                flow_params.l,
+                flow_params.flow_permutation,
+                flow_params.flow_K,
+                flow_params.flow_glow,
+                flow_params.flow_coupling,
+                flow_params.flow_L,
+                flow_params.flow_use_actnorm,
             )
         )
         if mode == 'eval':
@@ -235,7 +235,7 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
             self.miner.eval()
         self.miner = self.miner.to(device).double()
         self.minegan_Gmapping = LayeredMineGAN(self.miner, self.latents_mapping)
-        self.l_identity = flow_params['l_identity']
+        self.l_identity = flow_params.l_identity
         self.device = device
         self.generator = generator
 
