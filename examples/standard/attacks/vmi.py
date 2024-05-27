@@ -36,6 +36,8 @@ from modelinversion.attack import (
     ImageClassifierAttackConfig,
     ImageClassifierAttacker,
     VmiLoss,
+    VmiTrainer,
+    VmiAttacker,
 )
 from modelinversion.datasets import CelebA112
 from modelinversion.scores import ImageClassificationAugmentConfidence
@@ -47,7 +49,7 @@ from modelinversion.metrics import (
 
 if __name__ == '__main__':
 
-    device_ids_available = '5'
+    device_ids_available = '0'
     num_classes = 1000
 
     experiment_dir = '/data/qyx/Model-Inversion-Attack-ToolBox/test/vmi'
@@ -64,16 +66,9 @@ if __name__ == '__main__':
     )
     attack_targets = list(range(100))
 
-    # prepare flow params
     sample_batch_size = 16
     evaluation_batch_size = 50
-    permute = 'shuffle'
-    K = 10
-    glow = True
-    coupling = 'additive'
-    L = 3
-    use_actnorm = True
-    l_identity = range(9)
+    train_epochs = 30
 
     # prepare logger
 
@@ -126,30 +121,19 @@ if __name__ == '__main__':
     z_dim = mapping.module.z_dim
     num_ws = mapping.module.num_ws
 
-    latent_sampler = LayeredFlowLatentsSampler(
-        input_size=w_dim,
-        batch_size=sample_batch_size,
-        generator=generator,
-        k=z_dim,
-        l=num_ws,
-        flow_permutation=permute,
-        flow_K=K,
-        flow_glow=glow,
-        flow_coupling=coupling,
-        flow_L=L,
-        flow_use_actnorm=use_actnorm,
-        l_identity=l_identity,
-        device=device,
-        latents_mapping=mapping,
-    )
-
+    # prepare flow params
+    flow_params = {}
+    flow_params['k'] = z_dim
+    flow_params['l'] = num_ws
+    flow_params['permute'] = 'shuffle'
+    flow_params['K'] = 10
+    flow_params['glow'] = True
+    flow_params['coupling'] = 'additive'
+    flow_params['L'] = 3
+    flow_params['use_actnorm'] = True
+    flow_params['l_identity'] = range(9)
+    
     # prepare optimization
-    loss_fn = VmiLoss(
-        classifier=target_model, 
-        miner=latent_sampler.miner,
-        batch_size=sample_batch_size,
-        device=device,
-    )
 
     optimization_config = MinerWhiteBoxOptimizationConfig(
         experiment_dir=experiment_dir,
@@ -158,11 +142,21 @@ if __name__ == '__main__':
         optimizer_kwargs={'lr': 1e-4, 'momentum': 0.9, 'weight_decay': 0},
         iter_times=150,
         show_loss_info_iters=10,
-        sampler=latent_sampler,
+        batch_size=sample_batch_size,
     )
 
-    optimization_fn = MinerWhiteBoxOptimization(
-        optimization_config, generator, image_loss_fn=loss_fn
+    trainer = VmiTrainer(
+        epochs=train_epochs,
+        experiment_dir=experiment_dir,
+        input_size=w_dim,
+        batch_size=sample_batch_size,
+        generator=generator,
+        flow_params=flow_params,
+        device=device,
+        latents_mapping=mapping,
+        classifier=target_model,
+        loss_weights={'lambda_attack':1.0, 'lambda_miner_entropy':0.0, 'lambda_kl':1e-3},
+        optimize_config=optimization_config
     )
 
     # prepare metrics
@@ -194,7 +188,7 @@ if __name__ == '__main__':
         prdc=True,
         transform=None,
     )
-    
+
     # prepare attack
 
     attack_config = ImageClassifierAttackConfig(

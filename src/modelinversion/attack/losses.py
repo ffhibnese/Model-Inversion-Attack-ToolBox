@@ -194,16 +194,14 @@ class VmiLoss(BaseImageLoss):
         miner: nn.Module,
         batch_size: int,
         device: torch.device,
-        lambda_attack: float = 1,
-        lambda_miner_entropy: float = 0,
-        lambda_kl: float = 1e-3,
+        weights: dict, 
         *args,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.lambda_attack = lambda_attack
-        self.lambda_miner_entropy = lambda_miner_entropy
-        self.lambda_kl = lambda_kl
+        self.lambda_attack = weights['lambda_attack']
+        self.lambda_miner_entropy = weights['lambda_miner_entropy']
+        self.lambda_kl = weights['lambda_kl']
         self.classifier = classifier
         self.miner = miner
         self.batch_size = (batch_size,)

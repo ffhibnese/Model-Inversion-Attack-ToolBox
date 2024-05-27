@@ -143,6 +143,7 @@ class ImageAugmentSelectLatentsSampler(SimpleLatentsSampler):
             results[label] = latents[indices].detach().cpu()
         return results
 
+
 class GaussianMixtureLatentsSampler(SimpleLatentsSampler):
 
     def __init__(
@@ -153,61 +154,11 @@ class GaussianMixtureLatentsSampler(SimpleLatentsSampler):
         k: int,
         n_components: int,
         l: int,
-        l_identity: str,
-        device: torch.device,
-        latents_mapping: Optional[Callable] = None,
-    ) -> None:
-        """
-        input
-                k: num dim
-                l: num component
-        """
-        super().__init__(input_size, batch_size, latents_mapping)
-        assert latents_mapping != None
-        self.miner = MixtureOfGMM(k, n_components, l).to(device).double()
-        self.minegan_Gmapping = LayeredMineGAN(self.miner, self.latents_mapping)
-        self.l_identity = num_range(l_identity)
-        self.device = device
-        self.generator = generator
-
-        self.identity_mask = torch.zeros(1, l, 1).to(device)
-        self.identity_mask[:, self.l_identity, :] = 1
-
-    def __call__(self, label: int, sample_num: int):
-        size = self.get_batch_latent_size(sample_num)
-
-        results = {}
-        z_nuisance = torch.randn(size).to(self.device).double()
-        z_identity = torch.randn(size).to(self.device).double()
-        w_nuisance = batch_apply(
-            self.latents_mapping, z_nuisance, batch_size=self.batch_size
-        )
-        w_identity = batch_apply(
-            self.minegan_Gmapping, z_identity, batch_size=self.batch_size
-        )            
-        w = (1 - self.identity_mask) * w_nuisance + self.identity_mask * w_identity
-        results[label] = w.detach().clone()
-        return results
-
-
-class LayeredFlowLatentsSampler(SimpleLatentsSampler):
-
-    def __init__(
-        self,
-        input_size: int | Sequence[int],
-        batch_size: int,
-        generator: BaseImageGenerator,
-        k: int,
-        l: int,
-        flow_permutation: str,
-        flow_K: int,
-        flow_glow: bool,
-        flow_coupling: str,
-        flow_L: int,
-        flow_use_actnorm: bool,
         l_identity: list,
         device: torch.device,
-        latents_mapping: Optional[Callable] = None,
+        latents_mapping: Optional[Callable],
+        mode: str = 'eval',
+        **kwargs
     ) -> None:
         """
         input
@@ -216,20 +167,12 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
         """
         super().__init__(input_size, batch_size, latents_mapping)
         assert latents_mapping != None
-        self.miner = (
-            LayeredFlowMiner(
-                k,
-                l,
-                flow_permutation,
-                flow_K,
-                flow_glow,
-                flow_coupling,
-                flow_L,
-                flow_use_actnorm,
-            )
-            .to(device)
-            .double()
-        )
+        self.mode = mode
+        self.miner = MixtureOfGMM(k, n_components, l)
+        if mode == 'eval':
+            self.miner.load_state_dict(torch.load(kwargs['path'], map_location='cpu'))
+            self.miner.eval()
+        self.miner = self.miner.to(device).double()
         self.minegan_Gmapping = LayeredMineGAN(self.miner, self.latents_mapping)
         self.l_identity = l_identity
         self.device = device
@@ -249,7 +192,68 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
         )
         w_identity = batch_apply(
             self.minegan_Gmapping, z_identity, batch_size=self.batch_size
-        )            
+        )
+        w = (1 - self.identity_mask) * w_nuisance + self.identity_mask * w_identity
+        results[label] = w.detach().clone()
+        return results
+
+
+class LayeredFlowLatentsSampler(SimpleLatentsSampler):
+
+    def __init__(
+        self,
+        input_size: int | Sequence[int],
+        batch_size: int,
+        generator: BaseImageGenerator,
+        flow_params: dict,
+        device: torch.device,
+        latents_mapping: Optional[Callable],
+        mode: str = 'eval',
+        **kwargs,
+    ) -> None:
+        """
+        input
+                k: num dim
+                l: num component
+        """
+        super().__init__(input_size, batch_size, latents_mapping)
+        assert latents_mapping != None
+        self.miner = (
+            LayeredFlowMiner(
+                flow_params['k'],
+                flow_params['l'],
+                flow_params['permute'],
+                flow_params['K'],
+                flow_params['glow'],
+                flow_params['coupling'],
+                flow_params['L'],
+                flow_params['use_actnorm'],
+            )
+        )
+        if mode == 'eval':
+            self.miner.load_state_dict(torch.load(kwargs['path'], map_location='cpu'))
+            self.miner.eval()
+        self.miner = self.miner.to(device).double()
+        self.minegan_Gmapping = LayeredMineGAN(self.miner, self.latents_mapping)
+        self.l_identity = flow_params['l_identity']
+        self.device = device
+        self.generator = generator
+
+        self.identity_mask = torch.zeros(1, flow_params['l'], 1).to(device)
+        self.identity_mask[:, self.l_identity, :] = 1
+
+    def __call__(self, label: int, sample_num: int):
+        size = self.get_batch_latent_size(sample_num)
+
+        results = {}
+        z_nuisance = torch.randn(size).to(self.device).double()
+        z_identity = torch.randn(size).to(self.device).double()
+        w_nuisance = batch_apply(
+            self.latents_mapping, z_nuisance, batch_size=self.batch_size
+        )
+        w_identity = batch_apply(
+            self.minegan_Gmapping, z_identity, batch_size=self.batch_size
+        )
         w = (1 - self.identity_mask) * w_nuisance + self.identity_mask * w_identity
         results[label] = w.detach().clone()
         return results

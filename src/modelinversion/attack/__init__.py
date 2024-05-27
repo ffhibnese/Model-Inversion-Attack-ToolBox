@@ -31,3 +31,5 @@ from .losses import (
     ImageVariationPriorLoss,
     MultiModelOutputKLLoss,
 )
+
+from .VMI import *

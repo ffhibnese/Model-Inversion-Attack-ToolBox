@@ -300,7 +300,6 @@ class VarienceWhiteboxOptimization(SimpleWhiteBoxOptimization):
 
 @dataclass
 class MinerWhiteBoxOptimizationConfig(SimpleWhiteBoxOptimizationConfig):
-    sampler: BaseLatentsSampler = None
     generate_num: int = 50
     batch_size: int = 64
 
@@ -318,10 +317,10 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
         super().__init__(config, generator, image_loss_fn)
 
     def __call__(
-        self, miner: nn.Module, labels: LongTensor
+        self, sampler: BaseLatentsSampler, labels: LongTensor
     ) -> Tuple[Tensor | LongTensor]:
         config: MinerWhiteBoxOptimization = self.config
-        sampler: BaseLatentsSampler = config.sampler
+        miner = sampler.miner
         bs = config.batch_size
 
         labels = labels.to(config.device)
