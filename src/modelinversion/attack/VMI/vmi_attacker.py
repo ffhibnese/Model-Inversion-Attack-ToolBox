@@ -1,4 +1,5 @@
 from ..attacker import *
+from ..attacker import _ImageClassifierAttackerOptimizedOutput
 from ..losses import VmiLoss
 from ...utils import Logger
 from ..optimize import BaseImageOptimizationConfig, MinerWhiteBoxOptimization
@@ -91,10 +92,6 @@ class VmiTrainer:
         safe_save(output.images[:5], img_path, f'training_samples_{5}_{label}.pt')
 
     def train_miners(self, cores: int, targets: list[int], root_path: str):
-        # prepare logger
-        now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-        logger = Logger(root_path, f'attack_{now_time}.log')
-
         img_path = os.path.join(root_path, 'samples')
         root_path = os.path.join(root_path, 'minors')
         multiprocessing.set_start_method('spawn')
@@ -103,10 +100,87 @@ class VmiTrainer:
             pool.map(self.train_single_miner, tasks)
 
 
-class VmiAttacker(ImageClassifierAttacker):
+class VmiAttacker:
 
-    def __init__(self, config: ImageClassifierAttackConfig) -> None:
-        super().__init__(config)
+    def __init__(
+        self,
+        epochs: int,
+        eval_metrics: list[BaseImageMetric],
+        experiment_dir: str,
+        eval_bs: int,
+        input_size: int | Sequence[int],
+        batch_size: int,
+        generator: BaseImageGenerator,
+        flow_params: FlowConfig,
+        device: torch.device,
+        latents_mapping: Optional[Callable],
+    ) -> None:
+        self.metrics = eval_metrics
+        self.experiment_dir = experiment_dir
+        self.epochs = epochs
+        self.eval_bs = eval_bs
 
-    def attack(self, target_list: list[int]):
-        return super().attack(target_list)
+        self.input_size = input_size
+        self.batch_size = batch_size
+        self.generator = generator
+        self.params = flow_params
+        self.device = device
+        self.mapping = latents_mapping
+
+    def trained_flow_sampler(self, path: str):
+        return LayeredFlowLatentsSampler(
+            input_size=self.input_size,
+            batch_size=self.batch_size,
+            generator=self.generator,
+            flow_params=self.params,
+            device=self.device,
+            latents_mapping=self.mapping,
+            mode='eval',
+            path=path,
+        )
+
+    def attack(self, targets: list[int]):
+        root_path = os.path.join(self.experiment_dir, 'minors')
+        for label in targets:
+            path = os.path.join(
+                root_path, str(label), f'{label}_minor_{self.epochs}.pt'
+            )
+            sampler = self.trained_flow_sampler(path)
+            latents = sampler(label, self.eval_bs)[label]
+            images = self.generator(latents, labels=labels).clamp(-1, 1)
+            labels = label * torch.ones(self.eval_bs).to(self.device).long()
+            metric_features = [
+                metric.get_features(images, labels) for metric in self.metrics
+            ]
+            optimized_filenames = self.save_images(
+                self.experiment_dir,
+                images=images,
+                labels=labels,
+            )
+            return _ImageClassifierAttackerOptimizedOutput(
+                latents=latents,
+                labels=labels,
+                metric_features=metric_features,
+                scores=None,
+                filenames=optimized_filenames,
+            )
+
+    def save_images(self, root_dir: str, images: Tensor, labels: LongTensor):
+        assert len(images) == len(labels)
+
+        root_dir = os.path.join(root_dir, 'images')
+
+        all_savenames = []
+
+        for i in range(len(images)):
+            image = images[i].detach()
+            label = labels[i].item()
+            save_dir = os.path.join(root_dir, f'{label}')
+            os.makedirs(save_dir, exist_ok=True)
+            random_str = get_random_string(length=6)
+            save_name = f'{label}_{random_str}.png'
+            all_savenames.append(save_name)
+            save_path = os.path.join(save_dir, save_name)
+            save_image(image, save_path, **self.config.save_kwargs)
+
+        return all_savenames

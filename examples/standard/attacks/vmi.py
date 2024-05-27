@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 
 sys.path.append('../../../src')
 
@@ -68,6 +69,10 @@ if __name__ == '__main__':
     sample_batch_size = 16
     evaluation_batch_size = 50
     train_epochs = 30
+    
+    # prepare logger
+    now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
+    logger = Logger(experiment_dir, f'attack_{now_time}.log')
 
     # prepare devices
 

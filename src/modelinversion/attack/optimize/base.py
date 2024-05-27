@@ -345,7 +345,7 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
                 loss, metric_dict = loss
                 if i == 1 or i % config.show_loss_info_iters == 0:
                     description = get_info_description(i, metric_dict)
-                    bar.write(description)
+                    bar.write(f'{label}:{description}')
                 if i == config.iter_times:
                     description = get_info_description(i, metric_dict)
 
@@ -354,7 +354,7 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
             optimizer.step()
 
         if description is not None:
-            bar.write(description)
+            bar.write(f'{label}:{description}')
 
         final_latents = []
         final_fake = []
