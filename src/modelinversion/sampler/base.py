@@ -233,6 +233,8 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
         if mode == 'eval':
             self.miner.load_state_dict(torch.load(kwargs['path'], map_location='cpu'))
             self.miner.eval()
+        elif mode == 'train':
+            self.miner.train()
         self.miner = self.miner.to(device).double()
         self.minegan_Gmapping = LayeredMineGAN(self.miner, self.latents_mapping)
         self.l_identity = flow_params.l_identity
@@ -255,5 +257,5 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
             self.minegan_Gmapping, z_identity, batch_size=self.batch_size
         )
         w = (1 - self.identity_mask) * w_nuisance + self.identity_mask * w_identity
-        results[label] = w.detach().clone()
+        results[label] = w
         return results

@@ -49,7 +49,7 @@ from modelinversion.metrics import (
 
 if __name__ == '__main__':
 
-    device_ids_available = '0'
+    device_ids_available = '1'
     num_classes = 1000
 
     experiment_dir = '/data/qyx/Model-Inversion-Attack-ToolBox/test/vmi'
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     eval_dataset_path = (
         '/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba/private_train'
     )
-    attack_targets = list(range(100))
+    attack_targets = list(range(1))
 
     sample_batch_size = 16
     evaluation_batch_size = 50
@@ -165,7 +165,7 @@ if __name__ == '__main__':
         optimize_config=optimization_config,
     )
 
-    trainer.train_miners(cores=3, targets=attack_targets, root_path=experiment_dir)
+    trainer.train_miners(cores=1, targets=attack_targets, root_path=experiment_dir)
 
     # prepare metrics
     to_eval_transform = None

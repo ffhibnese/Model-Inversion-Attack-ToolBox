@@ -316,9 +316,10 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
         ],
     ) -> None:
         super().__init__(config, generator, image_loss_fn)
+        self.optimizer = None
 
     def __call__(
-        self, sampler: BaseLatentsSampler, label: int, optimizer: Optimizer = None
+        self, sampler: BaseLatentsSampler, label: int
     ) -> Tuple[Tensor | LongTensor]:
         config: MinerWhiteBoxOptimization = self.config
         miner = sampler.miner
@@ -327,21 +328,21 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
         labels = label * torch.ones(bs).to(config.device).long()
         miner.train()
 
-        if optimizer is None:
-            optimizer: Optimizer = self.optimizer_class(
+        if self.optimizer is None:
+            self.optimizer: Optimizer = self.optimizer_class(
                 miner.parameters(), **config.optimizer_kwargs
             )
 
         bar = tqdm(range(1, config.iter_times + 1), leave=False)
         for i in bar:
-            optimizer.zero_grad()
+            self.optimizer.zero_grad()
 
             description = None
 
             latents = sampler(label, bs)[label]
-            fake = self.generator(latents, labels=labels).clamp(-1, 1)
+            fake = self.generator(latents, labels=labels)#.clamp(-1, 1)
             if config.transform is not None:
-                fake = config.transform(fake).clamp(-1, 1)
+                fake = config.transform(fake)#.clamp(-1, 1)
 
             loss = self.image_loss_fn(fake, labels)
             if isinstance(loss, tuple):
@@ -352,9 +353,8 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
                 if i == config.iter_times:
                     description = get_info_description(i, metric_dict)
 
-            optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
+            self.optimizer.step()
 
         if description is not None:
             bar.write(f'{label}:{description}')
@@ -365,9 +365,9 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
 
         with torch.no_grad():
             latents = sampler(label, config.generate_num)[label]
-            fake = self.generator(latents, labels=labels).clamp(-1, 1).detach().cpu()
+            fake = self.generator(latents, labels=labels).detach().cpu()
             if config.transform is not None:
-                fake = config.transform(fake).clamp(-1, 1)
+                fake = config.transform(fake)
             final_latents.append(latents.detach().cpu())
             final_fake.append(fake)
             final_labels.append(labels.detach().cpu())
@@ -375,14 +375,11 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
             final_labels = torch.cat(final_labels, dim=0)
             final_latents = torch.cat(final_latents, dim=0)
 
-        return (
-            ImageOptimizationOutput(
+        return ImageOptimizationOutput(
                 images=final_fake,
                 labels=final_labels,
                 latents=final_latents,
-            ),
-            optimizer,
-        )
+            )
 
 
 @dataclass

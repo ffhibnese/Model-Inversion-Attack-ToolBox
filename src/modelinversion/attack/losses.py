@@ -208,13 +208,14 @@ class VmiLoss(BaseImageLoss):
         self.device = device
 
     def extract_feat(self, x, mb=100):
-        assert x.min() >= 0  # in case passing in x in [-1,1] by accident
+        # assert x.min() >= 0  # in case passing in x in [-1,1] by accident
         zs = []
         C, H, W = x.shape[1:]
         for start in range(0, len(x), mb):
             _x = x[start : start + mb]
-            zs.append(self.classifier((_x.view(_x.size(0), C, H, W) - 0.5) / 0.5)[0])
-        return torch.cat(zs)
+            # zs.append(self.classifier((_x.view(_x.size(0), C, H, W) - 0.5) / 0.5))
+            zs.append(self.classifier((_x.view(_x.size(0), C, H, W)))[0])
+        return F.log_softmax(torch.cat(zs),dim=1)
 
     def attack_criterion(self, lsm, target):
         true_dist = torch.zeros_like(lsm)
@@ -237,7 +238,7 @@ class VmiLoss(BaseImageLoss):
         return v
 
     def __call__(self, images: Tensor, labels: LongTensor, *args, **kwargs):
-        lsm = self.extract_feat(images / 2 + 0.5)
+        lsm = self.extract_feat(images)
         loss_attack = 0
         return_dict = OrderedDict()
         if self.lambda_attack > 0:

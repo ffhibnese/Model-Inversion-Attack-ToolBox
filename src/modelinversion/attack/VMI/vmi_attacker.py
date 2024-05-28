@@ -73,9 +73,8 @@ class VmiTrainer:
         loss_fn = self.init_loss_fn(sampler.miner)
         optimization = self.init_optimization(self.optimize_config, loss_fn)
 
-        optimizer = None
         for epoch in range(self.epochs):
-            output, optimizer = optimization(sampler, label, optimizer)
+            output = optimization(sampler, label)
 
         # save miner
         label_path = os.path.join(root_path, str(label))
@@ -205,7 +204,7 @@ class VmiAttacker:
             save_name = f'{label}_{random_str}.png'
             all_savenames.append(save_name)
             save_path = os.path.join(save_dir, save_name)
-            save_image(image, save_path)
+            save_image(image, save_path, normalize=True)
 
         return all_savenames
 
