@@ -11,6 +11,8 @@ from .optimize import (
     VarienceWhiteboxOptimizationConfig,
     BrepOptimization,
     BrepOptimizationConfig,
+    MinerWhiteBoxOptimization,
+    MinerWhiteBoxOptimizationConfig,
     RlbOptimization,
     RlbOptimizationConfig,
     GeneticOptimizationConfig,
@@ -23,8 +25,11 @@ from .losses import (
     ComposeImageLoss,
     GmiDiscriminatorLoss,
     KedmiDiscriminatorLoss,
+    VmiLoss,
     DeepInversionBatchNormPriorLoss,
     ImagePixelPriorLoss,
     ImageVariationPriorLoss,
     MultiModelOutputKLLoss,
 )
+
+from .VMI import *

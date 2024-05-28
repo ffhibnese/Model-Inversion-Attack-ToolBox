@@ -6,8 +6,8 @@ def twod_mog_means(n_centers):
 
     assert np.sqrt(n_centers) == np.floor(np.sqrt(n_centers))
     n_centers = int(np.sqrt(n_centers))
-    std = 1.0 / n_centers
-    means = np.arange(-3.0, 3.0, 6.0 / n_centers) + 6.0 / n_centers / 2
+    std = 1. / n_centers
+    means = np.arange(-3., 3., 6. / n_centers) + 6. / n_centers / 2
     means = np.array(list(product(means, means)))
     return means
 
@@ -25,11 +25,10 @@ def get_grid(low=-4, high=4, npts=20, ret_xy=False):
         return pos.reshape(-1, 2)
 
 
-def compute_grid_f(f, npts=100, low=-4.0, high=4.0):
+def compute_grid_f(f, npts=100, low=-4., high=4.):
     x = get_grid(low=low, high=high, npts=npts)
     fx = f(x)[:, None]
     return fx.reshape(npts, npts)
-
 
 # def compute_density(logdensity, npts=100, low=-4., high=4.):
 #     x = get_grid(low=low, high=high, npts=npts)
@@ -45,7 +44,7 @@ def compute_grid_f(f, npts=100, low=-4.0, high=4.0):
 #     ax.imshow(px, alpha=alpha, cmap=cmap)
 
 
-def plt_contourf(f, ax, npts=20, low=-4.0, high=4.0, fill=True, **kwargs):
+def plt_contourf(f, ax, npts=20, low=-4., high=4., fill=True, **kwargs):
     px = compute_grid_f(f, npts, low, high)
     x, y = get_grid(low=low, high=high, npts=npts, ret_xy=True)
     if fill:
@@ -55,13 +54,7 @@ def plt_contourf(f, ax, npts=20, low=-4.0, high=4.0, fill=True, **kwargs):
     return cont(x, y, px, **kwargs)
 
 
-def plt_samples(samples, ax, npts=100, low=-4.0, high=4.0, alpha=1, cmap='inferno'):
-    ax.hist2d(
-        samples[:, 0],
-        samples[:, 1],
-        range=[[low, high], [low, high]],
-        bins=npts,
-        alpha=alpha,
-        cmap=cmap,
-    )
+def plt_samples(samples, ax, npts=100, low=-4., high=4., alpha=1, cmap='inferno'):
+    ax.hist2d(samples[:, 0], samples[:, 1], range=[
+              [low, high], [low, high]], bins=npts, alpha=alpha, cmap=cmap)
     ax.invert_yaxis()

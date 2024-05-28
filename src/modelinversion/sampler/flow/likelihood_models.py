@@ -1,9 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils import torch_mvn_logp
 import numpy as np
-from flow.model import Glow
+from .model import Glow
 
 
 def load_flow(inp_dim, hidden_channels, K, sn, nonlin, flow_permutation):
@@ -357,6 +356,27 @@ class ReparameterizedGMM2(nn.Module):
         return self(torch.randn(N, self.nz0).to(self.m.device))
 
 
+def torch_mvn_logp(x, m, C):
+    """
+    input
+        x - (N, k) data matrix torch.Tensor
+        m - (1, k) mean torch.Tensor
+        C - (k, k) covariance torch.Tensor
+    output
+        (N, ) logp = N(x; m, C), torch.Tensor
+    """
+    assert len(x.shape) == 2
+    assert x.shape[1] == m.shape[-1]
+    assert m.shape[0] == 1
+    assert m.shape[1] == C.shape[0] == C.shape[1]
+
+    k = x.shape[1]
+    Z = -(k / 2) * np.log(2 * np.pi) - (1 / 2) * torch.logdet(C)
+    Cinv = torch.inverse(C)
+    s = -(1 / 2) * (((x - m) @ Cinv) * (x - m)).sum(-1)
+    return Z + s
+
+
 class ReparameterizedMVN(nn.Module):
     def __init__(self, k):
         super(ReparameterizedMVN, self).__init__()
@@ -378,111 +398,3 @@ class ReparameterizedMVN(nn.Module):
 
     def sample(self, N):
         return self(torch.randn(N, self.nz0).to(self.m.device))
-
-
-def test_mvn_opt():
-    def plot_data_samples(data, samples, fname):
-        fig, axs = plt.subplots(1, 2, figsize=(8, 4))
-        plt.subplot(axs[0])
-        plt.title("Data")
-        plt.scatter(data.T[0], data.T[1])
-        plt.subplot(axs[1])
-        plt.title('Model')
-        plt.scatter(samples.T[0], samples.T[1])
-        plt.savefig(fname, bbox_inches='tight')
-
-    # test logp
-    m = torch.tensor([[2, 1]]).float()
-    L = torch.tensor([[1, 2], [0, 1]]).float()
-    C = L @ L.T
-    gt_model = MultivariateNormal(m, covariance_matrix=C)
-    X = gt_model.sample((5000,)).squeeze(1)
-
-    model = ReparameterizedMVN(2)
-    model.m.data = m
-    model.L.data = L
-
-    gt_logps = gt_model.log_prob(X)
-    logps = model.logp(X)
-    print(torch.sum(torch.abs(gt_logps - logps)))
-
-    model = ReparameterizedMVN(2)
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
-    pbar = tqdm(range(0, 5000), desc='Train loop')
-    for i in pbar:
-        if i % 100 == 0:
-            fname = f'likelihood_models_test/iter{i:4d}.jpeg'
-            with torch.no_grad():
-                samples = model(torch.randn(5000, 2))
-            plot_data_samples(X, samples, fname)
-        optimizer.zero_grad()
-        loss = -model.logp(X).mean()
-        loss.backward()
-        optimizer.step()
-        pbar.set_postfix_str(s=f'Loss: {loss.item():.2f}', refresh=True)
-
-
-def test_mvn_entropy():
-    model = ReparameterizedMVN(2)
-    # test logp
-    m = torch.tensor([[2, 1]]).float()
-    L = torch.tensor([[1, 2], [0, 1]]).float()
-    model.m.data = m
-    model.L.data = L
-
-    samples = model(torch.randn(5000, 2))
-    H1 = -model.logp(samples).mean()
-    H2 = model.entropy()
-    print(H1, H2, H1 - H2)
-
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
-    for _ in range(100):
-        optimizer.zero_grad()
-        loss = -model.entropy()
-        loss.backward()
-        optimizer.step()
-    print(model.logp(samples).mean())
-
-
-if __name__ == '__main__':
-    from torch.distributions.multivariate_normal import MultivariateNormal
-    import torch.optim as optim
-    from tqdm import tqdm
-    import matplotlib.pylab as plt
-    from time import time
-
-    # test_mvn_top()
-    # test_mvn_entropy()
-    # # Test Flow
-    # flow = load_glow(hidden_channels=100,
-    #           K=10,
-    #           sn=False,
-    #           nonlin='elu',
-    #           flow_permutation='shuffle')
-    # flow = flow.cuda()
-    # z = torch.randn(100, 512, 1, 1).cuda()
-    # lp = flow(z)
-    # z1 = flow.reverse_flow(z, None, 1)
-
-    # Test GMM
-    N, D, C = 32, 512, 10
-    gmm = ReparameterizedGMM2(D, C)
-    noise = torch.randn(N, D)
-    noise.requires_grad_()
-    z = gmm(noise)
-    start = time()
-    lp = gmm.logp(z)
-    end = time()
-    print(end - start)
-
-    start = time()
-    lp.sum().backward()
-    end = time()
-    print(end - start)
-
-    # path = '/scratch/hdd001/home/wangkuan/mm-icml2021/run_scripts/May19-celeba-dcgan-gmm-dev.sh-db0-1/expCelebA.1.DCGAN-m_gmm_ncomp5-lr1e-3-l-kl1e-3-id0/miner_10.pt'
-    # sd = torch.load(path)
-
-    import ipdb
-
-    ipdb.set_trace()

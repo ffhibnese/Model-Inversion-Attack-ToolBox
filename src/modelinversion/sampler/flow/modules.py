@@ -12,7 +12,7 @@ def gaussian_p(mean, logs, x):
             Var = logs ** 2
     """
     c = math.log(2 * math.pi)
-    return -0.5 * (logs * 2.0 + ((x - mean) ** 2) / torch.exp(logs * 2.0) + c)
+    return -0.5 * (logs * 2. + ((x - mean) ** 2) / torch.exp(logs * 2.) + c)
 
 
 def gaussian_likelihood(mean, logs, x):
@@ -25,7 +25,7 @@ def gaussian_likelihood(mean, logs, x):
 
 def gaussian_sample(mean, logs, temperature=1):
     # Sample from Gaussian with temperature
-    z = mean + torch.randn_like(mean) * torch.exp(logs) * temperature
+    z = mean + torch.randn_like( mean) * torch.exp(logs) * temperature
     # z = torch.normal(mean, torch.exp(logs) * temperature)
 
     return z
@@ -50,7 +50,7 @@ def unsqueeze2d(input, factor):
     if factor == 1:
         return input
 
-    factor2 = factor**2
+    factor2 = factor ** 2
 
     B, C, H, W = input.size()
 
@@ -61,7 +61,6 @@ def unsqueeze2d(input, factor):
     x = x.view(B, C // (factor2), H * factor, W * factor)
 
     return x
-
 
 # # ActNorm Layer with data-dependant init
 # class ActNorm2d(nn.Module):
@@ -121,8 +120,7 @@ def unsqueeze2d(input, factor):
 #         if objective is not None:
 #             objective = objective - dlogdet
 
-#         return output.view(input_shape), objective
-
+#         return output.view(input_shape), objective 
 
 class _ActNorm(nn.Module):
     """
@@ -133,7 +131,7 @@ class _ActNorm(nn.Module):
     After initialization, `bias` and `logs` will be trained as parameters.
     """
 
-    def __init__(self, num_features, scale=1.0):
+    def __init__(self, num_features, scale=1.):
         super().__init__()
         # register mean and scale
         size = [1, num_features, 1, 1]
@@ -148,8 +146,9 @@ class _ActNorm(nn.Module):
             raise ValueError("In Eval mode, but ActNorm not inited")
 
         with torch.no_grad():
-            bias = -torch.mean(input.clone(), dim=[0, 2, 3], keepdim=True)
-            vars = torch.mean((input.clone() + bias) ** 2, dim=[0, 2, 3], keepdim=True)
+            bias = - torch.mean(input.clone(), dim=[0, 2, 3], keepdim=True)
+            vars = torch.mean((input.clone() + bias) ** 2, dim=[0, 2, 3],
+                              keepdim=True)
             logs = torch.log(self.scale / (torch.sqrt(vars) + 1e-6))
 
             self.bias.data.copy_(bias.data)
@@ -203,7 +202,7 @@ class _ActNorm(nn.Module):
 
 
 class ActNorm2d(_ActNorm):
-    def __init__(self, num_features, scale=1.0):
+    def __init__(self, num_features, scale=1.):
         super().__init__(num_features, scale)
 
     def _check_input_dim(self, input):
@@ -211,9 +210,7 @@ class ActNorm2d(_ActNorm):
         assert input.size(1) == self.num_features, (
             "[ActNorm]: input should be in shape as `BCHW`,"
             " channels should be {} rather than {}".format(
-                self.num_features, input.size()
-            )
-        )
+                self.num_features, input.size()))
 
 
 class LinearZeros(nn.Module):
@@ -234,16 +231,9 @@ class LinearZeros(nn.Module):
 
 
 class Conv2d(nn.Module):
-    def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size=(3, 3),
-        stride=(1, 1),
-        padding="same",
-        do_actnorm=True,
-        weight_std=0.05,
-    ):
+    def __init__(self, in_channels, out_channels,
+                 kernel_size=(3, 3), stride=(1, 1),
+                 padding="same", do_actnorm=True, weight_std=0.05):
         super().__init__()
 
         if padding == "same":
@@ -251,14 +241,8 @@ class Conv2d(nn.Module):
         elif padding == "valid":
             padding = 0
 
-        self.conv = nn.Conv2d(
-            in_channels,
-            out_channels,
-            kernel_size,
-            stride,
-            padding,
-            bias=(not do_actnorm),
-        )
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride,
+                              padding, bias=(not do_actnorm))
 
         # init weight with std
         self.conv.weight.data.normal_(mean=0.0, std=weight_std)
@@ -276,9 +260,9 @@ class Conv2d(nn.Module):
             x, _ = self.actnorm(x)
         return x
 
-
 class LinearZeros(nn.Module):
-    def __init__(self, in_channels, out_channels, logscale_factor=3):
+    def __init__(self, in_channels, out_channels,
+                 logscale_factor=3):
         super().__init__()
 
         self.linear = nn.Linear(in_channels, out_channels)
@@ -293,17 +277,10 @@ class LinearZeros(nn.Module):
         output = self.linear(input)
         return output * torch.exp(self.logs * self.logscale_factor)
 
-
 class Conv2dZeros(nn.Module):
-    def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size=(3, 3),
-        stride=(1, 1),
-        padding="same",
-        logscale_factor=3,
-    ):
+    def __init__(self, in_channels, out_channels,
+                 kernel_size=(3, 3), stride=(1, 1),
+                 padding="same", logscale_factor=3):
         super().__init__()
 
         if padding == "same":
@@ -311,7 +288,8 @@ class Conv2dZeros(nn.Module):
         elif padding == "valid":
             padding = 0
 
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride,
+                              padding)
 
         self.conv.weight.data.zero_()
         self.conv.bias.data.zero_()
@@ -322,7 +300,6 @@ class Conv2dZeros(nn.Module):
     def forward(self, input):
         output = self.conv(input)
         return output * torch.exp(self.logs * self.logscale_factor)
-
 
 class Permute(nn.Module):
     def __init__(self, num_channels, shuffle):
@@ -336,6 +313,7 @@ class Permute(nn.Module):
         self.register_buffer('permute_indices', indices)
         self.register_buffer('permute_indices_inverse', indices_inverse)
 
+
     def forward(self, input, reverse=False):
         assert len(input.size()) == 2
 
@@ -345,13 +323,14 @@ class Permute(nn.Module):
         else:
             return input[:, self.permute_indices_inverse]
 
-
 class Permute2d(nn.Module):
     def __init__(self, num_channels, shuffle):
         super().__init__()
         self.num_channels = num_channels
-        indices = torch.arange(self.num_channels - 1, -1, -1, dtype=torch.long)
-        indices_inverse = torch.zeros((self.num_channels), dtype=torch.long)
+        indices = torch.arange(self.num_channels - 1, -1, -1,
+                                    dtype=torch.long)
+        indices_inverse = torch.zeros((self.num_channels),
+                                           dtype=torch.long)
         self.register_buffer('permute_indices', indices)
         self.register_buffer('permute_indices_inverse', indices_inverse)
 
@@ -388,7 +367,7 @@ class Split2d(nn.Module):
         h = self.conv(z)
         return split_feature(h, "cross")
 
-    def forward(self, input, logdet=0.0, reverse=False, temperature=None):
+    def forward(self, input, logdet=0., reverse=False, temperature=None):
         if reverse:
             z1 = input
             mean, logs = self.split2d_prior(z1)
