@@ -15,6 +15,7 @@ from torchvision.datasets import DatasetFolder
 from torchvision.transforms import ToTensor, Resize, Compose
 from tqdm import tqdm
 from pytorch_fid.inception import InceptionV3
+from pytorch_fid.fid_score import calculate_frechet_distance
 import pandas as pd
 import traceback
 
@@ -365,6 +366,8 @@ class ImageFidPRDCMetric(BaseImageMetric):
         self.inception_model = InceptionV3([InceptionV3.DEFAULT_BLOCK_INDEX]).to(
             self.device
         )
+        # print(f'inception training ? {self.inception_model.training}')
+        self.inception_model.eval()
         self.num_workers = num_workers
         self.prdc_k = prdc_k
         self.description = description
@@ -443,9 +446,17 @@ class ImageFidPRDCMetric(BaseImageMetric):
 
         # FID
         if self.calc_fid:
-            fid_score = fid_utils.calculate_frechet_distance(
-                mu_fake, sigma_fake, mu_real, sigma_real
-            )
+            # fid_score = fid_utils.calculate_frechet_distance(
+            #     mu_fake, sigma_fake, mu_real, sigma_real
+            # )
+            try:
+                fid_score = calculate_frechet_distance(
+                    mu_fake, sigma_fake, mu_real, sigma_real
+                )
+            except:
+                warnings.warn(f'Insufficient image quantity. Return FID=0')
+                fid_score = 0
+
             result['FID'] = float(fid_score)
 
         # PRDC

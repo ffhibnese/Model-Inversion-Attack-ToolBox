@@ -129,3 +129,4 @@ nohup.txt
 .vscode
 test*.py
 test*.sh
+checkpoints_v2/
