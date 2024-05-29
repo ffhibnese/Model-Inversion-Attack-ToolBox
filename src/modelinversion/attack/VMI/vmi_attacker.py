@@ -23,7 +23,7 @@ class VmiTrainer:
         classifier: BaseImageClassifier,
         loss_weights: dict,
         optimize_config: BaseImageOptimizationConfig,
-        transform: nn.Module = None
+        transform: nn.Module = None,
     ) -> None:
         self.epochs = epochs
         self.experiment_dir = experiment_dir
@@ -76,7 +76,7 @@ class VmiTrainer:
         for epoch in range(self.epochs):
             output = optimization(sampler, label)
 
-            if (epoch+1)%10 == 0:
+            if (epoch + 1) % 10 == 0:
                 # save miner
                 label_path = os.path.join(root_path, str(label))
                 safe_save(
@@ -91,7 +91,11 @@ class VmiTrainer:
                     img_path,
                     f'{label}_training_samples_{self.optimize_config.generate_num}_{epoch+1}.pt',
                 )
-                safe_save(output.images[:5], img_path, f'{label}_training_samples_{5}_{epoch+1}.pt')
+                safe_save(
+                    output.images[:5],
+                    img_path,
+                    f'{label}_training_samples_{5}_{epoch+1}.pt',
+                )
 
     def train_miners(self, cores: int, targets: list[int], root_path: str):
         img_path = os.path.join(root_path, 'samples')
@@ -140,7 +144,7 @@ class VmiAttacker:
             mode='eval',
             path=path,
         )
-    
+
     def generate_samples(self, latents, labels):
         images = self.generator(latents, labels=labels).cpu()
         metric_features = [
@@ -173,7 +177,7 @@ class VmiAttacker:
             labels.append(label * torch.ones(self.eval_bs).long())
         latents = torch.cat(latents).cpu()
         labels = torch.cat(labels).cpu()
-        
+
         optimized_output: _ImageClassifierAttackerOptimizedOutput = batch_apply(
             self.generate_samples,
             latents,
@@ -181,14 +185,13 @@ class VmiAttacker:
             batch_size=self.batch_size,
             description='Optimized Batch',
         )
-        
+
         self._evaluation(
-                optimized_output.metric_features,
-                optimized_output.labels,
-                'optimized',
-                self.experiment_dir,
-            )
-            
+            optimized_output.metric_features,
+            optimized_output.labels,
+            'optimized',
+            self.experiment_dir,
+        )
 
     def save_images(self, root_dir: str, images: Tensor, labels: LongTensor):
         assert len(images) == len(labels)
@@ -235,3 +238,47 @@ class VmiAttacker:
         df.to_csv(os.path.join(save_dir, f'evaluation.csv'), index=None)
 
         return result
+
+    def generate_samples_2(self, images, labels):
+        metric_features = [
+            metric.get_features(images, labels) for metric in self.metrics
+        ]
+        optimized_filenames = self.save_images(
+            self.experiment_dir,
+            images=images,
+            labels=labels,
+        )
+        return _ImageClassifierAttackerOptimizedOutput(
+            latents=None,
+            labels=labels,
+            metric_features=metric_features,
+            scores=None,
+            filenames=optimized_filenames,
+        )
+
+    def attack_from_samples(self, targets: list[int]):
+        root_path = os.path.join(self.experiment_dir, 'samples')
+        images = []
+        labels = []
+        for label in targets:
+            path = os.path.join(root_path, f'{label}_training_samples_50.pt')
+            image = torch.load(path, map_location='cpu')
+            images.append(image)
+            labels.append(label * torch.ones(len(image)).long())
+        images = torch.cat(images)
+        labels = torch.cat(labels)
+
+        optimized_output: _ImageClassifierAttackerOptimizedOutput = batch_apply(
+            self.generate_samples_2,
+            images,
+            labels,
+            batch_size=self.batch_size,
+            description='Optimized Batch',
+        )
+
+        self._evaluation(
+            optimized_output.metric_features,
+            optimized_output.labels,
+            'optimized',
+            self.experiment_dir,
+        )
