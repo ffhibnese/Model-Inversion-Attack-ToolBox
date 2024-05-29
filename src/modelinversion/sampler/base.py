@@ -11,7 +11,7 @@ from ..models import (
     StyleGAN2adaSynthesisWrapper,
 )
 from .flow import MixtureOfGMM, LayeredMineGAN, LayeredFlowMiner, FlowConfig
-from ..utils import batch_apply
+from ..utils import batch_apply,freeze
 
 
 class BaseLatentsSampler(ABC):
@@ -172,6 +172,7 @@ class GaussianMixtureLatentsSampler(SimpleLatentsSampler):
         if mode == 'eval':
             self.miner.load_state_dict(torch.load(kwargs['path'], map_location='cpu'))
             self.miner.eval()
+            freeze(self.miner)
         self.miner = self.miner.to(device).double()
         self.minegan_Gmapping = LayeredMineGAN(self.miner, self.latents_mapping)
         self.l_identity = l_identity
@@ -233,6 +234,7 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
         if mode == 'eval':
             self.miner.load_state_dict(torch.load(kwargs['path'], map_location='cpu'))
             self.miner.eval()
+            freeze(self.miner)
         elif mode == 'train':
             self.miner.train()
         self.miner = self.miner.to(device).double()

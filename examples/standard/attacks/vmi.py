@@ -49,10 +49,10 @@ from modelinversion.metrics import (
 
 if __name__ == '__main__':
 
-    device_ids_available = '1'
+    device_ids_available = '4'
     num_classes = 1000
 
-    experiment_dir = '/data/qyx/Model-Inversion-Attack-ToolBox/test/vmi'
+    experiment_dir = '/data/qyx/Model-Inversion-Attack-ToolBox/test/vmi_celeba64'
     """Download stylegan2-ada from https://github.com/NVlabs/stylegan2-ada-pytorch and record the file path as 'stylegan2ada_path' 
     """
     stylegan2ada_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/stylegan2_ada'
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     eval_dataset_path = (
         '/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba/private_train'
     )
-    attack_targets = list(range(1))
+    attack_targets = list(range(12))
 
     sample_batch_size = 16
     evaluation_batch_size = 50
@@ -142,7 +142,7 @@ if __name__ == '__main__':
         optimizer='SGD',
         optimizer_kwargs={'lr': 1e-4, 'momentum': 0.9, 'weight_decay': 0},
         iter_times=150,
-        show_loss_info_iters=10,
+        show_loss_info_iters=50,
         batch_size=sample_batch_size,
         transform=img_transform
     )
@@ -165,7 +165,7 @@ if __name__ == '__main__':
         optimize_config=optimization_config,
     )
 
-    trainer.train_miners(cores=1, targets=attack_targets, root_path=experiment_dir)
+    trainer.train_miners(cores=4, targets=attack_targets, root_path=experiment_dir)
 
     # prepare metrics
     to_eval_transform = None

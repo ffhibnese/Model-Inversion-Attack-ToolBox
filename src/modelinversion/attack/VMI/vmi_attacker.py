@@ -76,21 +76,22 @@ class VmiTrainer:
         for epoch in range(self.epochs):
             output = optimization(sampler, label)
 
-        # save miner
-        label_path = os.path.join(root_path, str(label))
-        safe_save(
-            sampler.miner.state_dict(),
-            label_path,
-            f'{label}_minor_{self.epochs}.pt',
-        )
+            if (epoch+1)%10 == 0:
+                # save miner
+                label_path = os.path.join(root_path, str(label))
+                safe_save(
+                    sampler.miner.state_dict(),
+                    label_path,
+                    f'{label}_minor_{epoch+1}.pt',
+                )
 
-        # save images
-        safe_save(
-            output.images,
-            img_path,
-            f'{label}_training_samples_{self.optimize_config.generate_num}.pt',
-        )
-        safe_save(output.images[:5], img_path, f'{label}_training_samples_{5}.pt')
+                # save images
+                safe_save(
+                    output.images,
+                    img_path,
+                    f'{label}_training_samples_{self.optimize_config.generate_num}_{epoch+1}.pt',
+                )
+                safe_save(output.images[:5], img_path, f'{label}_training_samples_{5}_{epoch+1}.pt')
 
     def train_miners(self, cores: int, targets: list[int], root_path: str):
         img_path = os.path.join(root_path, 'samples')
@@ -141,7 +142,7 @@ class VmiAttacker:
         )
     
     def generate_samples(self, latents, labels):
-        images = self.generator(latents, labels=labels).clamp(-1, 1)
+        images = self.generator(latents, labels=labels).cpu()
         metric_features = [
             metric.get_features(images, labels) for metric in self.metrics
         ]
@@ -167,10 +168,11 @@ class VmiAttacker:
                 root_path, str(label), f'{label}_minor_{self.epochs}.pt'
             )
             sampler = self.trained_flow_sampler(path)
-            latents.append(sampler(label, self.eval_bs)[label])
+            latent = sampler(label, self.eval_bs)[label]
+            latents.append(latent)
             labels.append(label * torch.ones(self.eval_bs).long())
-        latents = torch.cat(latents)
-        labels = torch.cat(labels)
+        latents = torch.cat(latents).cpu()
+        labels = torch.cat(labels).cpu()
         
         optimized_output: _ImageClassifierAttackerOptimizedOutput = batch_apply(
             self.generate_samples,
