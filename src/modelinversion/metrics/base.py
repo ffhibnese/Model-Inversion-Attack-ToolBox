@@ -377,9 +377,9 @@ class ImageFidPRDCMetric(BaseImageMetric):
         self.save_dir = save_individual_prdc_dir
 
     @torch.no_grad()
-    def _calculate_activation_statistics(self, dataset, use_tqdm=False):
+    def _calculate_activation_statistics(self, dataset, use_tqdm=False, num_workers=0):
         dataloader = DataLoader(
-            dataset, self.batch_size, shuffle=False, num_workers=self.num_workers
+            dataset, self.batch_size, shuffle=False, num_workers=num_workers
         )
 
         pred_arr = []
@@ -405,8 +405,12 @@ class ImageFidPRDCMetric(BaseImageMetric):
         )
 
     def _get_features_impl(self, images: Tensor, labels: LongTensor) -> Tensor:
+        # print(images.shape, labels.shape)
+        # exit()
         src_ds = TensorDataset(images, labels)
-        return self._calculate_activation_statistics(src_ds, use_tqdm=False)[0]
+        return self._calculate_activation_statistics(
+            src_ds, use_tqdm=False, num_workers=0
+        )[0]
 
     @torch.no_grad()
     def _call_impl(self, features: Tensor, labels: LongTensor) -> OrderedDict:
@@ -427,7 +431,7 @@ class ImageFidPRDCMetric(BaseImageMetric):
         )
 
         real_feature, real_labels = self._calculate_activation_statistics(
-            dst_ds, use_tqdm=True
+            dst_ds, use_tqdm=True, num_workers=self.num_workers
         )
 
         real_feature_np = real_feature.numpy()
