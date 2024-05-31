@@ -20,3 +20,5 @@ from .classifier import (
     DistillTrainer,
     DistillTrainConfig,
 )
+
+from .mapping import train_mapping_model

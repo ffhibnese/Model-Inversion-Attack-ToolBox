@@ -25,3 +25,4 @@ from .classifier64 import (
 )
 from .classifier112 import FaceNet112
 from .classifier_utils import generate_feature_statics
+from .inception import InceptionResnetV1_adaptive

@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import torchvision.models as tvmodel
 import torchvision.transforms.functional as TF
 from torchvision.models.inception import InceptionOutputs
- 
+
 from ..base import ModelMixin
 from ...utils import traverse_name_module, FirstInputHook, BaseHook
 
@@ -18,7 +18,7 @@ BUILDIN_ADAPTERS = {}
 CLASSNAME_TO_NAME_MAPPING = {}
 
 
-def register_model(name: Optional[str] = None):
+def register_adapter(name: Optional[str] = None):
     """Register model for construct.
 
     Args:
@@ -36,6 +36,16 @@ def register_model(name: Optional[str] = None):
     return wrapper
 
 
+class BaseAdapter(ModelMixin):
+
+    def save_pretrained(self, path, **add_infos):
+        return super().save_pretrained(
+            path,
+            model_name=CLASSNAME_TO_NAME_MAPPING[self.__class__.__name__],
+            **add_infos,
+        )
+
+
 class ModelConstructException(Exception):
     pass
 
@@ -50,7 +60,7 @@ def construct_adapters_by_name(name: str, **kwargs):
 
 def list_adapters():
     """List all valid module names"""
-    return sorted(BUILDIN_ADAPTERS.keys()) + TORCHVISION_MODEL_NAMES
+    return sorted(BUILDIN_ADAPTERS.keys())
 
 
 def auto_adapter_from_pretrained(data_or_path, **kwargs):

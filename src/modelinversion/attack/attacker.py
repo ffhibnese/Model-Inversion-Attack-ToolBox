@@ -487,14 +487,18 @@ class ImageClassifierAttacker(ABC):
     ):
         config = self.config
         for foldername in os.listdir(config.save_dir):
+            # print(foldername)
             folder = os.path.join(config.save_dir, foldername)
             cache_folder = os.path.join(folder, 'cache')
             if not os.path.isdir(cache_folder):
+                
                 continue
+            # print(f'parse {cache_folder}')
             labels_file = os.path.join(cache_folder, 'labels.npy')
             latents_file = os.path.join(cache_folder, 'latents.npy')
 
             if not os.path.exists(labels_file) or not os.path.exists(latents_file):
+                # print(f'not exist {labels_file} {latents_file}')
                 continue
 
             print_split_line(foldername)

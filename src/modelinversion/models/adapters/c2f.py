@@ -1,9 +1,9 @@
-
 from torch.nn.modules import Module
 from .base import *
 
+
 # @register_model('c2f_mlp2')
-class C2fOutputMapping(ModelMixin):
+class C2fOutputMapping(BaseAdapter):
 
     # @ModelMixin.register_to_config_init
     def __init__(self, input_dim, map: nn.Module, trunc: int = 1):
@@ -11,10 +11,11 @@ class C2fOutputMapping(ModelMixin):
 
         self.trunc = trunc
         self.input_dim = input_dim
+        self.map = map
         # 10575
 
     def forward(self, x):
-        input_dim = x.shape[-1]
+        # input_dim = x.shape[-1]
         topk, index = torch.topk(x, self.trunc)
         topk = torch.clamp(torch.log(topk), min=-1000) + 50.0
         topk_min = topk.min(1, keepdim=True)[0]
@@ -25,13 +26,12 @@ class C2fOutputMapping(ModelMixin):
         x = self.map(x)
         # x = F.normalize(x, 2, dim=1)
         return x
-    
-    def fit(self):
-        pass
-    
 
+
+@register_adapter('c2f_mlp3')
 class C2fThreeLayerMlpOutputMapping(C2fOutputMapping):
 
+    @ModelMixin.register_to_config_init
     def __init__(self, input_dim, hidden_dim, output_dim, trunc: int = 1):
         map = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),

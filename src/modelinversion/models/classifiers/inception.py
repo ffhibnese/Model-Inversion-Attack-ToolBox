@@ -230,8 +230,8 @@ class InceptionResnetV1_adaptive(BaseImageClassifier):
 
     @ModelMixin.register_to_config_init
     def __init__(self, resolution, feature_dim, num_classes, register_last_feature_hook=False,
-        backbone_path: Optional[str] = None, *args, **kwargs) -> None:
-        super().__init__(resolution, feature_dim, num_classes, register_last_feature_hook, *args, **kwargs)
+        backbone_path: Optional[str] = None) -> None:
+        super().__init__(resolution, feature_dim, num_classes, register_last_feature_hook)
 
         self.model = _InceptionResnetV1_backbone()
         if backbone_path is not None:
@@ -244,7 +244,7 @@ class InceptionResnetV1_adaptive(BaseImageClassifier):
         self.flatten = nn.Flatten()
         self.adative_layer = nn.Sequential(
             nn.Dropout(),
-            nn.Linear(1792, feature_dim),
+            nn.Linear(1792, feature_dim, bias=False),
             nn.BatchNorm1d(feature_dim, eps=0.001, momentum=0.1, affine=True),
         )
 
@@ -255,3 +255,8 @@ class InceptionResnetV1_adaptive(BaseImageClassifier):
         feature = self.adative_layer(feature)
         output = self.classifier(feature)
         return output, {HOOK_NAME_FEATURE: feature}
+    
+    def preprocess_config_before_save(self, config):
+        config = deepcopy(config)
+        del config['backbone_path']
+        return super().preprocess_config_before_save(config)

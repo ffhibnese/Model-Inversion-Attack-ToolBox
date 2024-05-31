@@ -17,6 +17,8 @@ from .optimize import (
     RlbOptimizationConfig,
     GeneticOptimizationConfig,
     GeneticOptimization,
+    C2fGeneticOptimizationConfig,
+    C2fGeneticOptimization
 )
 
 from .losses import (

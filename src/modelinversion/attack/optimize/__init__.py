@@ -14,4 +14,4 @@ from .base import (
 )
 
 from .rlb import RlbOptimization, RlbOptimizationConfig
-from .genetic import GeneticOptimization, GeneticOptimizationConfig
+from .genetic import GeneticOptimization, GeneticOptimizationConfig, C2fGeneticOptimization, C2fGeneticOptimizationConfig
