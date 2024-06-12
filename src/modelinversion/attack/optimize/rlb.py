@@ -1,6 +1,7 @@
 import os
 import importlib
 import random
+from copy import deepcopy
 from abc import ABC, abstractmethod
 from collections import OrderedDict, Counter, deque
 from dataclasses import dataclass, field
@@ -489,7 +490,7 @@ class RlbOptimization(BaseImageOptimization):
         return torch.load(path)
 
     # @torch.no_grad()
-    def _agent_training(self, label: int, input_shape: list[int]):
+    def _agent_training(self, label: int, input_shape: list[int], num):
         print(f'train agent for class {label}')
 
         config: RlbOptimizationConfig = self.config
@@ -504,6 +505,10 @@ class RlbOptimization(BaseImageOptimization):
             state_size=input_dim, action_size=input_dim, device=device, hidden_size=256
         )
 
+        best_losses = 1e10
+        best_zs = []
+        # best_imgs = []
+        best_agent = None
         for iter_time in tqdm(range(config.train_agent_iter_times), leave=True):
 
             z = torch.randn((1, input_dim), device=device)
@@ -543,7 +548,34 @@ class RlbOptimization(BaseImageOptimization):
                     t,
                 )
                 state = next_state
-        self._save_agent(label, agent)
+
+            test_images = []
+            test_zs = []
+            test_losses = []
+            for i in range(num):
+                with torch.no_grad():
+                    z_test = torch.randn((1, input_dim), device=device)
+                    for t in range(config.optim_steps):
+                        state_test = z_test.detach()
+                        action_test = agent.act(state_test)
+                        z_test = truncation * z_test + (1 - truncation) * action_test
+                    test_image = self.generator(z_test).detach()
+
+                    test_loss = self.state_image_loss_fn(state_image, y)
+                    if isinstance(test_loss, Tuple):
+                        test_loss = test_loss[0]
+                    test_images.append(test_image.cpu())
+                    test_zs.append(z_test)
+
+                test_losses.append(test_loss.item())
+
+            if np.array(test_losses).mean() < best_losses:
+                best_zs = test_zs
+                # best_imgs = test_images
+                # best_agent = deepcopy(agent)
+
+                self._save_agent(label, agent)
+        return torch.cat(best_zs, dim=0)
 
     # @torch.no_grad()
     def __call__(
@@ -561,26 +593,36 @@ class RlbOptimization(BaseImageOptimization):
         result_labels = []
 
         for target in targets:
-            agent = self._load_agent(target)
-            if agent is None:
-                self._agent_training(target, input_shape)
-                agent = self._load_agent(target)
+            target_latents = latents[labels == target]
+            # agent = self._load_agent(target)
+            # if agent is None:
+            result_zs.append(
+                self._agent_training(target, input_shape, len(target_latents))
+            )
+            result_labels.extend([target] * len(latents))
+            # agent = self._load_agent(target)
 
-            with torch.no_grad():
-                target_latents = latents[labels == target]
-                for i in range(len(target_latents)):
-                    state = target_latents[i].detach().to(device).reshape(1, input_dim)
-                    for t in range(config.optim_steps):
-                        action = agent.act(state)
-                        state = (
-                            config.truncation * state + (1 - config.truncation) * action
-                        )
-                    z = state.reshape(input_shape)
-                    result_zs.append(z.detach().cpu())
-                    result_labels.append(target)
+            # else:
+            #     with torch.no_grad():
 
-        result_zs = torch.stack(result_zs, dim=0)
+            #         for i in range(len(target_latents)):
+            #             state = (
+            #                 target_latents[i].detach().to(device).reshape(1, input_dim)
+            #             )
+            #             for t in range(config.optim_steps):
+            #                 action = agent.act(state)
+            #                 state = (
+            #                     config.truncation * state
+            #                     + (1 - config.truncation) * action
+            #                 )
+            #             z = state.reshape(input_shape)
+            #             result_zs.append(z.detach().cpu())
+            #             result_labels.append(target)
+
+        result_zs = torch.cat(result_zs, dim=0)
         result_labels = torch.LongTensor(result_labels)
+        # print(result_zs.shape, result_labels.shape)
+        # exit()
         result_imgs = self.generator(result_zs, labels=result_labels)
         return ImageOptimizationOutput(
             images=result_imgs.detach().cpu(),

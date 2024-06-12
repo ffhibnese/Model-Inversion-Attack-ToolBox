@@ -23,7 +23,7 @@ from ..utils import (
     print_split_line,
     get_random_string,
     BaseOutput,
-    safe_save
+    safe_save,
 )
 from .optimize import BaseImageOptimization
 
@@ -391,11 +391,17 @@ class ImageClassifierAttacker(ABC):
 
         # execute optimize
         print('execute optimization')
+        import time
+
+        optim_start_time = time.time()
         optimized_output: _ImageClassifierAttackerOptimizedOutput = self.optimize(
             latents=init_latents,
             labels=init_labels,
             batch_size=config.optimize_batch_size,
         )
+        optim_end_time = time.time()
+        print(optim_end_time - optim_start_time, '  seconds')
+        exit()
 
         if config.save_optimized_images and optimized_output.latents is not None:
             save_dir = os.path.join(self.optimized_save_dir, 'cache')
@@ -491,7 +497,7 @@ class ImageClassifierAttacker(ABC):
             folder = os.path.join(config.save_dir, foldername)
             cache_folder = os.path.join(folder, 'cache')
             if not os.path.isdir(cache_folder):
-                
+
                 continue
             # print(f'parse {cache_folder}')
             labels_file = os.path.join(cache_folder, 'labels.npy')

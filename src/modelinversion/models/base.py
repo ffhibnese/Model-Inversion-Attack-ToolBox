@@ -48,7 +48,7 @@ class ModelMixin(Module, ConfigMixin):
         if 'state_dict' in data:
             state_dict = data['state_dict']
             if state_dict is not None:
-                print(f'load state dict')
+                # print(f'load state dict')
                 model.load_state_dict(state_dict)
 
         return model
