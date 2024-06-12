@@ -57,13 +57,6 @@ class GmiAttackConfig(BaseAttackConfig):
         discriminator.eval()
         self.discriminator = discriminator
         
-        # prepare eval dataset
-
-        self.eval_dataset = CelebA112(
-            self.eval_dataset_path,
-            output_transform=ToTensor(),
-        )
-        
         # prepare optimization
 
         optimization_config = SimpleWhiteBoxOptimizationConfig(
