@@ -13,7 +13,7 @@
 [Xuan Wang](https://faculty.hitsz.edu.cn/wangxuan),
 [Shu-Tao Xia](https://www.sigs.tsinghua.edu.cn/xst/main.htm)
 
-Welcome to **MIA**! This repository is a comprehensive open-source Python benchmark for model inversion attacks, which is well-organized and easy to get started. It includes uniform implementations of advanced and representative model inversion methods, formulating a unified and reliable framework for a convenient and fair comparison between different model inversion methods.
+Welcome to **MIA**! This repository is a comprehensive open-source Python benchmark for model inversion attacks, which is well-organized and easy to get started. It includes uniform implementations of advanced and representative model inversion methods, formulating a unified and reliable framework for a convenient and fair comparison between different model inversion methods. Our repository is continuously updated in **https://github.com/ffhibnese/Model-Inversion-Attack-ToolBox**.
 
 
 If you have any concerns about our toolbox, feel free to contact us at qiuyixiang@stu.hit.edu.cn, yuhongyao@stu.hit.edu.cn, and fang-h23@mails.tsinghua.edu.cn.
@@ -59,7 +59,6 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 
 |Method|Paper|Publication|Key Characteristics|
 |:-:|:-:|:-:|:-:|
-|[DPSGD](./src/modelinversion/defense/DP/)|Deep Learning with Differential Privacy|[CCS'2016](https://dl.acm.org/doi/abs/10.1145/2976749.2978318)|add noise on gradient|
 |[ViB / MID](./src/modelinversion/defense/Vib/)|Improving Robustness to Model Inversion Attacks via Mutual Information Regularization|[AAAI'2021](https://ojs.aaai.org/index.php/AAAI/article/view/17387)| variational method, mutual information, special loss function|
 |[BiDO](./src/modelinversion/defense/BiDO/)|Bilateral Dependency Optimization: Defending Against Model-inversion Attacks|[KDD'2022](https://dl.acm.org/doi/abs/10.1145/3534678.3539376)|special loss function|
 |[TL](./src/modelinversion/defense/TL/)|Model Inversion Robustness: Can Transfer Learning Help?|[CVPR'2024](https://openreview.net/forum?id=nW0sCc3LLN&nesting=2&sort=date-desc)|transfer learning|
@@ -79,9 +78,11 @@ conda activate MIA
 pip install -r requirements.txt
 ```
 
-## :page_facing_up: Preprocess Datasets
+## :page_facing_up: Preprocess Datasets and Pre-trained Models
 
-See [here](./docs/datasets.md) for details to preprocess datasets.
+See [here](./docs/datasets.md) for details to preprocess datasets. 
+
+We have released pre-trained target models and evaluation models in the `checkpoints_v2.0` of [Google Drive](https://drive.google.com/drive/folders/1ko8zAK1j9lTSF8FMvacO8mCKHY9evG9L?usp=sharing).
 
 <!-- ## :racehorse: Run Examples
 
