@@ -7,12 +7,14 @@ Here are some standard examples about how to use this toolbox.
 
 1. run the attack method of C2FMI:
 ```bash
-python ./adapter_training/c2f.py
+cd adapter_training
+python c2f.py
 ```
 
 2. run the attack method of C2FMI on high-resolution images:
 ```bash
-python ./adapter_training/c2f_high.py
+cd adapter_training
+python c2f_high.py
 ```
 
 ## attacks
@@ -28,7 +30,8 @@ eval_dataset_path = '<fill it>'
 
 2. run the attack method of BREPMI, GMI, LOMMA, MIRROR, PLGMI, PPA, RLBMI, VIM:
 ```bash
-python ./attacks/<ATTACK_METHOD_NAME>.py
+cd attacks
+python <ATTACK_METHOD_NAME>.py
 ```
 
 ## classifier_training
@@ -43,7 +46,8 @@ backbone_path = '<fill it, or set as None>'
 
 2. run the training scripts of classifiers under various resolutions:
 ```bash
-python ./classifier_training/<TRAIN_METHOD_NAME>.py
+cd classifier_training
+python <TRAIN_METHOD_NAME>.py
 ```
 
 ## dataset_preprocess
@@ -56,7 +60,8 @@ dst_path = '<fill it>'
 
 2. run the preprocess scripts of datasets under various resolutions:
 ```bash
-python ./dataset_preprocess/<PREPROCESS_METHOD_NAME>.py
+cd dataset_preprocess
+python <PREPROCESS_METHOD_NAME>.py
 ```
 
 ## gan_training
@@ -69,5 +74,6 @@ experiment_dir = '<fill it>'
 
 2. run the preprocess scripts of datasets under various resolutions:
 ```bash
-python ./gan_training/<GAN_TRAIN_METHOD_NAME>.py
+cd gan_training
+python <GAN_TRAIN_METHOD_NAME>.py
 ```
