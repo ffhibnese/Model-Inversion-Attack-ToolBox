@@ -13,7 +13,7 @@
 [Xuan Wang](https://faculty.hitsz.edu.cn/wangxuan),
 [Shu-Tao Xia](https://www.sigs.tsinghua.edu.cn/xst/main.htm)
 
-Welcome to **MIA**! This repository is a comprehensive open-source Python benchmark for model inversion attacks, which is well-organized and easy to get started. It includes uniform implementations of advanced and representative model inversion methods, formulating a unified and reliable framework for a convenient and fair comparison between different model inversion methods.
+Welcome to **MIA**! This repository is a comprehensive open-source Python benchmark for model inversion attacks, which is well-organized and easy to get started. It includes uniform implementations of advanced and representative model inversion methods, formulating a unified and reliable framework for a convenient and fair comparison between different model inversion methods. Our repository is continuously updated in **https://github.com/ffhibnese/Model-Inversion-Attack-ToolBox**.
 
 
 If you have any concerns about our toolbox, feel free to contact us at qiuyixiang@stu.hit.edu.cn, yuhongyao@stu.hit.edu.cn, and fang-h23@mails.tsinghua.edu.cn.
