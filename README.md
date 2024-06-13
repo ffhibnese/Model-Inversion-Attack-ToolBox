@@ -83,7 +83,7 @@ pip install -r requirements.txt
 
 See [here](./docs/datasets.md) for details to preprocess datasets. 
 
-We have released pre-trained target models and evaluation models in the [Google Drive](https://drive.google.com/drive/folders/1ko8zAK1j9lTSF8FMvacO8mCKHY9evG9L?usp=sharing).
+We have released pre-trained target models and evaluation models in the `checkpoints_v2.0` of [Google Drive](https://drive.google.com/drive/folders/1ko8zAK1j9lTSF8FMvacO8mCKHY9evG9L?usp=sharing).
 
 <!-- ## :racehorse: Run Examples
 
