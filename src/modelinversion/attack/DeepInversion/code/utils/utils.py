@@ -10,10 +10,13 @@ from torch import distributed, nn
 import random
 import numpy as np
 
+
 def load_model_pytorch(model, load_model, gpu_n=0):
     print("=> loading checkpoint '{}'".format(load_model))
 
-    checkpoint = torch.load(load_model, map_location = lambda storage, loc: storage.cuda(gpu_n))
+    checkpoint = torch.load(
+        load_model, map_location=lambda storage, loc: storage.cuda(gpu_n)
+    )
 
     if 'state_dict' in checkpoint.keys():
         load_from = checkpoint['state_dict']
@@ -25,27 +28,35 @@ def load_model_pytorch(model, load_model, gpu_n=0):
             if 'module.' not in list(load_from.keys())[0]:
                 from collections import OrderedDict
 
-                load_from = OrderedDict([("module.{}".format(k), v) for k, v in load_from.items()])
+                load_from = OrderedDict(
+                    [("module.{}".format(k), v) for k, v in load_from.items()]
+                )
 
         if 'module.' not in list(model.state_dict().keys())[0]:
             if 'module.' in list(load_from.keys())[0]:
                 from collections import OrderedDict
 
-                load_from = OrderedDict([(k.replace("module.", ""), v) for k, v in load_from.items()])
+                load_from = OrderedDict(
+                    [(k.replace("module.", ""), v) for k, v in load_from.items()]
+                )
 
     if 1:
-        if list(load_from.items())[0][0][:2] == "1." and list(model.state_dict().items())[0][0][:2] != "1.":
+        if (
+            list(load_from.items())[0][0][:2] == "1."
+            and list(model.state_dict().items())[0][0][:2] != "1."
+        ):
             load_from = OrderedDict([(k[2:], v) for k, v in load_from.items()])
 
-        load_from = OrderedDict([(k, v) for k, v in load_from.items() if "gate" not in k])
+        load_from = OrderedDict(
+            [(k, v) for k, v in load_from.items() if "gate" not in k]
+        )
 
     model.load_state_dict(load_from, strict=True)
 
     epoch_from = -1
     if 'epoch' in checkpoint.keys():
         epoch_from = checkpoint['epoch']
-    print("=> loaded checkpoint '{}' (epoch {})"
-          .format(load_model, epoch_from))
+    print("=> loaded checkpoint '{}' (epoch {})".format(load_model, epoch_from))
 
 
 def create_folder(directory):
@@ -55,6 +66,7 @@ def create_folder(directory):
 
 
 random.seed(0)
+
 
 def distributed_is_initialized():
     if distributed.is_available():

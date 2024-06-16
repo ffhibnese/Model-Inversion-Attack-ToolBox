@@ -126,8 +126,9 @@ from torch.utils.cpp_extension import load
 #             input.contiguous(), bias, negative_slope, scale
 #         )
 
+
 class FusedLeakyReLU(nn.Module):
-    def __init__(self, channel, bias=True, negative_slope=0.2, scale=2 ** 0.5):
+    def __init__(self, channel, bias=True, negative_slope=0.2, scale=2**0.5):
         super().__init__()
 
         if bias:
@@ -141,8 +142,8 @@ class FusedLeakyReLU(nn.Module):
         return fused_leaky_relu(input, self.bias, self.negative_slope, self.scale)
 
 
-def fused_leaky_relu(input, bias=None, negative_slope=0.2, scale=2 ** 0.5):
-    return scale * F.leaky_relu(input + bias.view((1, -1) + (1,) * (len(input.shape) - 2)),
-                                negative_slope=negative_slope)
-
-
+def fused_leaky_relu(input, bias=None, negative_slope=0.2, scale=2**0.5):
+    return scale * F.leaky_relu(
+        input + bias.view((1, -1) + (1,) * (len(input.shape) - 2)),
+        negative_slope=negative_slope,
+    )

@@ -1,5 +1,5 @@
 import math
-import random 
+import random
 
 import torch
 from torch import nn
@@ -13,7 +13,7 @@ class PixelNorm(nn.Module):
         super().__init__()
 
     def forward(self, input):
-        return input * torch.rsqrt(torch.mean(input ** 2, dim=1, keepdim=True) + 1e-8)
+        return input * torch.rsqrt(torch.mean(input**2, dim=1, keepdim=True) + 1e-8)
 
 
 def make_kernel(k):
@@ -32,7 +32,7 @@ class Upsample(nn.Module):
         super().__init__()
 
         self.factor = factor
-        kernel = make_kernel(kernel) * (factor ** 2)
+        kernel = make_kernel(kernel) * (factor**2)
         self.register_buffer("kernel", kernel)  # self.kernel将存入模型参数，但无法学习
 
         p = kernel.shape[0] - factor
@@ -76,7 +76,7 @@ class Blur(nn.Module):
         kernel = make_kernel(kernel)
 
         if upsample_factor > 1:
-            kernel = kernel * (upsample_factor ** 2)
+            kernel = kernel * (upsample_factor**2)
 
         self.register_buffer("kernel", kernel)
 
@@ -90,14 +90,14 @@ class Blur(nn.Module):
 
 class EqualConv2d(nn.Module):
     def __init__(
-            self, in_channel, out_channel, kernel_size, stride=1, padding=0, bias=True
+        self, in_channel, out_channel, kernel_size, stride=1, padding=0, bias=True
     ):
         super().__init__()
 
         self.weight = nn.Parameter(
             torch.randn(out_channel, in_channel, kernel_size, kernel_size)
         )
-        self.scale = 1 / math.sqrt(in_channel * kernel_size ** 2)
+        self.scale = 1 / math.sqrt(in_channel * kernel_size**2)
 
         self.stride = stride
         self.padding = padding
@@ -115,7 +115,7 @@ class EqualConv2d(nn.Module):
             bias=self.bias,
             stride=self.stride,
             padding=self.padding,
-            )
+        )
 
         return out
 
@@ -128,7 +128,7 @@ class EqualConv2d(nn.Module):
 
 class EqualLinear(nn.Module):
     def __init__(
-            self, in_dim, out_dim, bias=True, bias_init=0, lr_mul=1, activation=None
+        self, in_dim, out_dim, bias=True, bias_init=0, lr_mul=1, activation=None
     ):
         super().__init__()
 
@@ -147,7 +147,9 @@ class EqualLinear(nn.Module):
 
     def forward(self, input):
         if self.activation:
-            out = F.linear(input, self.weight * self.scale)  # input.mul(weight.t()*scale)
+            out = F.linear(
+                input, self.weight * self.scale
+            )  # input.mul(weight.t()*scale)
             out = fused_leaky_relu(out, self.bias * self.lr_mul)
 
         else:
@@ -165,16 +167,16 @@ class EqualLinear(nn.Module):
 
 class ModulatedConv2d(nn.Module):
     def __init__(
-            self,
-            in_channel,
-            out_channel,
-            kernel_size,
-            style_dim,
-            demodulate=True,
-            upsample=False,
-            downsample=False,
-            blur_kernel=[1, 3, 3, 1],
-            fused=True,
+        self,
+        in_channel,
+        out_channel,
+        kernel_size,
+        style_dim,
+        demodulate=True,
+        upsample=False,
+        downsample=False,
+        blur_kernel=[1, 3, 3, 1],
+        fused=True,
     ):
         super().__init__()
 
@@ -201,7 +203,7 @@ class ModulatedConv2d(nn.Module):
 
             self.blur = Blur(blur_kernel, pad=(pad0, pad1))
 
-        fan_in = in_channel * kernel_size ** 2
+        fan_in = in_channel * kernel_size**2
         self.scale = 1 / math.sqrt(fan_in)
         self.padding = kernel_size // 2
 
@@ -225,13 +227,17 @@ class ModulatedConv2d(nn.Module):
 
         if not self.fused:
             weight = self.scale * self.weight.squeeze(0)
-            style = self.modulation(style)   # 通过模块A:w->style
+            style = self.modulation(style)  # 通过模块A:w->style
 
             if self.demodulate:
                 w = weight.unsqueeze(0) * style.view(batch, 1, in_channel, 1, 1)
-                dcoefs = (w.square().sum((2, 3, 4)) + 1e-8).rsqrt()  # 计算调制和卷积后的输出标准差
+                dcoefs = (
+                    w.square().sum((2, 3, 4)) + 1e-8
+                ).rsqrt()  # 计算调制和卷积后的输出标准差
 
-            input = input * style.reshape(batch, in_channel, 1, 1)  # 通过style对输入进行调制
+            input = input * style.reshape(
+                batch, in_channel, 1, 1
+            )  # 通过style对输入进行调制
 
             if self.upsample:
                 weight = weight.transpose(0, 1)
@@ -248,7 +254,9 @@ class ModulatedConv2d(nn.Module):
                 out = conv2d_gradfix.conv2d(input, weight, padding=self.padding)  # 卷积
 
             if self.demodulate:
-                out = out * dcoefs.view(batch, -1, 1, 1)  # 对标准差进行Norm （使用的论文图2-c结构）
+                out = out * dcoefs.view(
+                    batch, -1, 1, 1
+                )  # 对标准差进行Norm （使用的论文图2-c结构）
 
             return out
 
@@ -311,7 +319,7 @@ class NoiseInjection(nn.Module):
             batch, _, height, width = image.shape
             noise = image.new_empty(batch, 1, height, width).normal_()
 
-        return image + self.weight * noise   # 每张图像的每个通道噪声都一样
+        return image + self.weight * noise  # 每张图像的每个通道噪声都一样
 
 
 class ConstantInput(nn.Module):
@@ -329,14 +337,14 @@ class ConstantInput(nn.Module):
 
 class StyledConv(nn.Module):
     def __init__(
-            self,
-            in_channel,
-            out_channel,
-            kernel_size,
-            style_dim,
-            upsample=False,
-            blur_kernel=[1, 3, 3, 1],
-            demodulate=True,
+        self,
+        in_channel,
+        out_channel,
+        kernel_size,
+        style_dim,
+        upsample=False,
+        blur_kernel=[1, 3, 3, 1],
+        demodulate=True,
     ):
         super().__init__()
 
@@ -388,13 +396,13 @@ class ToRGB(nn.Module):
 
 class Generator(nn.Module):
     def __init__(
-            self,
-            size,
-            style_dim,
-            n_mlp,
-            channel_multiplier=2,
-            blur_kernel=[1, 3, 3, 1],
-            lr_mlp=0.01,
+        self,
+        size,
+        style_dim,
+        n_mlp,
+        channel_multiplier=2,
+        blur_kernel=[1, 3, 3, 1],
+        lr_mlp=0.01,
     ):  # size:图像大小，style_dim:style的维度，n_mlp:z->w的全连接层数，channel_multiplier:1-普通，2-large_network，
         super().__init__()
 
@@ -427,14 +435,20 @@ class Generator(nn.Module):
             1024: 16 * channel_multiplier,
         }  # resolution: channels
 
-        self.input = ConstantInput(self.channels[4])  # self.input层返回batch个512*4*4的可训练重复tensor(constant input)
+        self.input = ConstantInput(
+            self.channels[4]
+        )  # self.input层返回batch个512*4*4的可训练重复tensor(constant input)
         self.conv1 = StyledConv(
             self.channels[4], self.channels[4], 3, style_dim, blur_kernel=blur_kernel
         )  # 风格卷积块层，即调制、解调、3*3卷积核卷积、加噪、激活，无上采样
-        self.to_rgb1 = ToRGB(self.channels[4], style_dim, upsample=False)  # to_rgb1层输出三通道feature maps
+        self.to_rgb1 = ToRGB(
+            self.channels[4], style_dim, upsample=False
+        )  # to_rgb1层输出三通道feature maps
 
         self.log_size = int(math.log(size, 2))
-        self.num_layers = (self.log_size - 2) * 2 + 1  # 计算总层数->4*4->8*8->8*8->16*16->16*16->...->256*256->256*256
+        self.num_layers = (
+            self.log_size - 2
+        ) * 2 + 1  # 计算总层数->4*4->8*8->8*8->16*16->16*16->...->256*256->256*256
 
         self.convs = nn.ModuleList()
         self.upsamples = nn.ModuleList()
@@ -446,11 +460,13 @@ class Generator(nn.Module):
         # 注册登记不需要作为模型参数的缓冲，即与各层分辨率相同的噪声
         for layer_idx in range(self.num_layers):
             res = (layer_idx + 5) // 2
-            shape = [1, 1, 2 ** res, 2 ** res]
-            self.noises.register_buffer(f"noise_{layer_idx}", torch.randn(*shape)) #对象self.noises属性值noise_{layer_idx}
+            shape = [1, 1, 2**res, 2**res]
+            self.noises.register_buffer(
+                f"noise_{layer_idx}", torch.randn(*shape)
+            )  # 对象self.noises属性值noise_{layer_idx}
 
         for i in range(3, self.log_size + 1):
-            out_channel = self.channels[2 ** i]  # 512通道->...
+            out_channel = self.channels[2**i]  # 512通道->...
 
             self.convs.append(
                 StyledConv(
@@ -479,11 +495,11 @@ class Generator(nn.Module):
     def make_noise(self):
         device = self.input.input.device
 
-        noises = [torch.randn(1, 1, 2 ** 2, 2 ** 2, device=device)]
+        noises = [torch.randn(1, 1, 2**2, 2**2, device=device)]
 
         for i in range(3, self.log_size + 1):
             for _ in range(2):
-                noises.append(torch.randn(1, 1, 2 ** i, 2 ** i, device=device))
+                noises.append(torch.randn(1, 1, 2**i, 2**i, device=device))
 
         return noises
 
@@ -501,15 +517,15 @@ class Generator(nn.Module):
         return self.style(input)
 
     def forward(
-            self,
-            styles,
-            return_latents=False,
-            inject_index=None,
-            truncation=1,
-            truncation_latent=None,
-            input_is_latent=False,
-            noise=None,
-            randomize_noise=True,
+        self,
+        styles,
+        return_latents=False,
+        inject_index=None,
+        truncation=1,
+        truncation_latent=None,
+        input_is_latent=False,
+        noise=None,
+        randomize_noise=True,
     ):
         # 如果输入[styles]为z空间（default）:
         if not input_is_latent:
@@ -518,7 +534,9 @@ class Generator(nn.Module):
         # 如果在生成图像的时候没有给噪声（default）:
         if noise is None:
             if randomize_noise:
-                noise = [None] * self.num_layers  # 默认使用随机噪声，noise=[None,None,...,None]
+                noise = [
+                    None
+                ] * self.num_layers  # 默认使用随机噪声，noise=[None,None,...,None]
             else:
                 noise = [
                     getattr(self.noises, f"noise_{i}") for i in range(self.num_layers)
@@ -540,7 +558,9 @@ class Generator(nn.Module):
             inject_index = self.n_latent  # inject_index = 风格隐向量个数
 
             if styles[0].ndim < 3:
-                latent = styles[0].unsqueeze(1).repeat(1, inject_index, 1)  # 在batch和dim中间增加一维，并沿该维复制style
+                latent = (
+                    styles[0].unsqueeze(1).repeat(1, inject_index, 1)
+                )  # 在batch和dim中间增加一维，并沿该维复制style
 
             else:
                 latent = styles[0]
@@ -550,24 +570,32 @@ class Generator(nn.Module):
             if inject_index is None:  # 如果未指定在哪一层进行混合，则随机指定
                 inject_index = random.randint(1, self.n_latent - 1)
 
-            latent = styles[0].unsqueeze(1).repeat(1, inject_index, 1)   # 风格0在前inject_index层
-            latent2 = styles[1].unsqueeze(1).repeat(1, self.n_latent - inject_index, 1)   # 风格1在后面其余层
+            latent = (
+                styles[0].unsqueeze(1).repeat(1, inject_index, 1)
+            )  # 风格0在前inject_index层
+            latent2 = (
+                styles[1].unsqueeze(1).repeat(1, self.n_latent - inject_index, 1)
+            )  # 风格1在后面其余层
 
             latent = torch.cat([latent, latent2], 1)  # 按第2维联结
 
-        out = self.input(latent)   # 生成batch个一样的512*4*4的输入向量
-        out = self.conv1(out, latent[:, 0], noise=noise[0])  # (batch个一样的512*4*4的输入向量,batch个不同的第一层style,
+        out = self.input(latent)  # 生成batch个一样的512*4*4的输入向量
+        out = self.conv1(
+            out, latent[:, 0], noise=noise[0]
+        )  # (batch个一样的512*4*4的输入向量,batch个不同的第一层style,
         # 与分辨率相同的噪声，可以默认随机)
 
-        skip = self.to_rgb1(out, latent[:, 1])   # 使用batch个不同的第二层style进行tRGB,skip=batch*3*4*4
+        skip = self.to_rgb1(
+            out, latent[:, 1]
+        )  # 使用batch个不同的第二层style进行tRGB,skip=batch*3*4*4
 
         i = 1
         for conv1, conv2, noise1, noise2, to_rgb in zip(
-                self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
+            self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
         ):
             out = conv1(out, latent[:, i], noise=noise1)  # 上采样
             out = conv2(out, latent[:, i + 1], noise=noise2)  # 无上采样
-            skip = to_rgb(out, latent[:, i + 2], skip)   # tRGB + Upsample(skip)
+            skip = to_rgb(out, latent[:, i + 2], skip)  # tRGB + Upsample(skip)
 
             i += 2
 
@@ -582,14 +610,14 @@ class Generator(nn.Module):
 
 class ConvLayer(nn.Sequential):
     def __init__(
-            self,
-            in_channel,
-            out_channel,
-            kernel_size,
-            downsample=False,
-            blur_kernel=[1, 3, 3, 1],
-            bias=True,
-            activate=True,
+        self,
+        in_channel,
+        out_channel,
+        kernel_size,
+        downsample=False,
+        blur_kernel=[1, 3, 3, 1],
+        bias=True,
+        activate=True,
     ):
         layers = []
 
@@ -662,7 +690,9 @@ class Discriminator(nn.Module):
             1024: 16 * channel_multiplier,
         }
 
-        convs = [ConvLayer(3, channels[size], 1)]  # 3通道转目标通道(假设1024^2，即16通道)
+        convs = [
+            ConvLayer(3, channels[size], 1)
+        ]  # 3通道转目标通道(假设1024^2，即16通道)
 
         log_size = int(math.log(size, 2))
 
@@ -671,7 +701,9 @@ class Discriminator(nn.Module):
         for i in range(log_size, 2, -1):
             out_channel = channels[2 ** (i - 1)]
 
-            convs.append(ResBlock(in_channel, out_channel, blur_kernel))  # 通道*2，分辨率/2
+            convs.append(
+                ResBlock(in_channel, out_channel, blur_kernel)
+            )  # 通道*2，分辨率/2
 
             in_channel = out_channel
 
@@ -680,7 +712,9 @@ class Discriminator(nn.Module):
         self.stddev_group = 4
         self.stddev_feat = 1
 
-        self.final_conv = ConvLayer(in_channel + 1, channels[4], 3)  # 通道上多了minibatch，因此513->512
+        self.final_conv = ConvLayer(
+            in_channel + 1, channels[4], 3
+        )  # 通道上多了minibatch，因此513->512
         self.final_linear = nn.Sequential(
             EqualLinear(channels[4] * 4 * 4, channels[4], activation="fused_lrelu"),
             EqualLinear(channels[4], 1),
@@ -694,7 +728,9 @@ class Discriminator(nn.Module):
         stddev = out.view(
             group, -1, self.stddev_feat, channel // self.stddev_feat, height, width
         )  # batch*1*1*512*4*4  or 4*(b/4)*1*512*4*4
-        stddev = torch.sqrt(stddev.var(0, unbiased=False) + 1e-8)  # 按照第1维度求标准差 1*1*512*4*4 ((b/4)*1*512*4*4)
+        stddev = torch.sqrt(
+            stddev.var(0, unbiased=False) + 1e-8
+        )  # 按照第1维度求标准差 1*1*512*4*4 ((b/4)*1*512*4*4)
         stddev = stddev.mean([2, 3, 4], keepdims=True).squeeze(2)  # 1*1*1*1 (b/4*1*1*1)
         stddev = stddev.repeat(group, 1, height, width)  # batch*1*4*4
         out = torch.cat([out, stddev], 1)  # batch*513*4*4
@@ -705,4 +741,3 @@ class Discriminator(nn.Module):
         out = self.final_linear(out)
 
         return out
-

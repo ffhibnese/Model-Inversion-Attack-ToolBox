@@ -1,3 +1,0 @@
-# ModelInversionAttackBox
-Output files.
-

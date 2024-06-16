@@ -8,9 +8,10 @@
 # --------------------------------------------------------
 from dataclasses import dataclass
 
+
 @dataclass
 class DeepInversionArgs:
-    
+
     # exp_name: str
     adi_scale: float
     device: str
@@ -22,22 +23,23 @@ class DeepInversionArgs:
     r_feature: float
     target_labels: list
     # save_dir: str
-    
+
     worldsize = 1
     local_rank = 0
-    tv_l1 = 0.
+    tv_l1 = 0.0
     tv_l2 = 0.0001
     l2 = 0.00001
-    main_loss_multiplier = 1.
-    
+    main_loss_multiplier = 1.0
+
     store_best_images = True
     epochs = 20000
     setting_id = 0
     first_bn_multiplier = 10
-    
+
     # fp16 = False
     jitter = 30
     comment = ''
+
 
 from dataclasses import dataclass
 import argparse
@@ -84,7 +86,9 @@ def validate_one(input, target, model):
     print("Verifier accuracy: ", prec1.item())
 
 
-def deepinversion_attack(args: DeepInversionArgs, target_model, eval_model, folder_manager):
+def deepinversion_attack(
+    args: DeepInversionArgs, target_model, eval_model, folder_manager
+):
     torch.manual_seed(args.local_rank)
     device = torch.device(args.device)
 
@@ -159,28 +163,29 @@ def deepinversion_attack(args: DeepInversionArgs, target_model, eval_model, fold
 
     # check accuracy of verifier
     if args.eval_name is not None:
-        hook_for_display = lambda x,y: validate_one(x, y, net_verifier)
+        hook_for_display = lambda x, y: validate_one(x, y, net_verifier)
     else:
         hook_for_display = None
 
     # assert not (use_fp16 and device == 'cpu'), 'cpu do not support fp16'
-    DeepInversionEngine = DeepInversionClass(target_labels=args.target_labels,
-                                             net_teacher=target_model,
-                                             folder_manager=folder_manager,
-                                            #  final_data_path=args.save_dir,
-                                            #  path=exp_name,
-                                             parameters=parameters,
-                                             setting_id=args.setting_id,
-                                             bs = bs,
-                                            #  use_fp16 = args.fp16,
-                                             jitter = jitter,
-                                             criterion=criterion,
-                                             coefficients = coefficients,
-                                             network_output_function = network_output_function,
-                                             hook_for_display = hook_for_display,
-                                             device=device)
-    net_student=None
+    DeepInversionEngine = DeepInversionClass(
+        target_labels=args.target_labels,
+        net_teacher=target_model,
+        folder_manager=folder_manager,
+        #  final_data_path=args.save_dir,
+        #  path=exp_name,
+        parameters=parameters,
+        setting_id=args.setting_id,
+        bs=bs,
+        #  use_fp16 = args.fp16,
+        jitter=jitter,
+        criterion=criterion,
+        coefficients=coefficients,
+        network_output_function=network_output_function,
+        hook_for_display=hook_for_display,
+        device=device,
+    )
+    net_student = None
     if args.adi_scale != 0:
         net_student = net_verifier
     DeepInversionEngine.generate_batch(net_student=net_student)
-    

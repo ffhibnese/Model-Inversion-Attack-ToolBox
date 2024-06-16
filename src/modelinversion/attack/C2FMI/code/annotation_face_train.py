@@ -1,9 +1,9 @@
 import os
 
 if __name__ == "__main__":
-    datasets_path   = "../data/FaceScrub/facescrub/train/"
-    types_name      = os.listdir(datasets_path)
-    types_name      = sorted(types_name)
+    datasets_path = "../data/FaceScrub/facescrub/train/"
+    types_name = os.listdir(datasets_path)
+    types_name = sorted(types_name)
 
     list_file = open('facescrub_train.txt', 'w')
     for cls_id, type_name in enumerate(types_name):
@@ -18,7 +18,12 @@ if __name__ == "__main__":
                 continue
 
             # types_name不存在 .DS_store 文件，所以不-1
-            list_file.write(str(cls_id) + ";" + '%s'%(os.path.join(os.path.abspath(datasets_path), type_name, photo_name)))
+            list_file.write(
+                str(cls_id)
+                + ";"
+                + '%s'
+                % (os.path.join(os.path.abspath(datasets_path), type_name, photo_name))
+            )
 
             # types_name存在 .DS_store 文件，所以 -1
             # list_file.write(str(cls_id-1) + ";" + '%s'%(os.path.join(os.path.abspath(datasets_path), type_name, photo_name)))

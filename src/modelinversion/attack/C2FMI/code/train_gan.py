@@ -55,11 +55,13 @@ def accumulate(model1, model2, decay=0.999):
     for k in par1.keys():
         par1[k].data.mul_(decay).add_(par2[k].data, alpha=1 - decay)
 
+
 # a=sample_data(loader), 每次调用next(a)迭代产生1个batch, 回到loader时重新进行DataLoader()
 def sample_data(loader):
     while True:
         for batch in loader:
             yield batch
+
 
 # 判别器损失函数，real_pred越大，fake_pred越小，loss越小
 def d_logistic_loss(real_pred, fake_pred):
@@ -68,15 +70,17 @@ def d_logistic_loss(real_pred, fake_pred):
 
     return real_loss.mean() + fake_loss.mean()
 
+
 # 判别器输出对输入的梯度惩罚
 def d_r1_loss(real_pred, real_img):
     with conv2d_gradfix.no_weight_gradients():
-        grad_real, = autograd.grad(
+        (grad_real,) = autograd.grad(
             outputs=real_pred.sum(), inputs=real_img, create_graph=True
         )
     grad_penalty = grad_real.pow(2).reshape(grad_real.shape[0], -1).sum(1).mean()
 
     return grad_penalty
+
 
 # 生成器损失函数,fake_pred越大，损失越小
 def g_nonsaturating_loss(fake_pred):
@@ -84,21 +88,25 @@ def g_nonsaturating_loss(fake_pred):
 
     return loss
 
+
 # 生成器 Path Length 正则项
 def g_path_regularize(fake_img, latents, mean_path_length, decay=0.01):
     noise = torch.randn_like(fake_img) / math.sqrt(
         fake_img.shape[2] * fake_img.shape[3]
     )  # 防止分辨率对求和的影响，因此除以h*w
-    grad, = autograd.grad(
+    (grad,) = autograd.grad(
         outputs=(fake_img * noise).sum(), inputs=latents, create_graph=True
     )  # latents = batch_size * 风格隐向量个数 * 512
     path_lengths = torch.sqrt(grad.pow(2).sum(2).mean(1))  # batch_size * path_length
 
-    path_mean = mean_path_length + decay * (path_lengths.mean() - mean_path_length)  # 滑动平均计算平均path长度
+    path_mean = mean_path_length + decay * (
+        path_lengths.mean() - mean_path_length
+    )  # 滑动平均计算平均path长度
 
     path_penalty = (path_lengths - path_mean).pow(2).mean()
 
     return path_penalty, path_mean.detach(), path_lengths
+
 
 # n_noise==1, 返回 tensor=batch*512 噪声；n_noise==2, 返回 (tensor1,tensor2)
 def make_noise(batch, latent_dim, n_noise, device):
@@ -109,6 +117,7 @@ def make_noise(batch, latent_dim, n_noise, device):
 
     return noises
 
+
 # 按照概率 prob 生成混合噪声
 def mixing_noise(batch, latent_dim, prob, device):
     if prob > 0 and random.random() < prob:
@@ -116,6 +125,7 @@ def mixing_noise(batch, latent_dim, prob, device):
 
     else:
         return [make_noise(batch, latent_dim, 1, device)]
+
 
 # 根据参数名对梯度清零
 def set_grad_none(model, targets):
@@ -173,7 +183,9 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
         requires_grad(generator, False)
         requires_grad(discriminator, True)  # 训练判别器
 
-        noise = mixing_noise(args.batch, args.latent, args.mixing, device)  # 生成噪声，P=args.mixing为混合噪声，否则不混合
+        noise = mixing_noise(
+            args.batch, args.latent, args.mixing, device
+        )  # 生成噪声，P=args.mixing为混合噪声，否则不混合
         fake_img, _ = generator(noise)  # 根据 z 生成假图像
 
         if args.augment:
@@ -199,7 +211,9 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
             ada_aug_p = ada_augment.tune(real_pred)
             r_t_stat = ada_augment.r_t_stat
 
-        d_regularize = i % args.d_reg_every == 0   # i % args.d_reg_every == 0，d_regularize=True，非lazy正则启动
+        d_regularize = (
+            i % args.d_reg_every == 0
+        )  # i % args.d_reg_every == 0，d_regularize=True，非lazy正则启动
 
         if d_regularize:
             real_img.requires_grad = True
@@ -214,7 +228,9 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
             r1_loss = d_r1_loss(real_pred, real_img)
 
             discriminator.zero_grad()
-            (args.r1 / 2 * r1_loss * args.d_reg_every + 0 * real_pred[0]).backward()  # r1权重
+            (
+                args.r1 / 2 * r1_loss * args.d_reg_every + 0 * real_pred[0]
+            ).backward()  # r1权重
 
             d_optim.step()
 
@@ -261,13 +277,13 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
             g_optim.step()
 
             mean_path_length_avg = (
-                    reduce_sum(mean_path_length).item() / get_world_size()
+                reduce_sum(mean_path_length).item() / get_world_size()
             )  # 求各进程的平均路径长度
 
         loss_dict["path"] = path_loss
         loss_dict["path_length"] = path_lengths.mean()
 
-        accumulate(g_ema, g_module, accum) # 更新 g_ema
+        accumulate(g_ema, g_module, accum)  # 更新 g_ema
 
         loss_reduced = reduce_loss_dict(loss_dict)
 
@@ -312,7 +328,7 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
                     utils.save_image(
                         sample,
                         f"sample/{str(i).zfill(6)}.png",
-                        nrow=int(args.n_sample ** 0.5),
+                        nrow=int(args.n_sample**0.5),
                         normalize=True,
                         range=(-1, 1),
                     )
@@ -339,7 +355,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="StyleGAN2 trainer")
 
     parser.add_argument("path", type=str, help="path to the lmdb dataset")
-    parser.add_argument('--arch', type=str, default='stylegan2', help='model architectures (stylegan2 | swagan)')
+    parser.add_argument(
+        '--arch',
+        type=str,
+        default='stylegan2',
+        help='model architectures (stylegan2 | swagan)',
+    )
     parser.add_argument(
         "--iter", type=int, default=800000, help="total training iterations"
     )
@@ -444,11 +465,10 @@ if __name__ == "__main__":
         torch.distributed.init_process_group(backend="nccl", init_method="env://")
         synchronize()
 
-    args.latent = 512   # 隐向量维度（z和w都是512）
-    args.n_mlp = 8      # 8个全连接层
+    args.latent = 512  # 隐向量维度（z和w都是512）
+    args.n_mlp = 8  # 8个全连接层
 
     args.start_iter = 0
-
 
     # 生成器(图片大小，隐向量维度，全连接层个数，large_net=*2)
     generator = Generator(
@@ -471,23 +491,27 @@ if __name__ == "__main__":
     g_optim = optim.Adam(
         generator.parameters(),
         lr=args.lr * g_reg_ratio,
-        betas=(0 ** g_reg_ratio, 0.99 ** g_reg_ratio),
+        betas=(0**g_reg_ratio, 0.99**g_reg_ratio),
     )
     d_optim = optim.Adam(
         discriminator.parameters(),
         lr=args.lr * d_reg_ratio,
-        betas=(0 ** d_reg_ratio, 0.99 ** d_reg_ratio),
+        betas=(0**d_reg_ratio, 0.99**d_reg_ratio),
     )
 
     # 若存在checkpoint，则从中加载模型
     if args.ckpt is not None:
         print("load model:", args.ckpt)
 
-        ckpt = torch.load(args.ckpt, map_location=lambda storage, loc: storage)  # 加载checkpoint到cpu
+        ckpt = torch.load(
+            args.ckpt, map_location=lambda storage, loc: storage
+        )  # 加载checkpoint到cpu
 
         try:
             ckpt_name = os.path.basename(args.ckpt)  # 返回 args.ckpt 的最后文件名
-            args.start_iter = int(os.path.splitext(ckpt_name)[0])  # 分离文件名和扩展名，此处返回文件名（数字）
+            args.start_iter = int(
+                os.path.splitext(ckpt_name)[0]
+            )  # 分离文件名和扩展名，此处返回文件名（数字）
 
         except ValueError:
             pass

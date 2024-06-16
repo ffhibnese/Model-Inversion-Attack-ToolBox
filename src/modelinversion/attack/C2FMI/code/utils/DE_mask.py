@@ -7,8 +7,19 @@ from tqdm import tqdm
 
 
 class Optimizer(object):
-    def __init__(self, eva_model, generator, target_label, mask, nv=15, beta=0.04,
-                 input_latent=True, face_shape=None, device='cuda', direct='gen_figures/ggsmd/'):
+    def __init__(
+        self,
+        eva_model,
+        generator,
+        target_label,
+        mask,
+        nv=15,
+        beta=0.04,
+        input_latent=True,
+        face_shape=None,
+        device='cuda',
+        direct='gen_figures/ggsmd/',
+    ):
         if face_shape is None:
             face_shape = [160, 160]
         self.M = mask
@@ -20,7 +31,7 @@ class Optimizer(object):
         self.trans = Resize(face_shape)
         self.target = target_label
         self.device = device
-        self.dir    = direct
+        self.dir = direct
 
     def get_rand_w(self):
         noise = torch.randn(3, 512).to(self.device)
@@ -35,23 +46,23 @@ class Optimizer(object):
         return imgs_gen
 
     def save_img(self, img, best_id, only_best=False):
-        file_name  = f'de_label{self.target}.jpg'
+        file_name = f'de_label{self.target}.jpg'
         file_name2 = f'de_label{self.target}_best.jpg'
         uts.save_image(
             img[best_id].unsqueeze(0),
-            self.dir+file_name2,
+            self.dir + file_name2,
             nrow=1,
             normalize=True,
             range=(-1, 1),
-            )
+        )
         if not only_best:
             uts.save_image(
                 img,
-                self.dir+file_name,
+                self.dir + file_name,
                 nrow=8,
                 normalize=True,
                 range=(-1, 1),
-                )
+            )
 
     @staticmethod
     def resize_img_gen_shape(img, trans):
@@ -69,7 +80,7 @@ class Optimizer(object):
         prob = F.softmax(predicti, dim=1)
         fitness = torch.zeros_like(prob[:, 1])
         for i in range(fitness.shape[0]):
-            topk, idx = torch.topk(prob[i,:], self.M)
+            topk, idx = torch.topk(prob[i, :], self.M)
             fitness[i] = prob[i, self.target] if self.target in idx else -topk.sum()
         return np.array(fitness.cpu())
 
@@ -89,15 +100,15 @@ class DE_c2b_5_bin(object):
         tmp = []
         num_lack = self.popsize - self.batch_size
         for _ in range(num_lack):
-            idx = np.random.randint(0,self.batch_size, size=3)
+            idx = np.random.randint(0, self.batch_size, size=3)
             while idx[0] == idx[1] or idx[0] == idx[2] or idx[1] == idx[2]:
-                idx = np.random.randint(0,self.batch_size, size=3)
+                idx = np.random.randint(0, self.batch_size, size=3)
             x1 = self.pop[idx[0]]
             x2 = self.pop[idx[1]]
             x3 = self.pop[idx[2]]
-            u  = 0.5*((0.5*(x1+x2))+x3)
+            u = 0.5 * ((0.5 * (x1 + x2)) + x3)
             rand_w = self.optim.get_rand_w()
-            u  = 0.7*u + 0.3*rand_w
+            u = 0.7 * u + 0.3 * rand_w
             tmp.append(np.expand_dims(u, axis=0))
         uu = np.concatenate(tmp, axis=0)
         self.pop = np.concatenate([self.pop, uu], axis=0)
@@ -138,31 +149,27 @@ class DE_c2b_5_bin(object):
         dim = child.shape[-1]
         for j in range(dim):
             if np.random.rand(1) > pr:
-                self.pop[i,j] = child[j]
+                self.pop[i, j] = child[j]
 
     def gen_one_child(self, beta, x_i, x_best, nv):
         tmp = x_i + 0.025 * (x_best - x_i)  # 0.025
-        idx = np.random.randint(0, self.popsize, size=(nv,2))
+        idx = np.random.randint(0, self.popsize, size=(nv, 2))
         for i in range(nv):
-            i2, i3 = idx[i,0], idx[i,1]
-            tmp += beta*(self.pop[i2]-self.pop[i3])
+            i2, i3 = idx[i, 0], idx[i, 1]
+            tmp += beta * (self.pop[i2] - self.pop[i3])
         return tmp
 
     def run(self, disturb=0.0):
         pbar = tqdm(range(self.max_gen))
         for i in pbar:
-            if i < self.max_gen-20:
+            if i < self.max_gen - 20:
                 prob = self.step()
             else:
                 prob = self.step(if_cross=False)
             # print(f'step {i}:\n{prob}')
-            if i < self.max_gen-20:
+            if i < self.max_gen - 20:
                 self.pop += np.random.randn(*self.pop.shape) * disturb
-            pbar.set_description(
-                (
-                    f'label-{self.optim.target}; maxProb-{np.max(prob)}'
-                )
-            )
+            pbar.set_description((f'label-{self.optim.target}; maxProb-{np.max(prob)}'))
         print(f'label {self.optim.target}:\n{prob}')
 
     def get_img(self, num_imgs, only_best=False):
@@ -187,15 +194,15 @@ class DE_c2b_5_bin2(object):
         tmp = []
         num_lack = self.popsize - self.batch_size
         for _ in range(num_lack):
-            idx = np.random.randint(0,self.batch_size, size=3)
+            idx = np.random.randint(0, self.batch_size, size=3)
             while idx[0] == idx[1] or idx[0] == idx[2] or idx[1] == idx[2]:
-                idx = np.random.randint(0,self.batch_size, size=3)
+                idx = np.random.randint(0, self.batch_size, size=3)
             x1 = self.pop[idx[0]]
             x2 = self.pop[idx[1]]
             x3 = self.pop[idx[2]]
-            u  = 0.5*((0.5*(x1+x2))+x3)
+            u = 0.5 * ((0.5 * (x1 + x2)) + x3)
             rand_w = self.optim.get_rand_w()
-            u  = 0.7*u + 0.3*rand_w
+            u = 0.7 * u + 0.3 * rand_w
             tmp.append(np.expand_dims(u, axis=0))
         uu = np.concatenate(tmp, axis=0)
         self.pop = np.concatenate([self.pop, uu], axis=0)
@@ -204,10 +211,10 @@ class DE_c2b_5_bin2(object):
         # nv = self.optim.nv
         # beta = self.optim.beta
         nv = 4
-        if step_i < self.max_gen-30:
+        if step_i < self.max_gen - 30:
             beta = 0.1
         else:
-            beta = 0.1 * (self.max_gen-step_i)/50
+            beta = 0.1 * (self.max_gen - step_i) / 50
         fitness_par = self.optim.cal_fitness(self.pop)
         max_id = np.argmax(fitness_par)
         x_best = self.pop[max_id]
@@ -235,16 +242,18 @@ class DE_c2b_5_bin2(object):
         fi_children = np.zeros_like(children)
         for i in range(batch):
             for j in range(dim):
-                fi_children[i,j] = children[i,j] if np.random.rand(1) > pr else self.pop[i,j]
+                fi_children[i, j] = (
+                    children[i, j] if np.random.rand(1) > pr else self.pop[i, j]
+                )
         return fi_children
 
     def gen_one_child(self, beta, x_i, x_best, nv):
         tmp = x_i + 0.02 * (x_best - x_i)  # facescrub: 0.04
         # idx = np.random.randint(0, self.popsize, size=(nv,2))
-        idx = np.random.choice(self.popsize, int(nv*2)).reshape(nv, 2)
+        idx = np.random.choice(self.popsize, int(nv * 2)).reshape(nv, 2)
         for i in range(nv):
-            i2, i3 = idx[i,0], idx[i,1]
-            tmp += beta*(self.pop[i2]-self.pop[i3])
+            i2, i3 = idx[i, 0], idx[i, 1]
+            tmp += beta * (self.pop[i2] - self.pop[i3])
         return tmp
 
     # 执行max_gen代差分进化
@@ -253,13 +262,9 @@ class DE_c2b_5_bin2(object):
         for i in pbar:
             prob = self.step(i)
             # print(f'step {i}:\n{prob}')
-            if i < self.max_gen-20:
+            if i < self.max_gen - 20:
                 self.pop += np.random.randn(*self.pop.shape) * disturb
-            pbar.set_description(
-                (
-                    f'label-{self.optim.target}; maxProb-{np.max(prob)}'
-                )
-            )
+            pbar.set_description((f'label-{self.optim.target}; maxProb-{np.max(prob)}'))
         print(f'label {self.optim.target}:\n{prob}')
 
     def get_img(self, num_imgs, only_best=False):
