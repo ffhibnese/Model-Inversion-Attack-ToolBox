@@ -401,7 +401,6 @@ class ImageClassifierAttacker(ABC):
         )
         optim_end_time = time.time()
         print(optim_end_time - optim_start_time, '  seconds')
-        exit()
 
         if config.save_optimized_images and optimized_output.latents is not None:
             save_dir = os.path.join(self.optimized_save_dir, 'cache')
