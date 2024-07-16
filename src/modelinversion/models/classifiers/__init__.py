@@ -12,6 +12,7 @@ from .base import (
 from .wrappers import (
     VibWrapper,
     BiDOWrapper,
+    LoraWrapper,
     get_default_create_hidden_hook_fn,
     origin_vgg16_64_hidden_hook_fn,
 )

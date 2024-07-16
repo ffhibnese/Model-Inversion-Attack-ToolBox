@@ -187,6 +187,121 @@ class BiDOWrapper(BaseClassifierWrapper):
         return forward_res, addition_info
 
 
+@register_model('lora')
+class LoraWrapper(BaseClassifierWrapper):
+
+    @ModelMixin.register_to_config_init
+    def __init__(
+        self,
+        module: BaseImageClassifier,
+        register_last_feature_hook=False,
+        # create_hidden_hook_fn: Optional[Callable] = None,
+        lora_dim=5,
+    ) -> None:
+        super().__init__(
+            module,
+            # module.resolution,
+            # module.feature_dim,
+            # module.num_classes,
+            register_last_feature_hook,
+        )
+
+        optim_nodes = nn.ModuleList()
+
+        lins: list[nn.Linear] = []
+        convs: list[nn.Conv2d] = []
+
+        def _visit_linear(module):
+            if isinstance(module, nn.Linear):
+                lins.append(module)
+            elif isinstance(module, nn.Conv2d):
+                convs.append(module)
+
+        traverse_module(module, _visit_linear, call_middle=False)
+
+        convs = convs[len(convs) // 3 :]
+        for i, conv in enumerate(convs):
+            node_a = nn.Conv2d(
+                conv.in_channels,
+                lora_dim,
+                kernel_size=conv.kernel_size,
+                stride=conv.stride,
+                padding=conv.padding,
+                dilation=conv.dilation,
+                groups=conv.groups,
+                bias=False,
+                padding_mode=conv.padding_mode,
+            )
+            node_b = nn.Conv2d(
+                lora_dim, conv.out_channels, kernel_size=1, bias=conv.bias
+            )
+            nn.init.zeros_(node_b.weight)
+
+            if node_b.bias is not None:
+                nn.init.zeros_(node_b.bias)
+
+            optim_nodes.append(node_a)
+            optim_nodes.append(node_b)
+            conv._lora_idx = i
+
+            def hook_fn(module, inp, oup):
+                # print(type(module))
+                # exit()
+                i = module._lora_idx
+                node_a = optim_nodes[2 * i]
+                node_b = optim_nodes[2 * i + 1]
+                # print(module.in_channels, module.out_channels)
+                # print(module.weight.shape, node_a.weight.shape, node_b.weight.shape)
+                a_out = node_a(inp[0])
+                b_out = node_b(a_out)
+
+                return b_out + oup
+
+            conv.register_forward_hook(hook_fn)
+
+        optim_nodes.append(lins[-1])
+        # lins = lins[:-1]
+        print('add lora num: ', len(optim_nodes))
+
+        # for i, lin in enumerate(lins):
+        #     odim, idim = lin.weight.shape
+        #     lin._lora_idx = i
+
+        #     node_a = nn.Linear(idim, lora_dim, bias=False)
+        #     node_b = nn.Linear(lora_dim, odim, bias=True)
+        #     node_b.weight.zero_()
+        #     node_b.bias.zero_()
+        #     optim_nodes.append(node_a)
+        #     optim_nodes.append(node_b)
+
+        #     def hook_fn(module, inp, oup):
+        #         return node_b(node_a(inp)) + oup
+
+        #     lin.register_forward_hook(hook_fn)
+
+        self.optim_nodes = optim_nodes
+
+        # self.module = module
+
+        # create_hidden_hook_fn = (
+        #     create_hidden_hook_fn
+        #     if create_hidden_hook_fn is not None
+        #     else get_default_create_hidden_hook_fn()
+        # )
+
+        # self.hidden_hooks = create_hidden_hook_fn(self.module)
+        # print(f'hidden hook num: {len(self.hidden_hooks)}')
+        # exit()
+
+    # def get_last_feature_hook(self) -> BaseHook:
+    #     return self.module.get_last_feature_hook()
+
+    def _forward_impl(self, image: Tensor, *args, **kwargs):
+        forward_res, addition_info = self.module(image, *args, **kwargs)
+        # addition_info[HOOK_NAME_HIDDEN] = [h.get_feature() for h in self.hidden_hooks]
+        return forward_res, addition_info
+
+
 def get_default_deepinversion_bn_hook_fn(num: int = 3):
 
     def _fn(model: BaseImageClassifier):
