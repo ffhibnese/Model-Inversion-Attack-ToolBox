@@ -7,7 +7,9 @@ from collections import defaultdict
 
 import numpy as np
 from PIL import Image
+import torch.utils
 from torch.utils.data import sampler, Subset
+import torch.utils.data
 from torchvision.datasets import DatasetFolder
 from torchvision.transforms import ToTensor
 from torchvision.utils import save_image
@@ -66,6 +68,25 @@ class ClassSubset(Subset):
         indices = [i for i, c in enumerate(targets) if c in target_class]
         super().__init__(dataset, indices)
 
+import torchvision
+
+class IndexImageFolder(torchvision.datasets.ImageFolder):
+    def __getitem__(self, index: int):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (sample, target) where target is class_index of the target class.
+        """
+        path, target = self.samples[index]
+        sample = self.loader(path)
+        if self.transform is not None:
+            sample = self.transform(sample)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return sample, target, index
 
 @torch.no_grad()
 def top_k_selection(
@@ -80,12 +101,17 @@ def top_k_selection(
     copy_or_move='copy',
 ):
 
-    src_paths = walk_imgs(src_dataset_path)
+    # src_paths = walk_imgs(src_dataset_path)
+    ds = IndexImageFolder(src_dataset_path, transform=torchvision.transforms.Compose([
+        torchvision.transforms.ToTensor(),
+        # create_aug_images_fn
+    ]))
+    
     labels = list(range(num_classes))
 
-    if len(src_paths) < top_k:
+    if len(ds) < top_k:
         raise RuntimeError(
-            f'Find top-{top_k} images, but the src dataset only contains {len(src_paths)} images.'
+            f'Find top-{top_k} images, but the src dataset only contains {len(ds)} images.'
         )
 
     def score_calculate(paths: list[str]):
@@ -99,9 +125,20 @@ def top_k_selection(
             .cpu()
         )
 
-    scores = batch_apply(
-        score_calculate, src_paths, batch_size=batch_size, use_tqdm=True
-    )
+    # scores = batch_apply(
+    #     score_calculate, src_paths, batch_size=batch_size, use_tqdm=True
+    # )
+    scores = []
+    src_paths = []
+    dataloader = torch.utils.data.DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=8)
+    for imgs, _, index in tqdm(dataloader):
+        imgs = imgs.to(device)
+        scores.append(cross_image_augment_scores(target_model, device, create_aug_images_fn, imgs)
+            .detach()
+            .cpu())
+        for idx in index.cpu().tolist():
+            src_paths.append(ds.samples[idx][0])
+    scores = torch.cat(scores, dim=0)
 
     transfer_fn = shutil.copy if copy_or_move == 'copy' else shutil.move
 

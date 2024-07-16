@@ -130,3 +130,4 @@ nohup.txt
 test*.py
 test*.sh
 checkpoints_v2/
+/datasets
