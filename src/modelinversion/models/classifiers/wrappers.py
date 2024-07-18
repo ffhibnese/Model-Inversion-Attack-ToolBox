@@ -1,4 +1,5 @@
 from copy import deepcopy
+from collections import OrderedDict
 
 from torch import Tensor
 from torch.nn import MaxPool2d
@@ -245,13 +246,9 @@ class LoraWrapper(BaseClassifierWrapper):
             conv._lora_idx = i
 
             def hook_fn(module, inp, oup):
-                # print(type(module))
-                # exit()
                 i = module._lora_idx
                 node_a = optim_nodes[2 * i]
                 node_b = optim_nodes[2 * i + 1]
-                # print(module.in_channels, module.out_channels)
-                # print(module.weight.shape, node_a.weight.shape, node_b.weight.shape)
                 a_out = node_a(inp[0])
                 b_out = node_b(a_out)
 
@@ -263,38 +260,38 @@ class LoraWrapper(BaseClassifierWrapper):
         # lins = lins[:-1]
         print('add lora num: ', len(optim_nodes))
 
-        # for i, lin in enumerate(lins):
-        #     odim, idim = lin.weight.shape
-        #     lin._lora_idx = i
-
-        #     node_a = nn.Linear(idim, lora_dim, bias=False)
-        #     node_b = nn.Linear(lora_dim, odim, bias=True)
-        #     node_b.weight.zero_()
-        #     node_b.bias.zero_()
-        #     optim_nodes.append(node_a)
-        #     optim_nodes.append(node_b)
-
-        #     def hook_fn(module, inp, oup):
-        #         return node_b(node_a(inp)) + oup
-
-        #     lin.register_forward_hook(hook_fn)
-
         self.optim_nodes = optim_nodes
 
-        # self.module = module
+    def freeze_to_train(self):
 
-        # create_hidden_hook_fn = (
-        #     create_hidden_hook_fn
-        #     if create_hidden_hook_fn is not None
-        #     else get_default_create_hidden_hook_fn()
-        # )
+        for p in self.parameters():
+            p.requires_grad_(False)
+        for p in self.optim_nodes.parameters():
+            p.requires_grad_(True)
 
-        # self.hidden_hooks = create_hidden_hook_fn(self.module)
-        # print(f'hidden hook num: {len(self.hidden_hooks)}')
-        # exit()
+    def unwrap(self) -> BaseImageClassifier:
+        model = deepcopy(self.module)
 
-    # def get_last_feature_hook(self) -> BaseHook:
-    #     return self.module.get_last_feature_hook()
+        def _visit(module):
+            if isinstance(module, nn.Conv2d) and hasattr(module, '_lora_idx'):
+                idx = module._lora_idx
+                del module._lora_idx
+                conv1 = self.optim_nodes[2 * idx]
+                conv2 = self.optim_nodes[2 * idx + 1]
+
+                combined_weight = torch.matmul(
+                    conv2.weight.view(conv2.out_channels, -1),
+                    conv1.weight.view(conv1.out_channels, -1),
+                ).view(conv2.out_channels, conv1.in_channels, *conv1.kernel_size)
+
+                module.weight.data.add_(combined_weight.data)
+                if conv2.bias is not None:
+                    module.bias.data.add_(conv2.bias.data)
+                module._forward_hooks = OrderedDict()
+
+        traverse_module(model, _visit, call_middle=False)
+
+        return model
 
     def _forward_impl(self, image: Tensor, *args, **kwargs):
         forward_res, addition_info = self.module(image, *args, **kwargs)
