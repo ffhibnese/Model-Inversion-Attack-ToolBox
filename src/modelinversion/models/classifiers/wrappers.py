@@ -191,6 +191,15 @@ class BiDOWrapper(BaseClassifierWrapper):
 @register_model('lora')
 class LoraWrapper(BaseClassifierWrapper):
 
+    def _get_split_idx(self, length, ratio):
+        if ratio == 0:
+            return 0
+        if isinstance(ratio, int):
+            return length // ratio
+        if 0 < ratio < 1:
+            return int(length * ratio)
+        raise RuntimeError(f'ratio {ratio} is invalid.')
+
     @ModelMixin.register_to_config_init
     def __init__(
         self,
@@ -198,6 +207,9 @@ class LoraWrapper(BaseClassifierWrapper):
         register_last_feature_hook=False,
         # create_hidden_hook_fn: Optional[Callable] = None,
         lora_dim=5,
+        start_ratio=3,
+        end_ratio=1,
+        lora_step=1,
     ) -> None:
         super().__init__(
             module,
@@ -220,8 +232,14 @@ class LoraWrapper(BaseClassifierWrapper):
 
         traverse_module(module, _visit_linear, call_middle=False)
 
-        convs = convs[len(convs) // 3 :]
-        for i, conv in enumerate(convs):
+        start_idx = self._get_split_idx(len(convs), start_ratio)
+        end_idx = self._get_split_idx(len(convs), end_ratio)
+
+        # convs = convs[len(convs) // 3 :]
+        lora_idx = 0
+        for i, conv in enumerate(convs[start_idx:end_idx]):
+            if i % lora_step != 0:
+                continue
             node_a = nn.Conv2d(
                 conv.in_channels,
                 lora_dim,
@@ -243,12 +261,12 @@ class LoraWrapper(BaseClassifierWrapper):
 
             optim_nodes.append(node_a)
             optim_nodes.append(node_b)
-            conv._lora_idx = i
+            conv._lora_idx = lora_idx
 
             def hook_fn(module, inp, oup):
-                i = module._lora_idx
-                node_a = optim_nodes[2 * i]
-                node_b = optim_nodes[2 * i + 1]
+                lora_idx = module._lora_idx
+                node_a = optim_nodes[2 * lora_idx]
+                node_b = optim_nodes[2 * lora_idx + 1]
                 a_out = node_a(inp[0])
                 b_out = node_b(a_out)
 
@@ -256,9 +274,17 @@ class LoraWrapper(BaseClassifierWrapper):
 
             conv.register_forward_hook(hook_fn)
 
-        optim_nodes.append(lins[-1])
+            lora_idx += 1
+
         # lins = lins[:-1]
         print('add lora num: ', len(optim_nodes))
+
+        for i, conv in enumerate(convs[end_idx:]):
+            optim_nodes.append(conv)
+
+        print(f'full tune num: ', len(convs) - end_idx)
+
+        optim_nodes.append(lins[-1])
 
         self.optim_nodes = optim_nodes
 
