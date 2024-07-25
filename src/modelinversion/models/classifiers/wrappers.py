@@ -11,6 +11,7 @@ from ...utils import (
     traverse_module,
 )
 from .base import *
+from ..layers import DynamicConv2D
 
 
 class BaseClassifierWrapper(BaseImageClassifier):
@@ -48,6 +49,65 @@ class BaseClassifierWrapper(BaseImageClassifier):
     @staticmethod
     def postprocess_config_after_load(config):
         config['module'] = auto_classifier_from_pretrained(config['module'])
+        return config
+
+
+@register_model('ztq')
+class ZtqDefenseWrapper(BaseImageClassifier):
+
+    def __init__(
+        self,
+        classifier: BaseImageClassifier,
+        binary_checker: BaseImageClassifier,
+        register_last_feature_hook=False,
+    ):
+        super().__init__(
+            classifier.resolution,
+            classifier.feature_dim,
+            classifier.num_classes,
+            register_last_feature_hook,
+        )
+        self.classifier = classifier
+        self.binary_checker = binary_checker
+
+    def _forward_impl(self, image: Tensor, *args, **kwargs):
+        out, info = self.classifier(image, *args, **kwargs)
+
+        # 这里修改 out
+
+        return out, info
+
+    def preprocess_config_before_save(self, config):
+        # return config
+        process_config = {}
+        for k, v in config.items():
+            if k != '_classifier' and k != '_binary_checker':
+                process_config[k] = v
+
+        config['_classifier'] = {
+            'model_name': CLASSNAME_TO_NAME_MAPPING[self.classifier.__class__.__name__],
+            'config': self.classifier.preprocess_config_before_save(
+                self.classifier._config_mixin_dict
+            ),
+        }
+
+        config['_binary_checker'] = {
+            'model_name': CLASSNAME_TO_NAME_MAPPING[
+                self.binary_checker.__class__.__name__
+            ],
+            'config': self.binary_checker.preprocess_config_before_save(
+                self.binary_checker._config_mixin_dict
+            ),
+        }
+
+        return super().preprocess_config_before_save(config)
+
+    @staticmethod
+    def postprocess_config_after_load(config):
+        config['_classifier'] = auto_classifier_from_pretrained(config['_classifier'])
+        config['_binary_checker'] = auto_classifier_from_pretrained(
+            config['_binary_checker']
+        )
         return config
 
 
@@ -210,6 +270,8 @@ class LoraWrapper(BaseClassifierWrapper):
         start_ratio=3,
         end_ratio=1,
         lora_step=1,
+        a_k=0,
+        b_k=0,
     ) -> None:
         super().__init__(
             module,
@@ -236,24 +298,47 @@ class LoraWrapper(BaseClassifierWrapper):
         end_idx = self._get_split_idx(len(convs), end_ratio)
 
         # convs = convs[len(convs) // 3 :]
+        node_a_cls = nn.Conv2d if a_k == 0 else DynamicConv2D
+        node_b_cls = nn.Conv2d if b_k == 0 else DynamicConv2D
         lora_idx = 0
         for i, conv in enumerate(convs[start_idx:end_idx]):
             if i % lora_step != 0:
                 continue
-            node_a = nn.Conv2d(
-                conv.in_channels,
-                lora_dim,
-                kernel_size=conv.kernel_size,
-                stride=conv.stride,
-                padding=conv.padding,
-                dilation=conv.dilation,
-                groups=conv.groups,
-                bias=False,
-                padding_mode=conv.padding_mode,
-            )
-            node_b = nn.Conv2d(
-                lora_dim, conv.out_channels, kernel_size=1, bias=conv.bias
-            )
+            if a_k == 0:
+                node_a = nn.Conv2d(
+                    conv.in_channels,
+                    lora_dim,
+                    kernel_size=conv.kernel_size,
+                    stride=conv.stride,
+                    padding=conv.padding,
+                    dilation=conv.dilation,
+                    groups=conv.groups,
+                    bias=False,
+                    padding_mode=conv.padding_mode,
+                )
+            else:
+                # print(conv.groups)
+                # exit()
+                node_a = DynamicConv2D(
+                    conv.in_channels,
+                    lora_dim,
+                    kernel_size=conv.kernel_size,
+                    stride=conv.stride,
+                    padding=conv.padding,
+                    dilation=conv.dilation,
+                    groups=conv.groups,
+                    bias=False,
+                    # padding_mode=conv.padding_mode,
+                    K=a_k,
+                )
+            if b_k == 0:
+                node_b = nn.Conv2d(
+                    lora_dim, conv.out_channels, kernel_size=1, bias=conv.bias
+                )
+            else:
+                node_b = DynamicConv2D(
+                    lora_dim, conv.out_channels, kernel_size=1, bias=conv.bias, K=b_k
+                )
             nn.init.zeros_(node_b.weight)
 
             if node_b.bias is not None:
@@ -278,6 +363,150 @@ class LoraWrapper(BaseClassifierWrapper):
 
         # lins = lins[:-1]
         print('add lora num: ', len(optim_nodes))
+
+        for i, conv in enumerate(convs[end_idx:]):
+            optim_nodes.append(conv)
+
+        print(f'full tune num: ', len(convs) - end_idx)
+
+        optim_nodes.append(lins[-1])
+
+        self.optim_nodes = optim_nodes
+
+    def freeze_to_train(self):
+
+        for p in self.parameters():
+            p.requires_grad_(False)
+        for p in self.optim_nodes.parameters():
+            p.requires_grad_(True)
+
+    def unwrap(self) -> BaseImageClassifier:
+        model = deepcopy(self.module)
+
+        def _visit(module):
+            if isinstance(module, nn.Conv2d) and hasattr(module, '_lora_idx'):
+                idx = module._lora_idx
+                del module._lora_idx
+                conv1 = self.optim_nodes[2 * idx]
+                conv2 = self.optim_nodes[2 * idx + 1]
+
+                combined_weight = torch.matmul(
+                    conv2.weight.view(conv2.out_channels, -1),
+                    conv1.weight.view(conv1.out_channels, -1),
+                ).view(conv2.out_channels, conv1.in_channels, *conv1.kernel_size)
+
+                module.weight.data.add_(combined_weight.data)
+                if conv2.bias is not None:
+                    module.bias.data.add_(conv2.bias.data)
+                module._forward_hooks = OrderedDict()
+
+        traverse_module(model, _visit, call_middle=False)
+
+        return model
+
+    def _forward_impl(self, image: Tensor, *args, **kwargs):
+        forward_res, addition_info = self.module(image, *args, **kwargs)
+        # addition_info[HOOK_NAME_HIDDEN] = [h.get_feature() for h in self.hidden_hooks]
+        return forward_res, addition_info
+
+
+@register_model('growlora')
+class GrowLoraWrapper(BaseClassifierWrapper):
+
+    def _get_split_idx(self, length, ratio):
+        if ratio == 0:
+            return 0
+        if isinstance(ratio, int):
+            return length // ratio
+        if 0 < ratio < 1:
+            return int(length * ratio)
+        raise RuntimeError(f'ratio {ratio} is invalid.')
+
+    @ModelMixin.register_to_config_init
+    def __init__(
+        self,
+        module: BaseImageClassifier,
+        register_last_feature_hook=False,
+        # create_hidden_hook_fn: Optional[Callable] = None,
+        start_lora_dim=3,
+        end_lora_dim=8,
+        start_ratio=3,
+        end_ratio=1,
+        lora_step=1,
+    ) -> None:
+        super().__init__(
+            module,
+            # module.resolution,
+            # module.feature_dim,
+            # module.num_classes,
+            register_last_feature_hook,
+        )
+
+        optim_nodes = nn.ModuleList()
+
+        lins: list[nn.Linear] = []
+        convs: list[nn.Conv2d] = []
+
+        def _visit_linear(module):
+            if isinstance(module, nn.Linear):
+                lins.append(module)
+            elif isinstance(module, nn.Conv2d):
+                convs.append(module)
+
+        traverse_module(module, _visit_linear, call_middle=False)
+
+        start_idx = self._get_split_idx(len(convs), start_ratio)
+        end_idx = self._get_split_idx(len(convs), end_ratio)
+        end_lora_dim += 1
+
+        # convs = convs[len(convs) // 3 :]
+        lora_idx = 0
+        for i, conv in enumerate(convs[start_idx:end_idx]):
+            lora_dim = start_lora_dim + int(
+                (i) * (end_lora_dim - start_lora_dim) // (end_idx - start_idx)
+            )
+            if i % lora_step != 0:
+                continue
+            node_a = nn.Conv2d(
+                conv.in_channels,
+                lora_dim,
+                kernel_size=conv.kernel_size,
+                stride=conv.stride,
+                padding=conv.padding,
+                dilation=conv.dilation,
+                groups=conv.groups,
+                bias=False,
+                padding_mode=conv.padding_mode,
+            )
+            node_b = nn.Conv2d(
+                lora_dim, conv.out_channels, kernel_size=1, bias=conv.bias
+            )
+            nn.init.zeros_(node_b.weight)
+            # print(conv.in_channels, lora_dim, conv.out_channels, end=' | ')
+
+            if node_b.bias is not None:
+                nn.init.zeros_(node_b.bias)
+
+            optim_nodes.append(node_a)
+            optim_nodes.append(node_b)
+            conv._lora_idx = lora_idx
+
+            def hook_fn(module, inp, oup):
+                lora_idx = module._lora_idx
+                node_a = optim_nodes[2 * lora_idx]
+                node_b = optim_nodes[2 * lora_idx + 1]
+                a_out = node_a(inp[0])
+                b_out = node_b(a_out)
+
+                return b_out + oup
+
+            conv.register_forward_hook(hook_fn)
+
+            lora_idx += 1
+
+        # lins = lins[:-1]
+        print('add lora num: ', len(optim_nodes))
+        # exit()
 
         for i, conv in enumerate(convs[end_idx:]):
             optim_nodes.append(conv)
