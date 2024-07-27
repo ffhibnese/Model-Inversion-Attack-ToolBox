@@ -126,13 +126,18 @@ For more information, you can read [here](./defense_scripts/README.md). -->
 ## 📔 Citation
 **If you find our work helpful for your research, please kindly cite our paper:**
 ```
-@misc{fang2024privacy,
-      title={Privacy Leakage on DNNs: A Survey of Model Inversion Attacks and Defenses}, 
-      author={Hao Fang and Yixiang Qiu and Hongyao Yu and Wenbo Yu and Jiawei Kong and Baoli Chong and Bin Chen and Xuan Wang and Shu-Tao Xia},
-      year={2024},
-      eprint={2402.04013},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
+@article{fang2024privacy,
+  title={Privacy leakage on dnns: A survey of model inversion attacks and defenses},
+  author={Fang, Hao and Qiu, Yixiang and Yu, Hongyao and Yu, Wenbo and Kong, Jiawei and Chong, Baoli and Chen, Bin and Wang, Xuan and Xia, Shu-Tao},
+  journal={arXiv preprint arXiv:2402.04013},
+  year={2024}
+}
+
+@article{qiu2024closer,
+  title={A Closer Look at GAN Priors: Exploiting Intermediate Features for Enhanced Model Inversion Attacks},
+  author={Qiu, Yixiang and Fang, Hao and Yu, Hongyao and Chen, Bin and Qiu, MeiKang and Xia, Shu-Tao},
+  journal={arXiv preprint arXiv:2407.13863},
+  year={2024}
 }
 ```
 
