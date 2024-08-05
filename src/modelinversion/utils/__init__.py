@@ -14,6 +14,7 @@ from .config import ConfigMixin
 from .losses import (
     TorchLoss,
     LabelSmoothingCrossEntropyLoss,
+    InverseFocalLoss,
     max_margin_loss,
     poincare_loss,
 )

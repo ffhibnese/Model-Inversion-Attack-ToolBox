@@ -150,6 +150,11 @@ class BaseTrainer(ABC):
             step_res = self._train_step(inputs, labels)
             accumulator.add(step_res)
 
+            if i % 1000 == 0:
+                print_as_yaml({'epoch': self._epoch})
+                print_as_yaml({'iter': i})
+                print_as_yaml({'train': accumulator.avg()})
+
         self.after_train()
 
         return accumulator.avg()
@@ -324,3 +329,69 @@ class VibTrainer(SimpleTrainer):
         )
         loss = main_loss + self.config.beta * info_loss
         return loss
+
+
+@dataclass
+class BackdoorTrainConfig(SimpleTrainConfig):
+    backdoor_resolution: int = 8
+    backdoor_eps = 4 / 256
+
+
+class BackdoorTrainer(SimpleTrainer):
+
+    def __init__(self, config: BackdoorTrainConfig, *args, **kwargs) -> None:
+        super().__init__(config, *args, **kwargs)
+        self.config: BackdoorTrainConfig
+        self.num_classes = unwrapped_parallel_module(self.config.model).num_classes
+        self.label_backdoor = (
+            (
+                torch.randn(
+                    (
+                        self.num_classes,
+                        3,
+                        config.backdoor_resolution,
+                        config.backdoor_resolution,
+                    )
+                )
+                * config.backdoor_eps
+            )
+            .to(config.device)
+            .detach()
+            .requires_grad_(True)
+        )
+
+        self.label_backdoor_optimizer = type(config.optimizer)(
+            [self.label_backdoor], lr=config.optimizer.defaults['lr']
+        )
+
+    def _update_step(self, loss):
+        self.label_backdoor_optimizer.zero_grad()
+        super()._update_step(loss)
+        self.label_backdoor_optimizer.step()
+        self.label_backdoor.data = torch.clamp(
+            self.label_backdoor.data,
+            -self.config.backdoor_eps,
+            self.config.backdoor_eps,
+        )
+
+    def prepare_input_label(self, batch):
+        """add backdoor label and noise"""
+        inputs, labels = super().prepare_input_label(batch)
+        backddoor_label = torch.randint_like(labels, 0, self.num_classes)
+        backdoor_label = self.label_backdoor[backddoor_label]
+        mask = torch.rand_like(labels, dtype=inputs.dtype) < 0.3
+        inputs[mask][
+            :, :, : self.config.backdoor_resolution, : self.config.backdoor_resolution
+        ] = (
+            inputs[mask][
+                :,
+                :,
+                : self.config.backdoor_resolution,
+                : self.config.backdoor_resolution,
+            ]
+            + backdoor_label[mask]
+        )
+        return inputs, labels
+
+
+# class BaseTrainer(ABC):

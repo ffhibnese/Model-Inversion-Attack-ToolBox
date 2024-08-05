@@ -373,6 +373,8 @@ class LoraWrapper(BaseClassifierWrapper):
 
         self.optim_nodes = optim_nodes
 
+        self.freeze_to_train()
+
     def freeze_to_train(self):
 
         for p in self.parameters():

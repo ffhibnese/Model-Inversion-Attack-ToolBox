@@ -40,7 +40,7 @@ _LOSS_MAPPING = {
 
 
 class LabelSmoothingCrossEntropyLoss:
-    """The Cross Entropy Loss with label smoothing technique. Used in the LS defense method."""    
+    """The Cross Entropy Loss with label smoothing technique. Used in the LS defense method."""
 
     def __init__(self, label_smoothing: float = 0.0) -> None:
         self.label_smoothing = label_smoothing
@@ -56,8 +56,25 @@ class LabelSmoothingCrossEntropyLoss:
         return torch.mean(loss, dim=0).sum()
 
 
+# class SoftTargetCrossEntropy(nn.Module):
+
+
+class InverseFocalLoss:
+
+    def __init__(self, gamma: float = 4, alpha: float = 0.25) -> None:
+        super().__init__()
+        self.gamma = gamma
+        self.alpha = alpha
+
+    def __call__(self, inputs, targets):
+        ce_loss = F.cross_entropy(inputs, targets, reduction='none')
+        pt = torch.exp(-ce_loss)
+        focal_loss = -self.alpha * pt**self.gamma * ce_loss
+        return torch.mean(focal_loss)
+
+
 class TorchLoss:
-    """Find loss function from 'torch.nn.functional' and 'torch.nn'"""    
+    """Find loss function from 'torch.nn.functional' and 'torch.nn'"""
 
     def __init__(self, loss_fn: str | Callable, *args, **kwargs) -> None:
         # super().__init__()

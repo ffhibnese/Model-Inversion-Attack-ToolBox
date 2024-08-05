@@ -19,6 +19,8 @@ from .classifier import (
     BiDOTrainer,
     DistillTrainer,
     DistillTrainConfig,
+    BackdoorTrainer,
+    BackdoorTrainConfig,
 )
 
 from .mapping import train_mapping_model
