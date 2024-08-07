@@ -11,7 +11,14 @@ from .base import (
     MinerWhiteBoxOptimizationConfig,
     BrepOptimization,
     BrepOptimizationConfig,
+    IntermediateWhiteboxOptimization,
+    IntermediateWhiteboxOptimizationConfig,
 )
 
 from .rlb import RlbOptimization, RlbOptimizationConfig
-from .genetic import GeneticOptimization, GeneticOptimizationConfig, C2fGeneticOptimization, C2fGeneticOptimizationConfig
+from .genetic import (
+    GeneticOptimization,
+    GeneticOptimizationConfig,
+    C2fGeneticOptimization,
+    C2fGeneticOptimizationConfig,
+)
