@@ -13,6 +13,7 @@ from .base import (
     BrepOptimizationConfig,
     IntermediateWhiteboxOptimization,
     IntermediateWhiteboxOptimizationConfig,
+    StyelGANIntermediateWhiteboxOptimization,
 )
 
 from .rlb import RlbOptimization, RlbOptimizationConfig

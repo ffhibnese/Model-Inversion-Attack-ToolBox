@@ -214,7 +214,7 @@ class IntermediateWhiteboxOptimizationConfig(BaseImageOptimizationConfig):
 
     optimizer: str | type = 'Adam'
     optimizer_kwargs: dict = field(default_factory=lambda: {})
-    iter_times: list[int] = [70, 25, 25, 25]
+    iter_times: list[int] = field(default_factory=lambda: [70, 25, 25, 25])
     show_loss_info_iters: int = 100
 
     latent_constraint: Optional[BaseConstraint] = None
@@ -239,7 +239,10 @@ class IntermediateWhiteboxOptimization(SimpleWhiteBoxOptimization):
         latents = latents.to(config.device)
         labels = labels.to(config.device)
         for i, iter_time in enumerate(config.iter_times):
-            latents = self._optimize_one_layer(latents, labels, i, iter_time)
+            latents = self._optimize_one_layer(
+                latents, labels, i, iter_time, is_last=i == len(config.iter_times) - 1
+            )
+
         final_images = latents.cpu()
         return ImageOptimizationOutput(
             images=final_images, labels=labels.cpu(), latents=None
@@ -316,6 +319,122 @@ class IntermediateWhiteboxOptimization(SimpleWhiteBoxOptimization):
             return self.generator(
                 latents, labels=labels, start_block=start_block
             ).detach()
+
+
+class StyelGANIntermediateWhiteboxOptimization(SimpleWhiteBoxOptimization):
+
+    def __init__(
+        self,
+        config: IntermediateWhiteboxOptimizationConfig,
+        generator: BaseImageGenerator,
+        image_loss_fn: Callable[
+            [Tensor, LongTensor], Tensor | Tuple[Tensor, OrderedDict]
+        ],
+    ) -> None:
+        super().__init__(config, generator, image_loss_fn)
+
+    def __call__(
+        self, latents: Tensor, labels: LongTensor
+    ) -> Tuple[Tensor | LongTensor]:
+        config: IntermediateWhiteboxOptimizationConfig = self.config
+        latents = latents.to(config.device)
+        labels = labels.to(config.device)
+        intermediate_inputs = None
+        for i, iter_time in enumerate(config.iter_times):
+            latents, intermediate_inputs = self._optimize_one_layer(
+                latents,
+                intermediate_inputs,
+                labels,
+                i,
+                iter_time,
+                is_last=(i == len(config.iter_times) - 1),
+            )
+        final_images = intermediate_inputs.cpu()
+        return ImageOptimizationOutput(
+            images=final_images, labels=labels.cpu(), latents=None
+        )
+
+    def _optimize_one_layer(
+        self,
+        latents: Tensor,
+        intermediate_inputs: Tensor,
+        labels: LongTensor,
+        start_block: int,
+        iter_times: int,
+        is_last: bool = False,
+    ) -> Tuple[Tensor | LongTensor]:
+        config: IntermediateWhiteboxOptimizationConfig = self.config
+
+        # latents = latents.to(config.device)
+        # labels = labels.to(config.device)
+        latents = latents.detach().requires_grad_(True)
+        if intermediate_inputs is not None:
+            intermediate_inputs = intermediate_inputs.detach().requires_grad_(True)
+            optimizer: Optimizer = self.optimizer_class(
+                [latents, intermediate_inputs], **config.optimizer_kwargs
+            )
+        else:
+            optimizer: Optimizer = self.optimizer_class(
+                [latents], **config.optimizer_kwargs
+            )
+
+        if config.latent_constraint is not None:
+            config.latent_constraint.register_center(latents)
+
+        bar = tqdm(range(1, iter_times + 1), leave=False)
+        for i in bar:
+
+            fake = self.generator(
+                latents, intermediate_inputs, labels=labels, start_block=start_block
+            )
+
+            description = None
+
+            loss = self.image_loss_fn(fake, labels)
+            if isinstance(loss, tuple):
+                loss, metric_dict = loss
+                if metric_dict is not None and len(metric_dict) > 0:
+                    if i == 1 or i % config.show_loss_info_iters == 0:
+                        # ls = [f'{k}: {v}' for k, v in metric_dict.items()]
+                        # right_str = '  '.join(ls)
+                        # description = f'iter {i}: {right_str}'
+                        description = get_info_description(i, metric_dict)
+                        # description = obj_to_yaml()
+                        bar.write(description)
+                    if i == iter_times:
+                        # ls = [f'{k}: {v}' for k, v in metric_dict.items()]
+                        description = get_info_description(i, metric_dict)
+                        # right_str = '  '.join(ls)
+                        # description = f'iter {i}: {right_str}'
+                        # print(description)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            if config.latent_constraint is not None:
+                latents = config.latent_constraint(latents)
+
+        if description is not None:
+            bar.write(description)
+
+        # final_fake = self.generator(latents, labels=labels).cpu()
+
+        # final_labels = labels.cpu()
+
+        # return final_fake.detach(), final_labels.detach()
+        if not is_last:
+            return latents, self.generator(
+                latents,
+                intermediate_inputs,
+                labels=labels,
+                start_block=start_block,
+                end_block=start_block + 1,
+            )
+        else:
+            return latents, self.generator(
+                latents, intermediate_inputs, labels=labels, start_block=start_block
+            )
 
 
 @dataclass
