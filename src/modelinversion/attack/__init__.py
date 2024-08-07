@@ -18,7 +18,10 @@ from .optimize import (
     GeneticOptimizationConfig,
     GeneticOptimization,
     C2fGeneticOptimizationConfig,
-    C2fGeneticOptimization
+    C2fGeneticOptimization,
+    IntermediateWhiteboxOptimization,
+    StyelGANIntermediateWhiteboxOptimization,
+    IntermediateWhiteboxOptimizationConfig,
 )
 
 from .losses import (
