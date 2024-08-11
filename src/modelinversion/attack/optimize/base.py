@@ -202,6 +202,123 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
 
 
 @dataclass
+class IntermediateWhiteboxOptimizationConfig(BaseImageOptimizationConfig):
+    """Base class for all white-box optimization config classes. Handles a few parameters of gradient updating.
+
+    Args:
+        optimizer (str | type): The optimizer class.
+        optimizer_kwargs (dict): Args to build the optimizer. Default to `{}`.
+        iter_times (int): Update times. Defaults to 600.
+        show_loss_info_iters (int): Iteration interval for displaying loss information. Default to 100.
+    """
+
+    optimizer: str | type = 'Adam'
+    optimizer_kwargs: dict = field(default_factory=lambda: {})
+    iter_times: list[int] = [70, 25, 25, 25]
+    show_loss_info_iters: int = 100
+
+    latent_constraint: Optional[BaseConstraint] = None
+
+
+class IntermediateWhiteboxOptimization(SimpleWhiteBoxOptimization):
+
+    def __init__(
+        self,
+        config: IntermediateWhiteboxOptimizationConfig,
+        generator: BaseImageGenerator,
+        image_loss_fn: Callable[
+            [Tensor, LongTensor], Tensor | Tuple[Tensor, OrderedDict]
+        ],
+    ) -> None:
+        super().__init__(config, generator, image_loss_fn)
+
+    def __call__(
+        self, latents: Tensor, labels: LongTensor
+    ) -> Tuple[Tensor | LongTensor]:
+        config: IntermediateWhiteboxOptimizationConfig = self.config
+        latents = latents.to(config.device)
+        labels = labels.to(config.device)
+        for i, iter_time in enumerate(config.iter_times):
+            latents = self._optimize_one_layer(latents, labels, i, iter_time)
+        final_images = latents.cpu()
+        return ImageOptimizationOutput(
+            images=final_images, labels=labels.cpu(), latents=None
+        )
+
+    def _optimize_one_layer(
+        self,
+        latents: Tensor,
+        labels: LongTensor,
+        start_block: int,
+        iter_times: int,
+        is_last: bool = False,
+    ) -> Tuple[Tensor | LongTensor]:
+        config: IntermediateWhiteboxOptimizationConfig = self.config
+
+        # latents = latents.to(config.device)
+        # labels = labels.to(config.device)
+        latents.requires_grad_(True)
+        optimizer: Optimizer = self.optimizer_class(
+            [latents], **config.optimizer_kwargs
+        )
+
+        if config.latent_constraint is not None:
+            config.latent_constraint.register_center(latents)
+
+        bar = tqdm(range(1, iter_times + 1), leave=False)
+        for i in bar:
+
+            fake = self.generator(latents, labels=labels, start_block=start_block)
+
+            description = None
+
+            loss = self.image_loss_fn(fake, labels)
+            if isinstance(loss, tuple):
+                loss, metric_dict = loss
+                if metric_dict is not None and len(metric_dict) > 0:
+                    if i == 1 or i % config.show_loss_info_iters == 0:
+                        # ls = [f'{k}: {v}' for k, v in metric_dict.items()]
+                        # right_str = '  '.join(ls)
+                        # description = f'iter {i}: {right_str}'
+                        description = get_info_description(i, metric_dict)
+                        # description = obj_to_yaml()
+                        bar.write(description)
+                    if i == iter_times:
+                        # ls = [f'{k}: {v}' for k, v in metric_dict.items()]
+                        description = get_info_description(i, metric_dict)
+                        # right_str = '  '.join(ls)
+                        # description = f'iter {i}: {right_str}'
+                        # print(description)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            if config.latent_constraint is not None:
+                latents = config.latent_constraint(latents)
+
+        if description is not None:
+            bar.write(description)
+
+        # final_fake = self.generator(latents, labels=labels).cpu()
+
+        # final_labels = labels.cpu()
+
+        # return final_fake.detach(), final_labels.detach()
+        if not is_last:
+            return self.generator(
+                latents,
+                labels=labels,
+                start_block=start_block,
+                end_block=start_block + 1,
+            ).detach()
+        else:
+            return self.generator(
+                latents, labels=labels, start_block=start_block
+            ).detach()
+
+
+@dataclass
 class VarienceWhiteboxOptimizationConfig(SimpleWhiteBoxOptimizationConfig):
     generate_num: int = 50
 
@@ -340,9 +457,9 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
             description = None
 
             latents = sampler(label, bs)[label]
-            fake = self.generator(latents, labels=labels)#.clamp(-1, 1)
+            fake = self.generator(latents, labels=labels)  # .clamp(-1, 1)
             if config.transform is not None:
-                fake = config.transform(fake)#.clamp(-1, 1)
+                fake = config.transform(fake)  # .clamp(-1, 1)
 
             loss = self.image_loss_fn(fake, labels)
             if isinstance(loss, tuple):
@@ -376,10 +493,10 @@ class MinerWhiteBoxOptimization(SimpleWhiteBoxOptimization):
             final_latents = torch.cat(final_latents, dim=0)
 
         return ImageOptimizationOutput(
-                images=final_fake,
-                labels=final_labels,
-                latents=final_latents,
-            )
+            images=final_fake,
+            labels=final_labels,
+            latents=final_latents,
+        )
 
 
 @dataclass
