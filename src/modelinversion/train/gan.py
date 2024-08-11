@@ -488,7 +488,7 @@ class PlgmiGanTrainer(BaseGanTrainer):
 
         dis_loss = -torch.mean(dis_fake)
 
-        gen_loss = dis_loss + 0.2 * inv_loss
+        gen_loss = dis_loss + 0.05 * inv_loss
 
         self.gen_optimizer.zero_grad()
         gen_loss.backward()

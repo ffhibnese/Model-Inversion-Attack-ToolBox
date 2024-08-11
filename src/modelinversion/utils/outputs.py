@@ -24,21 +24,21 @@ class BaseOutput(OrderedDict):
         import torch.utils._pytree
 
         # if is_torch_version("<", "2.2"):
-        torch.utils._pytree._register_pytree_node(
+        # torch.utils._pytree._register_pytree_node(
+        #     cls,
+        #     torch.utils._pytree._dict_flatten,
+        #     lambda values, context: cls(
+        #         **torch.utils._pytree._dict_unflatten(values, context)
+        #     ),
+        # )
+        # else:
+        torch.utils._pytree.register_pytree_node(
             cls,
             torch.utils._pytree._dict_flatten,
             lambda values, context: cls(
                 **torch.utils._pytree._dict_unflatten(values, context)
             ),
         )
-        # else:
-        #     torch.utils._pytree.register_pytree_node(
-        #         cls,
-        #         torch.utils._pytree._dict_flatten,
-        #         lambda values, context: cls(
-        #             **torch.utils._pytree._dict_unflatten(values, context)
-        #         ),
-        #     )
 
     def __post_init__(self) -> None:
         class_fields = fields(self)

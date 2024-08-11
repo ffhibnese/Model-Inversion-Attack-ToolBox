@@ -1,5 +1,6 @@
 from .base import (
     TorchvisionClassifierModel,
+    TimmClassifierModel,
     ResNeSt,
     BaseImageClassifier,
     BaseImageEncoder,

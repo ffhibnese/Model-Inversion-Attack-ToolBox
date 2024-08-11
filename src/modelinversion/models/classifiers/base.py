@@ -9,7 +9,7 @@ from torch import nn
 import torch.nn.functional as F
 import torchvision.models as tvmodel
 import torchvision.transforms.functional as TF
-from torchvision.models.inception import InceptionOutputs
+from torchvision.models.inception import InceptionOutputs, Inception3
 
 from ..base import ModelMixin
 from ...utils import traverse_name_module, FirstInputHook, BaseHook
@@ -180,7 +180,7 @@ class BaseImageClassifier(BaseImageModel):
 
 
 def _operate_fc_impl(
-    module: nn.Module, reset_num_classes: int = None, visit_fc_fn: Callable = None
+    module: nn.Module, reset_num_classes: int = None, visit_fc_fn: Callable = None, visit_path = ''
 ):
     """Reset the output class num of nn.Linear and return the input feature_dim of nn.Linear.
 
@@ -208,16 +208,21 @@ def _operate_fc_impl(
                 module[-1] = nn.Linear(feature_dim, reset_num_classes)
 
             if visit_fc_fn is not None:
+                # print('visit')
                 visit_fc_fn(module[-1])
+            # print('visit2')
 
+            # print(visit_path)
             return feature_dim
         else:
-            return _operate_fc_impl(module[-1], reset_num_classes)
+            
+            return _operate_fc_impl(module[-1], reset_num_classes, visit_fc_fn=visit_fc_fn, visit_path=f'{visit_path}.-1')
 
     children = list(module.named_children())
     if len(children) == 0:
         raise ModelConstructException('fail to implement')
     attr_name, child_module = children[-1]
+    visit_path = f'{visit_path}.{attr_name}'
     if isinstance(child_module, nn.Linear):
         feature_dim = child_module.weight.shape[-1]
 
@@ -230,9 +235,10 @@ def _operate_fc_impl(
         if visit_fc_fn is not None:
             visit_fc_fn(getattr(module, attr_name))
 
+        # print(visit_path)
         return feature_dim
     else:
-        return _operate_fc_impl(child_module, reset_num_classes)
+        return _operate_fc_impl(child_module, reset_num_classes, visit_fc_fn=visit_fc_fn, visit_path=visit_path)
 
 
 def operate_fc(
@@ -253,6 +259,66 @@ class TorchvisionClassifierModel(BaseImageClassifier):
         weights=None,
         arch_kwargs={},
         register_last_feature_hook=False,
+        operate_aux=True
+    ) -> None:
+        # weights: None, 'IMAGENET1K_V1', 'IMAGENET1K_V2' or 'DEFAULT'
+
+        self._feature_hook = None
+
+        _output_transform = None
+        # if register_last_feature_hook:
+
+        def _output_transform(m: nn.Linear):
+            # self._feature_hook = FirstInputHook(m)
+            def hook_fn(module, input, output):
+                return output, {HOOK_NAME_FEATURE: input[0]}
+            
+            # print('hook register')
+
+            m.register_forward_hook(hook_fn)
+
+        tv_module = importlib.import_module('torchvision.models')
+        factory = getattr(tv_module, arch_name, None)
+        if factory is None:
+            raise RuntimeError(f'torchvision do not support model {arch_name}')
+        model = factory(weights=weights, **arch_kwargs)
+
+        feature_dim = operate_fc(model, num_classes, _output_transform)
+
+        if operate_aux and isinstance(model, Inception3):
+            # feature_dim = model.Mixed_7c.branch_pool.shape[1]
+            if model.aux_logits:
+                operate_fc(model.AuxLogits, num_classes)
+
+        super().__init__(
+            resolution, feature_dim, num_classes, True
+        )
+
+        self.model = model
+
+    def _forward_impl(self, image: torch.Tensor, *args, **kwargs):
+        result = self.model(image)
+        # import torchvision
+        # if isinstance(self.model, torchvision.models.maxvit.MaxVit):
+        #     print(result[1])
+        #     print(self.model.classifier[-1]._forward_hooks)
+        #     exit()
+        
+        return result 
+    
+
+@register_model('timm')
+class TimmClassifierModel(BaseImageClassifier):
+
+    @ModelMixin.register_to_config_init
+    def __init__(
+        self,
+        arch_name: str,
+        num_classes: int,
+        resolution=224,
+        pretrained=False,
+        arch_kwargs={},
+        register_last_feature_hook=False,
     ) -> None:
         # weights: None, 'IMAGENET1K_V1', 'IMAGENET1K_V2' or 'DEFAULT'
 
@@ -268,13 +334,16 @@ class TorchvisionClassifierModel(BaseImageClassifier):
 
                 m.register_forward_hook(hook_fn)
 
-        tv_module = importlib.import_module('torchvision.models')
-        factory = getattr(tv_module, arch_name, None)
-        if factory is None:
-            raise RuntimeError(f'torchvision do not support model {arch_name}')
-        model = factory(weights=weights, **arch_kwargs)
+        # tv_module = importlib.import_module('torchvision.models')
+        # factory = getattr(tv_module, arch_name, None)
+        # if factory is None:
+        #     raise RuntimeError(f'torchvision do not support model {arch_name}')
+        # model = factory(weights=weights, **arch_kwargs)
+        import timm
+        model = timm.create_model(arch_name, pretrained=pretrained, **arch_kwargs)
 
         feature_dim = operate_fc(model, num_classes, _output_transform)
+
 
         super().__init__(
             resolution, feature_dim, num_classes, register_last_feature_hook

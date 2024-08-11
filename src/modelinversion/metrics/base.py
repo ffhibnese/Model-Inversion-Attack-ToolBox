@@ -222,8 +222,12 @@ class ImageDistanceMetric(BaseImageMetric):
         # self.hook.clear_feature()
         _, hook_res = self.model(images)
         if HOOK_NAME_FEATURE not in hook_res:
+            model = self.model
+            if isinstance(model, torch.nn.parallel.DataParallel):
+                model = model.module
             raise RuntimeError(
-                f'The model has not registered the hook for {HOOK_NAME_FEATURE}'
+                f'The model {model.__class__.__name__} has not registered the hook for {HOOK_NAME_FEATURE} '
+                f'hook_res: {list(hook_res.keys())}'
             )
         feature = hook_res[HOOK_NAME_FEATURE]
         # print(images.shape, feature.shape)

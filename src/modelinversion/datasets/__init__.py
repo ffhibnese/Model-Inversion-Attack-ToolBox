@@ -22,3 +22,4 @@ from .celeba import (
     CelebA224,
     CelebA299,
 )
+from .stanford_dogs import StanfordDogs

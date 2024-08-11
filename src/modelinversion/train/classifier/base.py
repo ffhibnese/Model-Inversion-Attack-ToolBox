@@ -84,6 +84,8 @@ class BaseTrainer(ABC):
         res = result[0]
         if isinstance(res, InceptionOutputs):
             res, _ = res
+            if not isinstance(res, Tensor):
+                res = res[0]
         assert res.ndim <= 2
 
         pred = torch.argmax(res, dim=-1)
@@ -109,6 +111,9 @@ class BaseTrainer(ABC):
         imgs, labels = batch
         imgs = imgs.to(self.config.device)
         labels = labels.to(self.config.device)
+
+        # print(imgs.shape)
+        # exit()
 
         return imgs, labels
 
@@ -150,10 +155,11 @@ class BaseTrainer(ABC):
             step_res = self._train_step(inputs, labels)
             accumulator.add(step_res)
 
-            if i % 1000 == 0:
+            if i % 200 == 0:
                 print_as_yaml({'epoch': self._epoch})
                 print_as_yaml({'iter': i})
                 print_as_yaml({'train': accumulator.avg()})
+                accumulator.reset()
 
         self.after_train()
 
@@ -184,7 +190,7 @@ class BaseTrainer(ABC):
         return accumulator.avg()
 
     def train(
-        self, epoch_num: int, trainloader: DataLoader, testloader: DataLoader = None
+        self, epoch_num: int, trainloader: DataLoader, testloader: DataLoader = None, limit_acc = 1
     ):
 
         epochs = range(epoch_num)
@@ -212,6 +218,9 @@ class BaseTrainer(ABC):
 
             if (epoch + 1) % self.config.save_per_epochs == 0:
                 self.save_state_dict()
+
+            if bestacc >= limit_acc:
+                break
 
         if bestckpt is None:
             self.save_state_dict()
@@ -246,6 +255,8 @@ class SimpleTrainer(BaseTrainer):
         result = result[0]
         if isinstance(result, InceptionOutputs):
             output, aux = result
+            if not isinstance(output, Tensor):
+                output = output[0]
             return self.loss_fn(output, labels) + self.loss_fn(aux, labels)
         return self.loss_fn(result, labels)
 
