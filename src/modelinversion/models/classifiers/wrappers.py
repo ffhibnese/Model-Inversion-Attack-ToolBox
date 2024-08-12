@@ -242,6 +242,9 @@ class BiDOWrapper(BaseClassifierWrapper):
     # def get_last_feature_hook(self) -> BaseHook:
     #     return self.module.get_last_feature_hook()
 
+    def unwrap(self):
+        return self.module
+
     def _forward_impl(self, image: Tensor, *args, **kwargs):
         forward_res, addition_info = self.module(image, *args, **kwargs)
         addition_info[HOOK_NAME_HIDDEN] = [h.get_feature() for h in self.hidden_hooks]

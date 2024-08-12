@@ -13,7 +13,9 @@ class Accumulator:
 
     def add(self, *args, add_num=1, add_type='mean'):
         """adding data to the data list"""
-        assert len(args) == len(self.data)
+        assert len(args) == len(
+            self.data
+        ), f'len args {len(args)} != len data {len(self.data)}'
         mul_coef = add_num if add_type == 'mean' else 1
         self.num += add_num
         for i, add_item in enumerate(args):

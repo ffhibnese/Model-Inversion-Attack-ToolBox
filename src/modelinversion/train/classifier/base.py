@@ -189,8 +189,110 @@ class BaseTrainer(ABC):
 
         return accumulator.avg()
 
+    def train_stop(
+        self,
+        epoch_num: int,
+        trainloader: DataLoader,
+        testloader: DataLoader = None,
+        limit_accs: list[float] = [1.0],
+    ):
+
+        limit_idx = 0
+
+        epochs = range(epoch_num)
+
+        bestacc = 0
+        bestckpt = None
+
+        for epoch in epochs:
+
+            self._epoch = epoch
+            print_split_line()
+            self.before_train()
+
+            accumulator = DictAccumulator()
+
+            # iter_times = 0
+            for i, batch in enumerate(tqdm(trainloader, leave=False)):
+                self._iteration = i
+                # iter_times += 1
+                inputs, labels = self.prepare_input_label(batch)
+                step_res = self._train_step(inputs, labels)
+                accumulator.add(step_res)
+
+                if (i + 1) % (len(trainloader) // 10) == 0:
+                    # print_as_yaml({'epoch': self._epoch})
+                    # print_as_yaml({'iter': i})
+                    # print_as_yaml({'train': accumulator.avg()})
+                    if testloader is not None:
+                        test_res = self._test_loop(testloader)
+                        if 'acc' in test_res and test_res['acc'] > bestacc:
+                            bestckpt = deepcopy(self.model).cpu().eval()
+                            bestacc = test_res['acc']
+                        print_as_yaml({'test': test_res})
+
+                        if bestacc >= limit_accs[limit_idx]:
+                            limit_idx += 1
+                            self.save_state_dict(
+                                self.model, _save_subfolder=f'{bestacc:.4f}'
+                            )
+                            if limit_idx >= len(limit_accs):
+                                break
+
+            self.after_train()
+
+            train_res = accumulator.avg()
+            print_as_yaml({'epoch': epoch})
+            print_as_yaml({'train': train_res})
+
+            if testloader is not None:
+                test_res = self._test_loop(testloader)
+                if 'acc' in test_res and test_res['acc'] > bestacc:
+                    bestckpt = deepcopy(self.model).cpu().eval()
+                    bestacc = test_res['acc']
+                print_as_yaml({'test': test_res})
+
+            if self.lr_scheduler is not None:
+                self.lr_scheduler.step()
+
+            if (epoch + 1) % self.config.save_per_epochs == 0:
+                self.save_state_dict()
+
+            # if bestacc >= limit_acc:
+            #     break
+
+        if bestckpt is None:
+            self.save_state_dict()
+        else:
+            self.save_state_dict(bestckpt, test_acc=bestacc)
+
+        print(f'best acc: {bestacc}')
+
+    def save_state_dict(
+        self,
+        model=None,
+        _save_subfolder=None,
+        **kwargs,
+    ):
+        if model is None:
+            model = self.model
+        if isinstance(model, (DataParallel, DistributedDataParallel)):
+            model = model.module
+
+        save_path = self.save_path
+        if _save_subfolder is not None:
+            save_path = os.path.join(self.config.experiment_dir, _save_subfolder)
+            os.makedirs(save_path, exist_ok=True)
+            save_path = os.path.join(save_path, self.config.save_name)
+
+        model.save_pretrained(save_path, **kwargs)
+
     def train(
-        self, epoch_num: int, trainloader: DataLoader, testloader: DataLoader = None, limit_acc = 1
+        self,
+        epoch_num: int,
+        trainloader: DataLoader,
+        testloader: DataLoader = None,
+        limit_acc: float = 1.0,
     ):
 
         epochs = range(epoch_num)
@@ -228,14 +330,6 @@ class BaseTrainer(ABC):
             self.save_state_dict(bestckpt, test_acc=bestacc)
 
         print(f'best acc: {bestacc}')
-
-    def save_state_dict(self, model=None, **kwargs):
-        if model is None:
-            model = self.model
-        if isinstance(model, (DataParallel, DistributedDataParallel)):
-            model = model.module
-
-        model.save_pretrained(self.save_path, **kwargs)
 
 
 @dataclass
