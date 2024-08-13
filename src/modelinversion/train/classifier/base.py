@@ -195,6 +195,7 @@ class BaseTrainer(ABC):
         trainloader: DataLoader,
         testloader: DataLoader = None,
         limit_accs: list[float] = [1.0],
+        save_best_ckpts: bool = True,
     ):
 
         limit_idx = 0
@@ -231,7 +232,7 @@ class BaseTrainer(ABC):
                             bestacc = test_res['acc']
                         print_as_yaml({'test': test_res})
 
-                        if bestacc >= limit_accs[limit_idx]:
+                        if save_best_ckpts and bestacc >= limit_accs[limit_idx]:
                             limit_idx += 1
                             self.save_state_dict(
                                 self.model, _save_subfolder=f'{bestacc:.4f}'
@@ -293,6 +294,7 @@ class BaseTrainer(ABC):
         trainloader: DataLoader,
         testloader: DataLoader = None,
         limit_acc: float = 1.0,
+        save_best_ckpts: bool = True,
     ):
 
         epochs = range(epoch_num)
@@ -310,7 +312,7 @@ class BaseTrainer(ABC):
 
             if testloader is not None:
                 test_res = self._test_loop(testloader)
-                if 'acc' in test_res and test_res['acc'] > bestacc:
+                if save_best_ckpts and 'acc' in test_res and test_res['acc'] > bestacc:
                     bestckpt = deepcopy(self.model).cpu().eval()
                     bestacc = test_res['acc']
                 print_as_yaml({'test': test_res})
