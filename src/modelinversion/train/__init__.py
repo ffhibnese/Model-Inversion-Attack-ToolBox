@@ -7,10 +7,13 @@ from .gan import (
     GmiGanTrainConfig,
     KedmiGanTrainConfig,
     LoktGanTrainConfig,
+    
 )
 from .classifier import (
     BaseTrainConfig,
     BaseTrainer,
+    MixTrainConfig,
+    MixTrainer,
     SimpleTrainConfig,
     SimpleTrainer,
     VibTrainConfig,

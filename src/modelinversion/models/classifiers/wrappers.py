@@ -1,8 +1,10 @@
 from copy import deepcopy
 from collections import OrderedDict
+from typing import Iterator
 
 from torch import Tensor
 from torch.nn import MaxPool2d
+from torch.nn.parameter import Parameter
 from ...utils import (
     BaseHook,
     FirstInputHook,
@@ -300,12 +302,16 @@ class LoraWrapper(BaseClassifierWrapper):
         start_idx = self._get_split_idx(len(convs), start_ratio)
         end_idx = self._get_split_idx(len(convs), end_ratio)
 
-        # convs = convs[len(convs) // 3 :]
-        node_a_cls = nn.Conv2d if a_k == 0 else DynamicConv2D
-        node_b_cls = nn.Conv2d if b_k == 0 else DynamicConv2D
         lora_idx = 0
+
+        lora_step_cnt = lora_step - 1
         for i, conv in enumerate(convs[start_idx:end_idx]):
-            if i % lora_step != 0:
+            # if i % lora_step != 0:
+            #     continue
+            lora_step_cnt += 1
+            if lora_step_cnt >= lora_step:
+                lora_step_cnt -= lora_step
+            else:
                 continue
             if a_k == 0:
                 node_a = nn.Conv2d(
@@ -377,6 +383,11 @@ class LoraWrapper(BaseClassifierWrapper):
         self.optim_nodes = optim_nodes
 
         self.freeze_to_train()
+
+    
+    # def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
+    #     print('get optim nodes parameters')
+    #     return self.optim_nodes.parameters(recurse)
 
     def freeze_to_train(self):
 
@@ -521,6 +532,12 @@ class GrowLoraWrapper(BaseClassifierWrapper):
         optim_nodes.append(lins[-1])
 
         self.optim_nodes = optim_nodes
+
+        self.freeze_to_train()
+
+    # def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
+    #     print('get optim nodes parameters')
+    #     return self.optim_nodes.parameters(recurse)
 
     def freeze_to_train(self):
 

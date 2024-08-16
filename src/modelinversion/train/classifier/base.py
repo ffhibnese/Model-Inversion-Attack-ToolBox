@@ -155,11 +155,11 @@ class BaseTrainer(ABC):
             step_res = self._train_step(inputs, labels)
             accumulator.add(step_res)
 
-            if i % 200 == 0:
-                print_as_yaml({'epoch': self._epoch})
-                print_as_yaml({'iter': i})
-                print_as_yaml({'train': accumulator.avg()})
-                accumulator.reset()
+            # if i % 200 == 0:
+            #     print_as_yaml({'epoch': self._epoch})
+            #     print_as_yaml({'iter': i})
+            #     print_as_yaml({'train': accumulator.avg()})
+            #     accumulator.reset()
 
         self.after_train()
 
@@ -355,6 +355,48 @@ class SimpleTrainer(BaseTrainer):
                 output = output[0]
             return self.loss_fn(output, labels) + self.loss_fn(aux, labels)
         return self.loss_fn(result, labels)
+    
+@dataclass
+class MixTrainConfig(BaseTrainConfig):
+
+    origin_loss_fn: str | Callable = 'cross_entropy'
+    mix_loss_fn: str | Callable = 'cross_entropy'
+
+
+class MixTrainer(BaseTrainer):
+
+    def __init__(self, config: MixTrainConfig, *args, **kwargs) -> None:
+        super().__init__(config, *args, **kwargs)
+
+        self.origin_loss_fn = ClassificationLoss(config.origin_loss_fn)
+        self.mix_loss_fn = ClassificationLoss(config.mix_loss_fn)
+
+    def _apply_loss(self, inputs, targets, mask):
+        mix_inputs = inputs[mask]
+        mix_targets = targets[mask]
+        ori_mask = ~mask
+        ori_inputs = inputs[ori_mask]
+        ori_targets = targets[ori_mask]
+        mix_loss = self.mix_loss_fn(mix_inputs, mix_targets)
+        ori_loss = self.origin_loss_fn(ori_inputs, ori_targets)
+        return mix_loss + ori_loss
+
+    def calc_loss(self, inputs, result, labels: LongTensor):
+        mix_mask = labels[:, 1].bool()
+        labels = labels[:, 0]
+        result = result[0]
+        if isinstance(result, InceptionOutputs):
+            output, aux = result
+            if not isinstance(output, Tensor):
+                output = output[0]
+
+            return self._apply_loss(output, labels, mix_mask) + self._apply_loss(aux, labels, mix_mask)
+        return self._apply_loss(result, labels, mix_mask)
+    
+    def calc_acc(self, inputs, result, labels: LongTensor):
+        if labels.ndim == 2:
+            labels = labels[:, 0]
+        return super().calc_acc(inputs, result, labels)
 
 
 @dataclass
