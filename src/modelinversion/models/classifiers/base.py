@@ -178,9 +178,13 @@ class BaseImageClassifier(BaseImageModel):
         #     self.register_hook_for_forward(HOOK_NAME_FEATURE, hook=hook)
         return super().forward(image, *args, **kwargs)
 
+def remove_all_forward_hooks(module: nn.Module):
+    module._forward_hooks.clear()
+    for child in module.children():
+        remove_all_forward_hooks(child)
 
 def _operate_fc_impl(
-    module: nn.Module, reset_num_classes: int = None, visit_fc_fn: Callable = None, visit_path = ''
+    module: nn.Module, reset_num_classes: int = None, visit_fc_fn: Callable = None, visit_path = '', builder = nn.Linear
 ):
     """Reset the output class num of nn.Linear and return the input feature_dim of nn.Linear.
 
@@ -201,11 +205,13 @@ def _operate_fc_impl(
         if isinstance(module[-1], nn.Linear):
             feature_dim = module[-1].weight.shape[-1]
 
+            remove_all_forward_hooks(module[-1])
+
             if (
                 reset_num_classes is not None
-                and reset_num_classes != module[-1].weight.shape[0]
+                # and reset_num_classes != module[-1].weight.shape[0]
             ):
-                module[-1] = nn.Linear(feature_dim, reset_num_classes)
+                module[-1] = builder(feature_dim, reset_num_classes)
 
             if visit_fc_fn is not None:
                 # print('visit')
@@ -216,7 +222,7 @@ def _operate_fc_impl(
             return feature_dim
         else:
             
-            return _operate_fc_impl(module[-1], reset_num_classes, visit_fc_fn=visit_fc_fn, visit_path=f'{visit_path}.-1')
+            return _operate_fc_impl(module[-1], reset_num_classes, visit_fc_fn=visit_fc_fn, visit_path=f'{visit_path}.-1', builder=builder)
 
     children = list(module.named_children())
     if len(children) == 0:
@@ -226,11 +232,13 @@ def _operate_fc_impl(
     if isinstance(child_module, nn.Linear):
         feature_dim = child_module.weight.shape[-1]
 
+        remove_all_forward_hooks(child_module)
+
         if (
             reset_num_classes is not None
-            and reset_num_classes != child_module.weight.shape[0]
+            # and reset_num_classes != child_module.weight.shape[0]
         ):
-            setattr(module, attr_name, nn.Linear(feature_dim, reset_num_classes))
+            setattr(module, attr_name, builder(feature_dim, reset_num_classes))
 
         if visit_fc_fn is not None:
             visit_fc_fn(getattr(module, attr_name))
@@ -238,13 +246,14 @@ def _operate_fc_impl(
         # print(visit_path)
         return feature_dim
     else:
-        return _operate_fc_impl(child_module, reset_num_classes, visit_fc_fn=visit_fc_fn, visit_path=visit_path)
+        return _operate_fc_impl(child_module, reset_num_classes, visit_fc_fn=visit_fc_fn, visit_path=visit_path, builder=builder)
 
 
 def operate_fc(
-    module: nn.Module, reset_num_classes: int = None, visit_fc_fn: Callable = None
+    module: nn.Module, reset_num_classes: int = None, visit_fc_fn: Callable = None, builder = nn.Linear
 ) -> int:
-    return _operate_fc_impl(module, reset_num_classes, visit_fc_fn)
+    return _operate_fc_impl(module, reset_num_classes, visit_fc_fn, builder=builder)
+
 
 
 @register_model('torchvision')

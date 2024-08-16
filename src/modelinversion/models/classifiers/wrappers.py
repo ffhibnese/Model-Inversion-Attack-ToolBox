@@ -52,6 +52,116 @@ class BaseClassifierWrapper(BaseImageClassifier):
     def postprocess_config_after_load(config):
         config['module'] = auto_classifier_from_pretrained(config['module'])
         return config
+    
+_activation = {
+    'tanh': nn.Tanh,
+    'relu': nn.ReLU,
+    'sigmoid': nn.Sigmoid,
+    'leaky_relu': nn.LeakyReLU
+}
+    
+def _neck_builder(neck_dim, activation = 'tanh'):
+
+    activation_builder = _activation[activation]
+    def _builder(input_dim, output_dim):
+        return nn.Sequential(
+            nn.BatchNorm1d(input_dim),
+            nn.Linear(input_dim, neck_dim),
+            activation_builder(),
+            nn.Linear(neck_dim, output_dim),
+        )
+
+    return _builder
+
+@register_model('neck')
+class NeckWrapper(BaseClassifierWrapper):
+
+    @ModelMixin.register_to_config_init
+    def __init__(
+        self,
+        module: BaseImageClassifier,
+        register_last_feature_hook=True,
+        neck_dim = 10,
+        neck_activation = 'tanh'
+    ) -> None:
+
+        def _output_transform(m: nn.Linear):
+            # self._feature_hook = FirstInputHook(m)
+            def hook_fn(module, input, output):
+                # print(type(input))
+                # print(type(input[0]))
+                # print(type(output))
+                # print(type(output[0]))
+                # exit()
+                return output, {HOOK_NAME_FEATURE: input[0]}
+            
+            # print('hook register')
+
+            m.register_forward_hook(hook_fn)
+
+        operate_fc(module, module.num_classes, _output_transform, _neck_builder(neck_dim=neck_dim, activation=neck_activation))
+
+        # self.module = module
+
+        
+        super().__init__(
+            module,
+            register_last_feature_hook,
+        )
+
+    def _forward_impl(self, image: Tensor, *args, **kwargs):
+        result = self.module(image, *args, **kwargs)
+        # print(type(result))
+        # print(type(result[0]))
+        # print(type(result[0][0]))
+        # exit()
+        return result
+    
+# nn.modules.activation.__all__
+
+def recurrent_replace_activation(module, activation = 'tanh'):
+
+    replace_num = 0
+    if isinstance(module, nn.Sequential):
+        for i, m in enumerate(module):
+            if m.__class__.__name__ in nn.modules.activation.__all__:
+                module[i] = _activation[activation]()
+                replace_num += 1
+            else:
+                replace_num += recurrent_replace_activation(m, activation)[1]
+        return module, replace_num
+    
+    for name, m in module.named_children():
+        if m.__class__.__name__ in nn.modules.activation.__all__:
+            setattr(module, name, _activation[activation]())
+            replace_num += 1
+        else:
+            replace_num += recurrent_replace_activation(m, activation)[1]
+    return module, replace_num
+    
+@register_model('activation_replacer')
+class ActivationReplacerWrapper(BaseClassifierWrapper):
+
+    @ModelMixin.register_to_config_init
+    def __init__(
+        self,
+        module: BaseImageClassifier,
+        register_last_feature_hook=True,
+        activation = 'relu'
+    ) -> None:
+
+        # replace every activation function in module with the input activation
+        module, replace_num = recurrent_replace_activation(module, activation)
+
+        print(replace_num)
+
+        super().__init__(
+            module,
+            register_last_feature_hook,
+        )
+
+    def _forward_impl(self, image: Tensor, *args, **kwargs):
+        return self.module(image, *args, **kwargs)
 
 
 @register_model('ztq')

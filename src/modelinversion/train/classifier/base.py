@@ -42,7 +42,7 @@ class BaseTrainConfig:
     lr_scheduler: Optional[LRScheduler] = None
     clip_grad_norm: Optional[float] = None
 
-    save_per_epochs: int = 10
+    save_per_epochs: int = 1
 
 
 class BaseTrainer(ABC):
