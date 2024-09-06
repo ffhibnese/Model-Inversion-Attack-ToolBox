@@ -27,7 +27,7 @@ if __name__ == '__main__':
     # prepare path args
 
     num_classes = 1000
-    model_name = 'ir50'
+    model_name = 'facenet112'
     save_name = f'{model_name}.pth'
     train_dataset_path = '<fill it>'
     test_dataset_path = '<fill it>'
