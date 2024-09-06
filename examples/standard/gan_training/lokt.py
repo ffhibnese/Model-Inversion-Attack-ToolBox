@@ -20,9 +20,9 @@ if __name__ == '__main__':
 
     num_classes = 1000
     target_model_ckpt_path = (
-        '../../..//checkpoints_v2/classifier/celeba64/celeba64_ir152_93.71.pth'
+        '../../../checkpoints_v2/classifier/celeba64/celeba64_ir152_93.71.pth'
     )
-    dataset_path = '../../..//dataset/celeba_low/public'
+    dataset_path = '../../../dataset/celeba_low/public'
     experiment_dir = '<fill it>'
 
     batch_size = 256
