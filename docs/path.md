@@ -84,7 +84,7 @@ dataset = LabelImageFolder(dataset_path, transform=ToTensor())
 
 ### Public Datasets
 
-Public Datasets contains FFHQ64, FFHQ256, MetFaces224. To use these datasets, just use `ImageFolder` from `torchvision.datasets`.
+Public Datasets contains FFHQ64, FFHQ256, MetFaces256. To use these datasets, just use `ImageFolder` from `torchvision.datasets`.
 
 ```python
 from torchvision.datasets import ImageFolder
