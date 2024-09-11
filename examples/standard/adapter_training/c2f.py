@@ -21,9 +21,9 @@ from modelinversion.datasets import InfiniteSamplerWrapper, CelebA64
 
 if __name__ == '__main__':
 
-    target_model_ckpt_path = '/data/yhy/Model-Inversion-Attack-ToolBox/checkpoints_v2/classifier/facescrub64/facescrub64_ir152_98.25.pth'
-    embed_model_ckpt_path = '/data/yhy/Model-Inversion-Attack-ToolBox/checkpoints_v2/attacks/c2f/embedder/casia_incv1.pth'
-    dataset_path = '/data/yhy/Model-Inversion-Attack-ToolBox/dataset/ffhq64'
+    target_model_ckpt_path = '<fill it>'
+    embed_model_ckpt_path = '<path to embed model>/casia_incv1.pth'
+    dataset_path = '<fill it>'
 
     dataset_map_name = 'ffhq64_facescrub64'
     target_name = 'ir152'
