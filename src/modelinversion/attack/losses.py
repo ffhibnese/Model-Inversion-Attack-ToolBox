@@ -65,6 +65,10 @@ class ImageAugmentClassificationLoss(BaseImageLoss):
         for aug_images in self.create_aug_images_fn(images):
             total_num += 1
             conf, _ = self.classifier(aug_images)
+            # conf_softmax = torch.softmax(conf, dim=-1).detach().mean()
+            ce_loss = F.cross_entropy(conf, labels).detach()
+            conf_softmax = torch.exp(-ce_loss)
+
             pred_labels = torch.argmax(conf, dim=-1)
             loss += self.loss_fn(conf, labels)
             # print(pred_labels)
@@ -73,7 +77,7 @@ class ImageAugmentClassificationLoss(BaseImageLoss):
             acc += (pred_labels == labels).float().mean().item()
 
         return loss, OrderedDict(
-            [['classification loss', loss.item()], ['target acc', acc / total_num]]
+            [['classification loss', loss.item()], ['target acc', acc / total_num], ['confidence', conf_softmax.item()]]
         )
 
     def __repr__(self) -> str:

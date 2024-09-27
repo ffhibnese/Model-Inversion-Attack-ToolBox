@@ -37,7 +37,7 @@ if __name__ == '__main__':
     test_dataset_path = '<fill it>'
     experiment_dir = '<fill it>'
     generator_ckpt_path = '<fill it>'
-    # backbone_path = '/data/yuhongyao/Model-Inversion-Attack-ToolBox/checkpoints_v2/classifier/backbones/Backbone_IR_152_Epoch_112_Batch_2547328_Time_2019-07-13-02-59_checkpoint.pth'
+    # backbone_path = '/mnt/data/yuhongyao/Model-Inversion-Attack-ToolBox/checkpoints_v2/classifier/backbones/Backbone_IR_152_Epoch_112_Batch_2547328_Time_2019-07-13-02-59_checkpoint.pth'
 
     batch_size = 128
     epoch_num = 10

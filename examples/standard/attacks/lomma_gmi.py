@@ -49,8 +49,8 @@ if __name__ == '__main__':
     experiment_dir = '../../../results/lommagmi_celeba_celeba_ir152'
     device_ids_str = '3'
     num_classes = 1000
-    generator_ckpt_path = '/data/yuhongyao/Model-Inversion-Attack-ToolBox/test/history_ckpts/checkpoints/gmi/celeba64_G.pth'  # '/data/yuhongyao/papar_codes/PLG-MI-Attack/plgsmalltest/gen_latest.pth.tar'
-    discriminator_ckpt_path = '/data/yuhongyao/Model-Inversion-Attack-ToolBox/test/history_ckpts/checkpoints/gmi/celeba64_D.pth'
+    generator_ckpt_path = '/mnt/data/yuhongyao/Model-Inversion-Attack-ToolBox/test/history_ckpts/checkpoints/gmi/celeba64_G.pth'  # '/mnt/data/yuhongyao/papar_codes/PLG-MI-Attack/plgsmalltest/gen_latest.pth.tar'
+    discriminator_ckpt_path = '/mnt/data/yuhongyao/Model-Inversion-Attack-ToolBox/test/history_ckpts/checkpoints/gmi/celeba64_D.pth'
     target_model_ckpt_path = (
         '../../../checkpoints_v2/classifier/celeba64/celeba64_ir152_93.71.pth'
     )
@@ -61,9 +61,9 @@ if __name__ == '__main__':
     aug_model_efficientnet_b1_path = '../../..//checkpoints_v2/attacks/lomma/celeba64_efficientnet_b1_celeba64_ir152.pth'
     aug_model_efficientnet_b2_path = '../../..//checkpoints_v2/attacks/lomma/celeba64_efficientnet_b2_celeba64_ir152.pth'
     public_dataset_path = (
-        '/data/yuhongyao/Model-Inversion-Attack-ToolBox/dataset/celeba/split/public'
+        '/mnt/data/yuhongyao/Model-Inversion-Attack-ToolBox/dataset/celeba/split/public'
     )
-    eval_dataset_path = '/data/yuhongyao/Model-Inversion-Attack-ToolBox/dataset/celeba/split/private/train'
+    eval_dataset_path = '/mnt/data/yuhongyao/Model-Inversion-Attack-ToolBox/dataset/celeba/split/private/train'
     attack_targets = list(range(100))
 
     batch_size = 100

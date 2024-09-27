@@ -5,6 +5,7 @@ from typing import Iterator
 from torch import Tensor
 from torch.nn import MaxPool2d
 from torch.nn.parameter import Parameter
+from torchvision.models.swin_transformer import SwinTransformerBlock
 from ...utils import (
     BaseHook,
     FirstInputHook,
@@ -56,8 +57,10 @@ class BaseClassifierWrapper(BaseImageClassifier):
 _activation = {
     'tanh': nn.Tanh,
     'relu': nn.ReLU,
+    'relu6': nn.ReLU6,
     'sigmoid': nn.Sigmoid,
-    'leaky_relu': nn.LeakyReLU
+    'leaky_relu': nn.LeakyReLU,
+    'none': nn.Identity
 }
     
 def _neck_builder(neck_dim, activation = 'tanh'):
@@ -82,10 +85,11 @@ class NeckWrapper(BaseClassifierWrapper):
         module: BaseImageClassifier,
         register_last_feature_hook=True,
         neck_dim = 10,
-        neck_activation = 'tanh'
+        neck_activation = 'tanh',
+        feature_compressed = False
     ) -> None:
 
-        def _output_transform(m: nn.Linear):
+        def _output_transform(m: nn.Sequential):
             # self._feature_hook = FirstInputHook(m)
             def hook_fn(module, input, output):
                 # print(type(input))
@@ -96,8 +100,10 @@ class NeckWrapper(BaseClassifierWrapper):
                 return output, {HOOK_NAME_FEATURE: input[0]}
             
             # print('hook register')
-
-            m.register_forward_hook(hook_fn)
+            if feature_compressed:
+                m[-1].register_forward_hook(hook_fn)
+            else:
+                m.register_forward_hook(hook_fn)
 
         operate_fc(module, module.num_classes, _output_transform, _neck_builder(neck_dim=neck_dim, activation=neck_activation))
 
@@ -295,7 +301,7 @@ def get_default_create_hidden_hook_fn(num: int = 3):
         linear_modules = []
 
         def _visit_fn(module):
-            if isinstance(module, (nn.Linear, nn.Conv2d)):
+            if isinstance(module, (nn.Conv2d, SwinTransformerBlock)):
                 linear_modules.append(module)
 
         traverse_module(model, _visit_fn)

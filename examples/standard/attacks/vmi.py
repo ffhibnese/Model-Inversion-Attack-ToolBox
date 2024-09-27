@@ -52,17 +52,17 @@ if __name__ == '__main__':
     device_ids_available = '1'
     num_classes = 1000
 
-    experiment_dir = '/data/qyx/Model-Inversion-Attack-ToolBox/test/vmi'
+    experiment_dir = '/mnt/data/qyx/Model-Inversion-Attack-ToolBox/test/vmi'
     """Download stylegan2-ada from https://github.com/NVlabs/stylegan2-ada-pytorch and record the file path as 'stylegan2ada_path' 
     """
-    stylegan2ada_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/stylegan2_ada'
-    stylegan2ada_ckpt_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/neurips2021-celeba-stylegan/network-snapshot-002298.pkl'
+    stylegan2ada_path = '/mnt/data/qyx/Model-Inversion-Attack-ToolBox/test/stylegan2_ada'
+    stylegan2ada_ckpt_path = '/mnt/data/qyx/Model-Inversion-Attack-ToolBox/test/neurips2021-celeba-stylegan/network-snapshot-002298.pkl'
     target_model_name = 'ir152_64'
-    target_model_ckpt_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba64/celeba64_ir152_93.71.pth'
+    target_model_ckpt_path = '/mnt/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba64/celeba64_ir152_93.71.pth'
     eval_model_name = 'facenet112'
-    eval_model_ckpt_path = '/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba112/celeba112_facenet112_95.88.pth'
+    eval_model_ckpt_path = '/mnt/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba112/celeba112_facenet112_95.88.pth'
     eval_dataset_path = (
-        '/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba/private_train'
+        '/mnt/data/qyx/Model-Inversion-Attack-ToolBox/test/celeba/private_train'
     )
     attack_targets = list(range(1))
 

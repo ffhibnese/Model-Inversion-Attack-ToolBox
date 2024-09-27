@@ -285,6 +285,9 @@ class ImageClassifierAttacker(ABC):
             metric.get_features(images, labels) for metric in self.config.eval_metrics
         ]
 
+        if len(metric_features) == 0:
+            metric_features = None
+
         scores = None
         if self.config.final_images_score_fn is not None:
             scores = batch_apply(
@@ -321,10 +324,13 @@ class ImageClassifierAttacker(ABC):
         )
 
     def _evaluation(self, features_list, labels, description, save_dir):
+        result = OrderedDict()
+
+        if features_list is None:
+            return result
 
         print_split_line(description)
 
-        result = OrderedDict()
         df = pd.DataFrame()
         for features, metric in zip(features_list, self.config.eval_metrics):
 

@@ -375,7 +375,7 @@ class ImageFidPRDCMetric(BaseImageMetric):
         self.num_workers = num_workers
         self.prdc_k = prdc_k
         self.description = description
-
+        
         self.calc_fid = fid
         self.calc_prdc = prdc
         self.save_dir = save_individual_prdc_dir
