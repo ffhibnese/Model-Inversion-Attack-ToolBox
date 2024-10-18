@@ -22,7 +22,7 @@ def traverse_module(module: nn.Module, fn: Callable, call_middle=False):
         if call_middle:
             fn(module)
         for child in children:
-            traverse_module(child, fn)
+            traverse_module(child, fn, call_middle=call_middle)
 
 
 def _traverse_name_module_impl(module_tuple: list, fn: Callable, call_middle=False):

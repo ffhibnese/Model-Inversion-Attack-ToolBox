@@ -20,6 +20,7 @@ from .wrappers import (
     get_default_create_hidden_hook_fn,
     origin_vgg16_64_hidden_hook_fn,
 )
+from .skipconnection import REMOVE_FUNCTIONS, SkipConnectionWrapper
 from .classifier64 import (
     VGG16_64,
     IR152_64,

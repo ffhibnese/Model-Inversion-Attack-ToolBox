@@ -53,19 +53,22 @@ class BaseClassifierWrapper(BaseImageClassifier):
     def postprocess_config_after_load(config):
         config['module'] = auto_classifier_from_pretrained(config['module'])
         return config
-    
+
+
 _activation = {
     'tanh': nn.Tanh,
     'relu': nn.ReLU,
     'relu6': nn.ReLU6,
     'sigmoid': nn.Sigmoid,
     'leaky_relu': nn.LeakyReLU,
-    'none': nn.Identity
+    'none': nn.Identity,
 }
-    
-def _neck_builder(neck_dim, activation = 'tanh'):
+
+
+def _neck_builder(neck_dim, activation='tanh'):
 
     activation_builder = _activation[activation]
+
     def _builder(input_dim, output_dim):
         return nn.Sequential(
             nn.BatchNorm1d(input_dim),
@@ -76,6 +79,7 @@ def _neck_builder(neck_dim, activation = 'tanh'):
 
     return _builder
 
+
 @register_model('neck')
 class NeckWrapper(BaseClassifierWrapper):
 
@@ -84,9 +88,9 @@ class NeckWrapper(BaseClassifierWrapper):
         self,
         module: BaseImageClassifier,
         register_last_feature_hook=True,
-        neck_dim = 10,
-        neck_activation = 'tanh',
-        feature_compressed = False
+        neck_dim=10,
+        neck_activation='tanh',
+        feature_compressed=False,
     ) -> None:
 
         def _output_transform(m: nn.Sequential):
@@ -98,18 +102,22 @@ class NeckWrapper(BaseClassifierWrapper):
                 # print(type(output[0]))
                 # exit()
                 return output, {HOOK_NAME_FEATURE: input[0]}
-            
+
             # print('hook register')
             if feature_compressed:
                 m[-1].register_forward_hook(hook_fn)
             else:
                 m.register_forward_hook(hook_fn)
 
-        operate_fc(module, module.num_classes, _output_transform, _neck_builder(neck_dim=neck_dim, activation=neck_activation))
+        operate_fc(
+            module,
+            module.num_classes,
+            _output_transform,
+            _neck_builder(neck_dim=neck_dim, activation=neck_activation),
+        )
 
         # self.module = module
 
-        
         super().__init__(
             module,
             register_last_feature_hook,
@@ -122,10 +130,12 @@ class NeckWrapper(BaseClassifierWrapper):
         # print(type(result[0][0]))
         # exit()
         return result
-    
+
+
 # nn.modules.activation.__all__
 
-def recurrent_replace_activation(module, activation = 'tanh'):
+
+def recurrent_replace_activation(module, activation='tanh'):
 
     replace_num = 0
     if isinstance(module, nn.Sequential):
@@ -136,7 +146,7 @@ def recurrent_replace_activation(module, activation = 'tanh'):
             else:
                 replace_num += recurrent_replace_activation(m, activation)[1]
         return module, replace_num
-    
+
     for name, m in module.named_children():
         if m.__class__.__name__ in nn.modules.activation.__all__:
             setattr(module, name, _activation[activation]())
@@ -144,7 +154,8 @@ def recurrent_replace_activation(module, activation = 'tanh'):
         else:
             replace_num += recurrent_replace_activation(m, activation)[1]
     return module, replace_num
-    
+
+
 @register_model('activation_replacer')
 class ActivationReplacerWrapper(BaseClassifierWrapper):
 
@@ -153,7 +164,7 @@ class ActivationReplacerWrapper(BaseClassifierWrapper):
         self,
         module: BaseImageClassifier,
         register_last_feature_hook=True,
-        activation = 'relu'
+        activation='relu',
     ) -> None:
 
         # replace every activation function in module with the input activation
@@ -168,65 +179,6 @@ class ActivationReplacerWrapper(BaseClassifierWrapper):
 
     def _forward_impl(self, image: Tensor, *args, **kwargs):
         return self.module(image, *args, **kwargs)
-
-
-@register_model('ztq')
-class ZtqDefenseWrapper(BaseImageClassifier):
-
-    def __init__(
-        self,
-        classifier: BaseImageClassifier,
-        binary_checker: BaseImageClassifier,
-        register_last_feature_hook=False,
-    ):
-        super().__init__(
-            classifier.resolution,
-            classifier.feature_dim,
-            classifier.num_classes,
-            register_last_feature_hook,
-        )
-        self.classifier = classifier
-        self.binary_checker = binary_checker
-
-    def _forward_impl(self, image: Tensor, *args, **kwargs):
-        out, info = self.classifier(image, *args, **kwargs)
-
-        # 这里修改 out
-
-        return out, info
-
-    def preprocess_config_before_save(self, config):
-        # return config
-        process_config = {}
-        for k, v in config.items():
-            if k != '_classifier' and k != '_binary_checker':
-                process_config[k] = v
-
-        config['_classifier'] = {
-            'model_name': CLASSNAME_TO_NAME_MAPPING[self.classifier.__class__.__name__],
-            'config': self.classifier.preprocess_config_before_save(
-                self.classifier._config_mixin_dict
-            ),
-        }
-
-        config['_binary_checker'] = {
-            'model_name': CLASSNAME_TO_NAME_MAPPING[
-                self.binary_checker.__class__.__name__
-            ],
-            'config': self.binary_checker.preprocess_config_before_save(
-                self.binary_checker._config_mixin_dict
-            ),
-        }
-
-        return super().preprocess_config_before_save(config)
-
-    @staticmethod
-    def postprocess_config_after_load(config):
-        config['_classifier'] = auto_classifier_from_pretrained(config['_classifier'])
-        config['_binary_checker'] = auto_classifier_from_pretrained(
-            config['_binary_checker']
-        )
-        return config
 
 
 @register_model('vib')
@@ -500,7 +452,6 @@ class LoraWrapper(BaseClassifierWrapper):
 
         self.freeze_to_train()
 
-    
     # def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
     #     print('get optim nodes parameters')
     #     return self.optim_nodes.parameters(recurse)
