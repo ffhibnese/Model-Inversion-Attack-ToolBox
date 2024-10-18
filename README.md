@@ -51,7 +51,7 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 |LOMMA|Re-Thinking Model Inversion Attacks Against Deep Neural Networks|[CVPR'2023](https://openaccess.thecvf.com/content/CVPR2023/html/Nguyen_Re-Thinking_Model_Inversion_Attacks_Against_Deep_Neural_Networks_CVPR_2023_paper.html)|blackbox|special loss, model augmentation|
 |RLBMI|Reinforcement Learning-Based Black-Box Model Inversion Attacks|[CVPR'2023](https://openaccess.thecvf.com/content/CVPR2023/html/Han_Reinforcement_Learning-Based_Black-Box_Model_Inversion_Attacks_CVPR_2023_paper.html)|blackbox|reinforcement learning|
 |LOKT|Label-Only Model Inversion Attacks via Knowledge Transfer|[NeurIPS'2023](https://openreview.net/forum?id=NuoIThPPag)|blackbox|surrogate models, label-only|
-|IFGMI|A Closer Look at GAN Priors: Exploiting Intermediate Features for Enhanced Model Inversion Attacks|[ECCV'2024](https://arxiv.org/abs/2407.13863)|whitebox|intermeidate feature|
+|IF-GMI|A Closer Look at GAN Priors: Exploiting Intermediate Features for Enhanced Model Inversion Attacks|[ECCV'2024](https://arxiv.org/abs/2407.13863)|whitebox|intermeidate feature|
 
 
 
