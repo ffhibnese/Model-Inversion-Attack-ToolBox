@@ -125,8 +125,15 @@ and attack results will be produced in `./results/<DEFENSE_METHOD>_<ATTACK_METHO
 For more information, you can read [here](./defense_scripts/README.md). -->
 
 ## 📔 Citation
-**If you find our work helpful for your research, please kindly cite our paper:**
+**If you find our work helpful for your research, please kindly cite our papers:**
 ```
+@article{qiu2024mibench,
+  title={MIBench: A Comprehensive Benchmark for Model Inversion Attack and Defense},
+  author={Qiu, Yixiang and Yu, Hongyao and Fang, Hao and Yu, Wenbo and Chen, Bin and Wang, Xuan and Xia, Shu-Tao and Xu, Ke},
+  journal={arXiv preprint arXiv:2410.05159},
+  year={2024}
+}
+
 @article{fang2024privacy,
   title={Privacy leakage on dnns: A survey of model inversion attacks and defenses},
   author={Fang, Hao and Qiu, Yixiang and Yu, Hongyao and Yu, Wenbo and Kong, Jiawei and Chong, Baoli and Chen, Bin and Wang, Xuan and Xia, Shu-Tao},
