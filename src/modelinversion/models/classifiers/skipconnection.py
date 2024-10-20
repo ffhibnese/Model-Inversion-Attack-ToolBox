@@ -38,8 +38,30 @@ def default_erase_residule(module: nn.Module, residule_keep_ratio: float = 0.0):
         if isinstance(out, tuple):
             out[0] += identity * _add_ratio
         else:
+            print(out.shape, identity.shape, _add_ratio)
+            # exit()
             out += identity * _add_ratio
         return out
+
+    module.forward = forward.__get__(module, module.__class__)
+
+    return True
+
+
+def erase_residule_ir_block(
+    module: bottleneck_IR | bottleneck_IR_SE, residule_keep_ratio: float = 0.0
+):
+    if not isinstance(module, (bottleneck_IR, bottleneck_IR_SE)):
+        raise ValueError('The module is not bottleneck_IR or bottleneck_IR_SE')
+
+    def forward(
+        self, x: Tensor, _residule_keep_ratio: int = residule_keep_ratio
+    ) -> Tensor:
+        shortcut = self.shortcut_layer(x)
+
+        res = self.res_layer(x)
+
+        return res + shortcut * _residule_keep_ratio
 
     module.forward = forward.__get__(module, module.__class__)
 
@@ -216,8 +238,8 @@ REMOVE_FUNCTIONS = {
     Bottleneck: erase_residule_resnet_bottleneck,
     MBConv: erase_residule_mbconv,
     FusedMBConv: erase_residule_mbconv,
-    bottleneck_IR: default_erase_residule,
-    bottleneck_IR_SE: default_erase_residule,
+    bottleneck_IR: erase_residule_ir_block,
+    bottleneck_IR_SE: erase_residule_ir_block,
     ViTEncoderBlock: erase_residule_vit_encoderblock,
     SwinTransformerBlock: erase_residule_swin_block,
     SwinTransformerBlockV2: erase_residule_swin_v2_block,
@@ -228,7 +250,9 @@ def add_remove_functions(type_module, func):
     REMOVE_FUNCTIONS[type_module] = func
 
 
-def remove_last_residule(module, residule_keep_ratio: int = 0):
+def remove_last_residule(
+    module, residule_keep_ratio: int = 0, erase_ratio_or_num: float | int = 0
+):
 
     erase_fns = []
 
@@ -242,8 +266,16 @@ def remove_last_residule(module, residule_keep_ratio: int = 0):
 
     traverse_module(module, _visit_fn, call_middle=True)
 
-    for fn, m in erase_fns[::-1]:
-        if fn(m, residule_keep_ratio):
+    erase_num = (
+        len(erase_fns) * erase_ratio_or_num
+        if isinstance(erase_ratio_or_num, float)
+        else erase_ratio_or_num
+    )
+
+    for i, (fn, m) in enumerate(erase_fns[::-1]):
+        # if fn(m, residule_keep_ratio):
+        fn(m, residule_keep_ratio)
+        if i >= erase_num:
             return
 
     raise ValueError('The module is not support for skip connection')
@@ -262,13 +294,16 @@ class SkipConnectionWrapper(BaseClassifierWrapper):
         module: BaseImageClassifier,
         register_last_feature_hook=False,
         residule_keep_ratio: int = 0,
+        erase_ratio_or_num: float | int = 0,
     ) -> None:
         super().__init__(
             module,
             register_last_feature_hook,
         )
 
-        self.skip_hook = remove_last_residule(module, residule_keep_ratio)
+        self.skip_hook = remove_last_residule(
+            module, residule_keep_ratio, erase_ratio_or_num
+        )
 
     def _forward_impl(self, image: Tensor, *args, **kwargs):
         return self.module(image, *args, **kwargs)
