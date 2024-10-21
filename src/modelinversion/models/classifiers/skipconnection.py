@@ -18,7 +18,7 @@ from .evolve.evolve import bottleneck_IR, bottleneck_IR_SE
 
 
 from torchvision.models.resnet import BasicBlock, Bottleneck
-from torchvision.models.densenet import DenseNet
+from torchvision.models.densenet import DenseNet, _DenseBlock
 from torchvision.models.efficientnet import MBConv, FusedMBConv
 from torchvision.models.vision_transformer import EncoderBlock as ViTEncoderBlock
 from torchvision.models.swin_transformer import (
@@ -62,6 +62,27 @@ def erase_residule_ir_block(
         res = self.res_layer(x)
 
         return res + shortcut * _residule_keep_ratio
+
+    module.forward = forward.__get__(module, module.__class__)
+
+    return True
+
+
+def erase_residule_denseblock(module: _DenseBlock, residule_keep_ratio: float = 0.0):
+    if not isinstance(module, _DenseBlock):
+        raise ValueError('The module is not _DenseBlock')
+
+    def forward(
+        self, init_features: Tensor, _residule_keep_ratio: int = residule_keep_ratio
+    ) -> Tensor:
+        features = [init_features]
+        for name, layer in self.items():
+            new_features = layer(features)
+            channels = features[-1].shape[1]
+            channel_idx = round(channels * _residule_keep_ratio)
+            new_features[:, channel_idx:] = 0
+            features.append(new_features)
+        return torch.cat(features, 1)
 
     module.forward = forward.__get__(module, module.__class__)
 
@@ -243,6 +264,7 @@ REMOVE_FUNCTIONS = {
     ViTEncoderBlock: erase_residule_vit_encoderblock,
     SwinTransformerBlock: erase_residule_swin_block,
     SwinTransformerBlockV2: erase_residule_swin_v2_block,
+    _DenseBlock: erase_residule_denseblock,
 }
 
 
