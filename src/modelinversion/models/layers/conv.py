@@ -3,6 +3,19 @@ from torch import nn
 from torch.nn import functional as F
 
 
+# class ComposeConv2D(nn.Module):
+
+#     def __init__(self, conv_a, conv_b):
+#         super(ComposeConv2D, self).__init__()
+#         self.conv_a = conv_a
+#         self.conv_b = conv_b
+
+#     def forward(self, x):
+#         x = self.conv_a(x)
+#         x = self.conv_b(x)
+#         return x
+
+
 class Attention2D(nn.Module):
     def __init__(
         self,

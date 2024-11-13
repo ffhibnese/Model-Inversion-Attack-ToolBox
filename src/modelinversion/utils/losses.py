@@ -39,6 +39,24 @@ _LOSS_MAPPING = {
 }
 
 
+class MSELogitLoss(nn.Module):
+
+    def __init__(self, mse_target=1.0):
+        super().__init__()
+        self.mse_target = mse_target
+
+    def forward(self, inputs, targets, reduction='mean'):
+        probs = F.softmax(inputs, dim=-1)
+        probs_on_target = probs.gather(1, targets.unsqueeze(1)).squeeze(1)
+        loss = torch.square(probs_on_target - self.mse_target)
+        if reduction == 'mean':
+            return loss.mean()
+        elif reduction == 'sum':
+            return loss.sum()
+        elif reduction == 'none':
+            return loss
+
+
 class LabelSmoothingCrossEntropyLoss:
     """The Cross Entropy Loss with label smoothing technique. Used in the LS defense method."""
 
@@ -62,12 +80,15 @@ class LabelSmoothingCrossEntropyLoss:
             return loss
         raise RuntimeError(f'Invalid reduction mode: {reduction}')
 
+
 # class SoftTargetCrossEntropy(nn.Module):
 
 
 class InverseFocalLoss:
 
-    def __init__(self, gamma: float = 4, alpha: float = 0.25, label_smoothing=0) -> None:
+    def __init__(
+        self, gamma: float = 4, alpha: float = 0.25, label_smoothing=0
+    ) -> None:
         super().__init__()
         self.gamma = gamma
         self.alpha = alpha
@@ -82,7 +103,7 @@ class InverseFocalLoss:
         nll_loss = -logprobs.gather(dim=-1, index=targets.unsqueeze(1))
         nll_loss = nll_loss.squeeze(1)
         smooth_loss = -logprobs.mean(dim=-1)
-        
+
         # ce_loss = self.ce_fn(inputs, targets, reduction='none')
         pt = torch.exp(-nll_loss)
         focal_loss = -self.alpha * pt**self.gamma * nll_loss

@@ -19,6 +19,7 @@ from .wrappers import (
     ActivationReplacerWrapper,
     get_default_create_hidden_hook_fn,
     origin_vgg16_64_hidden_hook_fn,
+    LRCWrapper,
 )
 from .skipconnection import REMOVE_FUNCTIONS, SkipConnectionWrapper
 from .classifier64 import (

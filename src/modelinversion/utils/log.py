@@ -29,6 +29,7 @@ class Logger(object):
         file_name: str = None,
         file_mode: str = "w",
         should_flush: bool = True,
+        print_terminal: bool = True,
     ):
         self.file = None
 
@@ -40,6 +41,7 @@ class Logger(object):
 
         self.should_flush = should_flush
         self.stdout = sys.stdout
+        self.print_terminal = print_terminal
         # self.stderr = sys.stderr
 
         sys.stdout = self
@@ -63,7 +65,8 @@ class Logger(object):
         if self.file is not None:
             self.file.write(text)
 
-        self.stdout.write(text)
+        if self.print_terminal:
+            self.stdout.write(text)
 
         if self.should_flush:
             self.flush()

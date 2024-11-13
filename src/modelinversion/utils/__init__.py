@@ -17,6 +17,7 @@ from .losses import (
     InverseFocalLoss,
     max_margin_loss,
     poincare_loss,
+    MSELogitLoss,
 )
 from .check import check_shape
 from .batch import batch_apply
