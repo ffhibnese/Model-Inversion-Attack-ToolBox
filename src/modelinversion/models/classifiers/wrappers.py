@@ -1,7 +1,9 @@
 from copy import deepcopy
+from typing import Iterator
 
 from torch import Tensor
 from torch.nn import MaxPool2d
+from torch.nn.parameter import Parameter
 from ...utils import (
     BaseHook,
     FirstInputHook,
@@ -232,4 +234,86 @@ class DeepInversionWrapper(BaseImageClassifier):
         addition_info[HOOK_NAME_DEEPINVERSION_BN] = [
             h.get_feature() for h in self.bn_hooks
         ]
+        return forward_res, addition_info
+
+
+class _ConditionMLP1d(nn.Module):
+
+    def __init__(
+        self,
+        in_features,
+        cond_features_num,
+        cond_features_dim,
+        hidden_features=None,
+        out_features=None,
+        act_layer=nn.GELU,
+    ):
+        super().__init__()
+
+        out_features = out_features or in_features
+        hidden_features = hidden_features or in_features
+        self.fc1 = nn.Linear(in_features + cond_features_dim, hidden_features)
+
+        self.act = act_layer()
+        self.fc2 = nn.Linear(hidden_features, out_features)
+        # self.drop = nn.Dropout(drop)
+
+        self.cond_embedding = nn.Embedding(cond_features_num, cond_features_dim)
+
+    def forward(self, x, cond):
+        ori_x = x
+        cond = self.cond_embedding(cond)
+        x = torch.cat([x, cond], dim=-1)
+        x = self.fc1(x)
+        x = self.act(x)
+        # x = self.drop(x)
+        x = self.fc2(x) + ori_x
+        # x = self.drop(x)
+        return x
+
+
+@register_model('cond_purifier')
+class ConditionPurifierWrapper(BaseClassifierWrapper):
+
+    @ModelMixin.register_to_config_init
+    def __init__(
+        self,
+        module: BaseImageClassifier,
+        cond_features_dim=512,
+        register_last_feature_hook=False,
+    ) -> None:
+        super().__init__(
+            module,
+            register_last_feature_hook,
+        )
+
+        self.module.eval()
+
+        for p in self.module.parameters():
+            p.requires_grad = False
+
+        self.purifier = _ConditionMLP1d(
+            in_features=self.module.num_classes,
+            cond_features_num=self.module.num_classes,
+            cond_features_dim=cond_features_dim,
+            hidden_features=cond_features_dim // 2,
+            out_features=self.module.feature_dim,
+            act_layer=nn.ReLU,
+        )
+
+    def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
+        return self.purifier.parameters(recurse=recurse)
+
+    def train(self, mode: bool = True):
+        return self.purifier.train(mode)
+
+    def eval(self):
+        return self.purifier.eval()
+
+    def _forward_impl(self, image: Tensor, *args, **kwargs):
+        forward_res, addition_info = self.module(image, *args, **kwargs)
+        # addition_info[HOOK_NAME_HIDDEN] = [h.get_feature() for h in self.hidden_hooks]
+        addition_info['ori_logits'] = forward_res
+        cond = torch.argmax(forward_res, dim=-1)
+        forward_res = self.purifier(forward_res, cond)
         return forward_res, addition_info

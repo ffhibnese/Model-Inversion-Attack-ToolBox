@@ -14,6 +14,7 @@ from .wrappers import (
     BiDOWrapper,
     get_default_create_hidden_hook_fn,
     origin_vgg16_64_hidden_hook_fn,
+    ConditionPurifierWrapper,
 )
 from .classifier64 import (
     VGG16_64,
