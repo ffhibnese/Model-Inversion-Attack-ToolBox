@@ -326,7 +326,14 @@ class VibTrainer(SimpleTrainer):
         return loss
 
 
+class ConditionPurifierTrainConfig(SimpleTrainConfig):
+    cls_loss_coef: float = 0.1
+
+
 class ConditionPurifierTrainer(SimpleTrainer):
+
+    def __init__(self, config: ConditionPurifierTrainConfig, *args, **kwargs) -> None:
+        super().__init__(config, *args, **kwargs)
 
     def calc_loss(self, inputs, result, labels: LongTensor):
         result, addition_info = result
@@ -337,6 +344,6 @@ class ConditionPurifierTrainer(SimpleTrainer):
 
         mse = nn.functional.mse_loss(result, ori_logits)
         pseudo_labels = torch.argmax(ori_logits, dim=-1)
-        loss = self.loss_fn(result, pseudo_labels) + mse
+        loss = self.loss_fn(result, pseudo_labels) + mse * self.config.cls_loss_coef
 
         return loss
