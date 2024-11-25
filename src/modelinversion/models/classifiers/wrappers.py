@@ -317,3 +317,109 @@ class ConditionPurifierWrapper(BaseClassifierWrapper):
         cond = torch.argmax(forward_res, dim=-1)
         forward_res = self.purifier(forward_res, cond)
         return forward_res, addition_info
+
+class Inversion(nn.Module):
+    def __init__(self, nc, ngf, nz, truncation, c):
+        super(Inversion, self).__init__()
+
+        self.nc = nc
+        self.ngf = ngf
+        self.nz = nz
+        self.truncation = truncation
+        self.c = c
+
+        self.decoder = nn.Sequential(
+            # input is Z
+            nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0),
+            nn.BatchNorm2d(ngf * 8),
+            nn.Tanh(),
+            # state size. (ngf*8) x 4 x 4
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1),
+            nn.BatchNorm2d(ngf * 4),
+            nn.Tanh(),
+            # state size. (ngf*4) x 8 x 8
+            nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1),
+            nn.BatchNorm2d(ngf * 2),
+            nn.Tanh(),
+            # state size. (ngf*2) x 16 x 16
+            nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1),
+            nn.BatchNorm2d(ngf),
+            nn.Tanh(),
+            # state size. (ngf) x 32 x 32
+            nn.ConvTranspose2d(ngf, nc, 4, 2, 1),
+            nn.Sigmoid()
+            # state size. (nc) x 64 x 64
+        )
+
+    def forward(self, x):
+        topk, indices = torch.topk(x, self.truncation)
+        topk = torch.clamp(torch.log(topk), min=-1000) + self.c
+        topk_min = topk.min(1, keepdim=True)[0]
+        topk = topk + F.relu(-topk_min)
+        x = torch.zeros(len(x), self.nz).cuda().scatter_(1, indices, topk)
+
+        x = x.view(-1, self.nz, 1, 1)
+        x = self.decoder(x)
+        x = x.view(-1, 1, 64, 64)
+        return x
+
+@register_model('adv_purifier')
+class AdversarialPurifierWrapper(BaseClassifierWrapper):
+
+    @ModelMixin.register_to_config_init
+    def __init__(
+        self,
+        module: BaseImageClassifier,
+        path: str,
+        device: str, 
+        iteration: int,
+        eta: float,
+        eps: float,
+        register_last_feature_hook=False,
+    ) -> None:
+        super().__init__(
+            module,
+            register_last_feature_hook,
+        )
+
+        self.module.eval()
+        self.iteration = iteration
+        self.eta = eta
+        self.eps = eps
+
+        for p in self.module.parameters():
+            p.requires_grad = False
+
+        self.inversion = Inversion(nc=1, ngf=128, nz=530, truncation=530, c=50)
+        self.inversion.load_state_dict(state_dict=torch.load(path, map_location='cpu'), strict=True)
+        self.inversion.to(device=device)
+        self.inversion.eval()
+    
+    def get_noise(self, ori_logit: Tensor, cur_logit: Tensor, grad: Tensor, eta: float, eps: float):
+        logit = cur_logit + eta * torch.sign(grad)
+        l = torch.argmax(ori_logit)
+        m = torch.relu(torch.max(logit) - logit[l])
+        logit[l] += m
+        noise = logit - ori_logit
+        if torch.norm(noise, p=1) > eps:
+            noise *= (eps / torch.norm(noise, p=1))
+        return noise
+    
+    
+
+    def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
+        return self.purifier.inversion(recurse=recurse)
+
+    def _forward_impl(self, image: Tensor, *args, **kwargs):
+        forward_res, addition_info = self.module(image, *args, **kwargs)
+        # addition_info[HOOK_NAME_HIDDEN] = [h.get_feature() for h in self.hidden_hooks]
+        addition_info['ori_logits'] = forward_res
+        ori_logit = forward_res
+        cur_logit = torch.tensor(forward_res, requires_grad=True)
+        optimizer = torch.optim.Adam(cur_logit, lr=0.0002, betas=(0.5, 0.999), amsgrad=True)
+        for i in range(self.iteration):
+            recon = self.inversion(torch.softmax(cur_logit))
+            loss = F.mse_loss(recon, image)
+            loss.backward()
+            cur_logit = ori_logit + self.get_noise(ori_logit=ori_logit, cur_logit=cur_logit, grad=loss.grad, eta=self.eta, eps=self.eps)
+        return torch.softmax(cur_logit), addition_info
