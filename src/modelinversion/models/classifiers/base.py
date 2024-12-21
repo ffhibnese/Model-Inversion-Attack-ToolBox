@@ -178,13 +178,19 @@ class BaseImageClassifier(BaseImageModel):
         #     self.register_hook_for_forward(HOOK_NAME_FEATURE, hook=hook)
         return super().forward(image, *args, **kwargs)
 
+
 def remove_all_forward_hooks(module: nn.Module):
     module._forward_hooks.clear()
     for child in module.children():
         remove_all_forward_hooks(child)
 
+
 def _operate_fc_impl(
-    module: nn.Module, reset_num_classes: int = None, visit_fc_fn: Callable = None, visit_path = '', builder = nn.Linear
+    module: nn.Module,
+    reset_num_classes: int = None,
+    visit_fc_fn: Callable = None,
+    visit_path='',
+    builder=nn.Linear,
 ):
     """Reset the output class num of nn.Linear and return the input feature_dim of nn.Linear.
 
@@ -208,7 +214,8 @@ def _operate_fc_impl(
             remove_all_forward_hooks(module[-1])
 
             if (
-                reset_num_classes is not None
+                reset_num_classes
+                is not None
                 # and reset_num_classes != module[-1].weight.shape[0]
             ):
                 module[-1] = builder(feature_dim, reset_num_classes)
@@ -221,8 +228,14 @@ def _operate_fc_impl(
             # print(visit_path)
             return feature_dim
         else:
-            
-            return _operate_fc_impl(module[-1], reset_num_classes, visit_fc_fn=visit_fc_fn, visit_path=f'{visit_path}.-1', builder=builder)
+
+            return _operate_fc_impl(
+                module[-1],
+                reset_num_classes,
+                visit_fc_fn=visit_fc_fn,
+                visit_path=f'{visit_path}.-1',
+                builder=builder,
+            )
 
     children = list(module.named_children())
     if len(children) == 0:
@@ -235,7 +248,8 @@ def _operate_fc_impl(
         remove_all_forward_hooks(child_module)
 
         if (
-            reset_num_classes is not None
+            reset_num_classes
+            is not None
             # and reset_num_classes != child_module.weight.shape[0]
         ):
             setattr(module, attr_name, builder(feature_dim, reset_num_classes))
@@ -246,14 +260,22 @@ def _operate_fc_impl(
         # print(visit_path)
         return feature_dim
     else:
-        return _operate_fc_impl(child_module, reset_num_classes, visit_fc_fn=visit_fc_fn, visit_path=visit_path, builder=builder)
+        return _operate_fc_impl(
+            child_module,
+            reset_num_classes,
+            visit_fc_fn=visit_fc_fn,
+            visit_path=visit_path,
+            builder=builder,
+        )
 
 
 def operate_fc(
-    module: nn.Module, reset_num_classes: int = None, visit_fc_fn: Callable = None, builder = nn.Linear
+    module: nn.Module,
+    reset_num_classes: int = None,
+    visit_fc_fn: Callable = None,
+    builder=nn.Linear,
 ) -> int:
     return _operate_fc_impl(module, reset_num_classes, visit_fc_fn, builder=builder)
-
 
 
 @register_model('torchvision')
@@ -268,7 +290,7 @@ class TorchvisionClassifierModel(BaseImageClassifier):
         weights=None,
         arch_kwargs={},
         register_last_feature_hook=False,
-        operate_aux=True
+        operate_aux=True,
     ) -> None:
         # weights: None, 'IMAGENET1K_V1', 'IMAGENET1K_V2' or 'DEFAULT'
 
@@ -281,7 +303,7 @@ class TorchvisionClassifierModel(BaseImageClassifier):
             # self._feature_hook = FirstInputHook(m)
             def hook_fn(module, input, output):
                 return output, {HOOK_NAME_FEATURE: input[0]}
-            
+
             # print('hook register')
 
             m.register_forward_hook(hook_fn)
@@ -299,22 +321,15 @@ class TorchvisionClassifierModel(BaseImageClassifier):
             if model.aux_logits:
                 operate_fc(model.AuxLogits, num_classes)
 
-        super().__init__(
-            resolution, feature_dim, num_classes, True
-        )
+        super().__init__(resolution, feature_dim, num_classes, True)
 
         self.model = model
 
     def _forward_impl(self, image: torch.Tensor, *args, **kwargs):
         result = self.model(image)
-        # import torchvision
-        # if isinstance(self.model, torchvision.models.maxvit.MaxVit):
-        #     print(result[1])
-        #     print(self.model.classifier[-1]._forward_hooks)
-        #     exit()
-        
-        return result 
-    
+
+        return result
+
 
 @register_model('timm')
 class TimmClassifierModel(BaseImageClassifier):
@@ -349,10 +364,10 @@ class TimmClassifierModel(BaseImageClassifier):
         #     raise RuntimeError(f'torchvision do not support model {arch_name}')
         # model = factory(weights=weights, **arch_kwargs)
         import timm
+
         model = timm.create_model(arch_name, pretrained=pretrained, **arch_kwargs)
 
         feature_dim = operate_fc(model, num_classes, _output_transform)
-
 
         super().__init__(
             resolution, feature_dim, num_classes, register_last_feature_hook
