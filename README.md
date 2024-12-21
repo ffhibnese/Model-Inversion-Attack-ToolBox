@@ -63,6 +63,9 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 |BiDO|Bilateral Dependency Optimization: Defending Against Model-inversion Attacks|[KDD'2022](https://dl.acm.org/doi/abs/10.1145/3534678.3539376)|special loss function|
 |TL|Model Inversion Robustness: Can Transfer Learning Help?|[CVPR'2024](https://openreview.net/forum?id=nW0sCc3LLN&nesting=2&sort=date-desc)|transfer learning|
 |LS|Be Careful What You Smooth For: Label Smoothing Can Be a Privacy Shield but Also a Catalyst for Model Inversion Attacks|[ICLR'2024](https://openreview.net/forum?id=1SbkubNdbW)|label smoothing|
+|LS|Be Careful What You Smooth For: Label Smoothing Can Be a Privacy Shield but Also a Catalyst for Model Inversion Attacks|[ICLR'2024](https://openreview.net/forum?id=1SbkubNdbW)|label smoothing|
+|RoLSS|On the Vulnerability of Skip Connections to Model Inversion Attacks|[ECCV'2024](https://arxiv.org/abs/2409.01696)|remove skip connection|
+|CALoR|CALoR: Towards Comprehensive Model Inversion Defense|[arxiv'2024](https://arxiv.org/abs/2410.05814)|confidence adaptation, feature compression|
 
 ## :wrench: Environments
 **MIA** can be built up with the following steps:
@@ -126,13 +129,34 @@ For more information, you can read [here](./defense_scripts/README.md). -->
 ## 📔 Citation
 **If you find our work helpful for your research, please kindly cite our papers:**
 ```
-@misc{fang2024privacy,
-      title={Privacy Leakage on DNNs: A Survey of Model Inversion Attacks and Defenses}, 
-      author={Hao Fang and Yixiang Qiu and Hongyao Yu and Wenbo Yu and Jiawei Kong and Baoli Chong and Bin Chen and Xuan Wang and Shu-Tao Xia},
-      year={2024},
-      eprint={2402.04013},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
+@article{qiu2024mibench,
+  title={MIBench: A Comprehensive Benchmark for Model Inversion Attack and Defense},
+  author={Qiu, Yixiang and Yu, Hongyao and Fang, Hao and Yu, Wenbo and Chen, Bin and Wang, Xuan and Xia, Shu-Tao and Xu, Ke},
+  journal={arXiv preprint arXiv:2410.05159},
+  year={2024}
+}
+
+@article{fang2024privacy,
+  title={Privacy leakage on dnns: A survey of model inversion attacks and defenses},
+  author={Fang, Hao and Qiu, Yixiang and Yu, Hongyao and Yu, Wenbo and Kong, Jiawei and Chong, Baoli and Chen, Bin and Wang, Xuan and Xia, Shu-Tao},
+  journal={arXiv preprint arXiv:2402.04013},
+  year={2024}
+}
+
+@inproceedings{qiu2025closer,
+  title={A closer look at gan priors: Exploiting intermediate features for enhanced model inversion attacks},
+  author={Qiu, Yixiang and Fang, Hao and Yu, Hongyao and Chen, Bin and Qiu, MeiKang and Xia, Shu-Tao},
+  booktitle={European Conference on Computer Vision},
+  pages={109--126},
+  year={2025},
+  organization={Springer}
+}
+
+@article{yu2024calor,
+  title={CALoR: Towards Comprehensive Model Inversion Defense},
+  author={Yu, Hongyao and Qiu, Yixiang and Fang, Hao and Chen, Bin and Yu, Sijin and Wang, Bin and Xia, Shu-Tao and Xu, Ke},
+  journal={arXiv preprint arXiv:2410.05814},
+  year={2024}
 }
 ```
 
