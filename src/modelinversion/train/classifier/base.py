@@ -480,6 +480,7 @@ class VibTrainer(SimpleTrainer):
         return loss
 
 
+<<<<<<< HEAD
 @dataclass
 class BackdoorTrainConfig(SimpleTrainConfig):
     backdoor_resolution: int = 8
@@ -544,3 +545,26 @@ class BackdoorTrainer(SimpleTrainer):
 
 
 # class BaseTrainer(ABC):
+=======
+class ConditionPurifierTrainConfig(SimpleTrainConfig):
+    cls_loss_coef: float = 0.1
+
+
+class ConditionPurifierTrainer(SimpleTrainer):
+
+    def __init__(self, config: ConditionPurifierTrainConfig, *args, **kwargs) -> None:
+        super().__init__(config, *args, **kwargs)
+
+    def calc_loss(self, inputs, result, labels: LongTensor):
+        result, addition_info = result
+        if isinstance(result, InceptionOutputs):
+            result, aux = result
+
+        ori_logits = addition_info['ori_logits']
+
+        mse = nn.functional.mse_loss(result, ori_logits)
+        pseudo_labels = torch.argmax(ori_logits, dim=-1)
+        loss = self.loss_fn(result, pseudo_labels) + mse * self.config.cls_loss_coef
+
+        return loss
+>>>>>>> 636c1709a8411fdba007d787dd9db70695f6c877

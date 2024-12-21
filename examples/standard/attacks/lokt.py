@@ -188,7 +188,7 @@ if __name__ == '__main__':
     )
 
     # prepare attack
-    evalraw_path = '/mnt/data/yuhongyao/Model-Inversion-Attack-ToolBox/checkpoints_v2/classifier/celeba112/celeba112_facenet112_95.88.tar'
+    evalraw_path = '/data/<username>/Model-Inversion-Attack-ToolBox/checkpoints_v2/classifier/celeba112/celeba112_facenet112_95.88.tar'
     evalraw_model = auto_classifier_from_pretrained(evalraw_path)
     evalraw_model = nn.DataParallel(evalraw_model, device_ids=gpu_devices).to(device)
     evalraw_model.eval()
