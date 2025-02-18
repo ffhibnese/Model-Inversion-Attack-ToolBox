@@ -699,351 +699,201 @@ class DeepInversionWrapper(BaseImageClassifier):
         return forward_res, addition_info
 
 
-@register_model('lrc')
-class LRCWrapper(BaseClassifierWrapper):
+class _ConditionMLP1d(nn.Module):
 
-    def _get_split_idx(self, length, ratio):
-        if ratio == 0:
-            return 0
-        if isinstance(ratio, int):
-            return length // ratio
-        if 0 < ratio < 1:
-            return int(length * ratio)
-        raise RuntimeError(f'ratio {ratio} is invalid.')
+    def __init__(
+        self,
+        in_features,
+        cond_features_num,
+        cond_features_dim,
+        hidden_features=None,
+        out_features=None,
+        act_layer=nn.GELU,
+    ):
+        super().__init__()
+
+        out_features = out_features or in_features
+        hidden_features = hidden_features or in_features
+        self.fc1 = nn.Linear(in_features + cond_features_dim, hidden_features)
+
+        self.act = act_layer()
+        self.fc2 = nn.Linear(hidden_features, out_features)
+        # self.drop = nn.Dropout(drop)
+
+        self.cond_embedding = nn.Embedding(cond_features_num, cond_features_dim)
+
+    def forward(self, x, cond):
+        ori_x = x
+        cond = self.cond_embedding(cond)
+        x = torch.cat([x, cond], dim=-1)
+        x = self.fc1(x)
+        x = self.act(x)
+        # x = self.drop(x)
+        x = self.fc2(x) + ori_x
+        # x = self.drop(x)
+        return x
+
+
+@register_model('cond_purifier')
+class ConditionPurifierWrapper(BaseClassifierWrapper):
 
     @ModelMixin.register_to_config_init
     def __init__(
         self,
         module: BaseImageClassifier,
+        cond_features_dim=512,
         register_last_feature_hook=False,
-        # create_hidden_hook_fn: Optional[Callable] = None,
-        keep_rank_or_ratio: int | float | list[int] = 1.0,
-        start_ratio=0,
-        end_ratio=1,
     ) -> None:
         super().__init__(
             module,
             register_last_feature_hook,
         )
 
-        self.keep_rank_or_ratio = keep_rank_or_ratio
-        self.start_ratio = start_ratio
-        self.end_ratio = end_ratio
+        self.module.eval()
 
-        self.compression()
+        for p in self.module.parameters():
+            p.requires_grad = False
 
-        # self.lins = lins[-1]
-        # self.convs = convs[-1]
-
-    def compression(self):
-
-        lins: list[nn.Linear] = []
-        convs: list[nn.Conv2d] = []
-
-        def _visit_compression(module):
-            if isinstance(module, nn.Linear):
-                lins.append(module)
-            elif isinstance(module, nn.Conv2d):
-                convs.append(module)
-
-        traverse_module(self.module, _visit_compression, call_middle=False)
-
-        lins = lins[:-1]
-
-        conv_start_idx = self._get_split_idx(len(convs), self.start_ratio)
-        conv_end_idx = self._get_split_idx(len(convs), self.end_ratio)
-
-        lin_start_idx = self._get_split_idx(len(lins), self.start_ratio)
-        lin_end_idx = self._get_split_idx(len(lins), self.end_ratio)
-
-        for lin in lins[lin_start_idx:lin_end_idx]:
-            self._split_linear(lin, self.keep_rank_or_ratio)
-
-        for conv in convs[conv_start_idx:conv_end_idx]:
-            self._split_conv(conv, self.keep_rank_or_ratio)
-
-    @torch.no_grad()
-    def _split_conv(self, conv: nn.Conv2d, keep_rank_or_ratio):
-
-        # (O, I, K, K)
-        original_weight = conv.weight.data
-        # (O, I * K * K)
-        reshaped_weight = original_weight.reshape(original_weight.size(0), -1)
-
-        # hw = original_weight.shape[-1] * original_weight.shape[-2]
-
-        full_rank = min(reshaped_weight.shape[1], reshaped_weight.shape[0])
-
-        # (O, full_rank), (full_rank), (I * K * K, full_rank)
-        U, S, V = torch.svd(reshaped_weight)
-        if isinstance(keep_rank_or_ratio, float):
-            if keep_rank_or_ratio == 1.0:
-                # print("AA")
-                k = full_rank
-            elif keep_rank_or_ratio == 0.0:
-                k = 0
-            else:
-                # print("BB")
-                # cumulative_energy = torch.cumsum(S, dim=0) / torch.sum(S)
-                # k = (
-                #     torch.searchsorted(
-                #         cumulative_energy, torch.tensor(keep_rank_or_ratio)
-                #     ).item()
-                #     + 1
-                # )
-                k = int(full_rank * keep_rank_or_ratio)
-                # k = (k - 1) // hw + 1
-                k = min(k, full_rank)
-        else:
-            # print("CC")
-            k = keep_rank_or_ratio
-
-        # select_dim = k * hw
-
-        # (O, k), (k), (I * K * K, k)
-        U_k = U[:, :k]
-        S_k = torch.diag(S[:k])
-        V_k = V[:, :k]
-
-        print(f"origin dim: {full_rank} new dim: {k}")
-
-        node_a = nn.Conv2d(
-            conv.in_channels,
-            k,
-            kernel_size=conv.kernel_size,
-            stride=conv.stride,
-            padding=conv.padding,
-            dilation=conv.dilation,
-            groups=conv.groups,
-            bias=False,
-            padding_mode=conv.padding_mode,
-        )
-        node_b = nn.Conv2d(
-            k, conv.out_channels, kernel_size=1, bias=conv.bias is not None
+        self.purifier = _ConditionMLP1d(
+            in_features=self.module.num_classes,
+            cond_features_num=self.module.num_classes,
+            cond_features_dim=cond_features_dim,
+            hidden_features=cond_features_dim // 2,
+            out_features=self.module.feature_dim,
+            act_layer=nn.ReLU,
         )
 
-        # print(U.shape, S.shape, V.shape)
-        # print(U_k.shape, S_k.shape, V_k.shape)
-        # print(conv.weight.shape, node_a.weight.shape, node_b.weight.shape)
-        # # exit()
+    def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
+        return self.purifier.parameters(recurse=recurse)
 
-        # print(
-        #     f"V_K.T shape: {V_k.T.shape}",
-        #     " ",
-        #     conv.in_channels * conv.kernel_size[0] * conv.kernel_size[1],
-        #     "node_a shape: ",
-        #     node_a.weight.shape,
-        #     # V_k.T.view(k, conv.in_channels, *conv.kernel_size).shape,
-        # )
+    def train(self, mode: bool = True):
+        return self.purifier.train(mode)
 
-        node_a.weight.data = V_k.T.reshape(
-            k, conv.in_channels, conv.kernel_size[0], conv.kernel_size[1]
-        )
-        node_b.weight.data = (U_k @ S_k).reshape(conv.out_channels, k, 1, 1)
-        if conv.bias is not None:
-            node_b.bias.data = conv.bias
-
-        # return nn.Sequential(node_a, node_b)
-        conv._lrc_node_a = node_a
-        conv._lrc_node_b = node_b
-        conv._lrc_save_require_grad = conv.weight.requires_grad
-        conv.requires_grad_(False)
-
-        def _new_forward(self, x):
-            a_out = self._lrc_node_a(x)
-            b_out = self._lrc_node_b(a_out)
-            return b_out
-
-        conv._lrc_save_forward = conv.forward
-
-        conv.forward = _new_forward.__get__(conv, conv.__class__)
-
-    # @torch.no_grad()
-    # def _split_conv(self, conv: nn.Conv2d, keep_rank_or_ratio):
-
-    #     # (O, I, K, K)
-    #     original_weight = conv.weight.data
-    #     # (O, I * K * K)
-    #     reshaped_weight = original_weight.reshape(original_weight.size(0), -1)
-
-    #     # (I*K*K, O)
-    #     transpose_weight = reshaped_weight.transpose(0, 1)
-
-    #     hw = original_weight.shape[-1] * original_weight.shape[-2]
-
-    #     # (I*K*K, O), (O), (O, O)
-    #     U, S, V = torch.svd(transpose_weight)
-    #     if isinstance(keep_rank_or_ratio, float):
-    #         if keep_rank_or_ratio == 1.0:
-    #             # print("AA")
-    #             k = reshaped_weight.shape[1]
-    #         elif keep_rank_or_ratio == 0.0:
-    #             k = 0
-    #         else:
-    #             # print("BB")
-    #             cumulative_energy = torch.cumsum(S, dim=0) / torch.sum(S)
-    #             k = (
-    #                 torch.searchsorted(
-    #                     cumulative_energy, torch.tensor(keep_rank_or_ratio)
-    #                 ).item()
-    #                 + 1
-    #             )
-    #             # k = (k - 1) // hw + 1
-    #             k = min(k, reshaped_weight.shape[1])
-    #     else:
-    #         # print("CC")
-    #         k = keep_rank_or_ratio * hw
-
-    #     # select_dim = k * hw
-
-    #     # (I*K*K, k), (k), (O, k)
-    #     U_k = U[:, :k]
-    #     S_k = torch.diag(S[:k])
-    #     V_k = V[:, :k]
-
-    #     print(f"origin dim: {original_weight.shape[1]} new dim: {k}")
-
-    #     node_a = nn.Conv2d(
-    #         conv.in_channels,
-    #         k,
-    #         kernel_size=conv.kernel_size,
-    #         stride=conv.stride,
-    #         padding=conv.padding,
-    #         dilation=conv.dilation,
-    #         groups=conv.groups,
-    #         bias=False,
-    #         padding_mode=conv.padding_mode,
-    #     )
-    #     node_b = nn.Conv2d(
-    #         k, conv.out_channels, kernel_size=1, bias=conv.bias is not None
-    #     )
-
-    #     print(U.shape, S.shape, V.shape)
-    #     print(U_k.shape, S_k.shape, V_k.shape)
-    #     print(conv.weight.shape, node_a.weight.shape, node_b.weight.shape)
-    #     # exit()
-
-    #     print(
-    #         f"V_K.T shape: {V_k.T.shape}",
-    #         " ",
-    #         conv.in_channels * conv.kernel_size[0] * conv.kernel_size[1],
-    #         "node_a shape: ",
-    #         node_a.weight.shape,
-    #         # V_k.T.view(k, conv.in_channels, *conv.kernel_size).shape,
-    #     )
-
-    #     node_a.weight.data = (U_k @ S_k).reshape(
-    #         k, conv.in_channels, conv.kernel_size[0], conv.kernel_size[1]
-    #     )
-    #     node_b.weight.data = V_k.T.reshape(conv.out_channels, k, 1, 1)
-    #     if conv.bias is not None:
-    #         node_b.bias.data = conv.bias
-
-    #     # return nn.Sequential(node_a, node_b)
-    #     conv._lrc_node_a = node_a
-    #     conv._lrc_node_b = node_b
-    #     conv._lrc_save_require_grad = conv.weight.requires_grad
-    #     conv.requires_grad_(False)
-
-    #     def _new_forward(self, x):
-    #         a_out = self._lrc_node_a(x)
-    #         b_out = self._lrc_node_b(a_out)
-    #         return b_out
-
-    #     conv._lrc_save_forward = conv.forward
-
-    #     conv.forward = _new_forward.__get__(conv, conv.__class__)
-
-    def _split_linear(self, linear: nn.Linear, keep_rank_or_ratio):
-
-        # (O. I)
-        original_weight = linear.weight.data
-        # (O, I), (I), (I, I)
-        U, S, V = torch.svd(original_weight)
-        full_rank = min(original_weight.shape[0], original_weight.shape[1])
-        if isinstance(keep_rank_or_ratio, float):
-            # cumulative_energy = torch.cumsum(S, dim=0) / torch.sum(S)
-            # k = (
-            #     torch.searchsorted(
-            #         cumulative_energy, torch.tensor(keep_rank_or_ratio)
-            #     ).item()
-            #     + 1
-            # )
-
-            k = int(full_rank * keep_rank_or_ratio)
-            k = min(k, len(S))
-        else:
-            k = keep_rank_or_ratio
-        # (O, k), (k), (k, I)
-        U_k = U[:, :k]
-        S_k = torch.diag(S[:k])
-        V_k = V[:, :k]
-        node_a = nn.Linear(linear.in_features, k, bias=False)
-        node_b = nn.Linear(k, linear.out_features, bias=linear.bias is not None)
-
-        node_a.weight.data = V_k.T
-        node_b.weight.data = U_k @ S_k
-        if linear.bias is not None:
-            node_b.bias.data = linear.bias
-
-        linear._lrc_node_a = node_a
-        linear._lrc_node_b = node_b
-        linear._lrc_save_require_grad = linear.weight.requires_grad
-        linear.requires_grad_(False)
-
-        def _new_forward(self, x):
-            a_out = self._lrc_node_a(x)
-            b_out = self._lrc_node_b(a_out)
-            return b_out
-
-        linear._lrc_save_forward = linear.forward
-
-        linear.forward = _new_forward.__get__(linear, linear.__class__)
-
-        return nn.Sequential(node_a, node_b)
-
-    def unwrap(self) -> BaseImageClassifier:
-        model = deepcopy(self.module)
-
-        def _visit(module):
-            if isinstance(module, nn.Conv2d) and hasattr(module, '_lrc_node_a'):
-                conv1 = module._lrc_node_a
-                conv2 = module._lrc_node_b
-
-                combined_weight = torch.matmul(
-                    conv2.weight.view(conv2.out_channels, -1),
-                    conv1.weight.view(conv1.out_channels, -1),
-                ).view(conv2.out_channels, conv1.in_channels, *conv1.kernel_size)
-
-                module.weight.data = combined_weight.data
-                if conv2.bias is not None:
-                    module.bias.data = conv2.bias.data
-
-                del module._lrc_node_a, module._lrc_node_b
-
-                module.forward = module._lrc_save_forward
-                module.requires_grad_(module._lrc_save_require_grad)
-
-            if isinstance(module, nn.Linear) and hasattr(module, '_lrc_node_a'):
-                linear1 = module._lrc_node_a
-                linear2 = module._lrc_node_b
-
-                combined_weight = torch.matmul(linear2.weight, linear1.weight)
-
-                module.weight.data = combined_weight.data
-                if linear2.bias is not None:
-                    module.bias.data = linear2.bias.data
-                del module._lrc_node_a, module._lrc_node_b
-                module.forward = module._lrc_save_forward
-                module.requires_grad_(module._lrc_save_require_grad)
-
-        traverse_module(model, _visit, call_middle=False)
-
-        return model
+    def eval(self):
+        return self.purifier.eval()
 
     def _forward_impl(self, image: Tensor, *args, **kwargs):
         forward_res, addition_info = self.module(image, *args, **kwargs)
         # addition_info[HOOK_NAME_HIDDEN] = [h.get_feature() for h in self.hidden_hooks]
-        # print(type(forward_res), type(addition_info))
-        # exit()
+        addition_info['ori_logits'] = forward_res
+        cond = torch.argmax(forward_res, dim=-1)
+        forward_res = self.purifier(forward_res, cond)
         return forward_res, addition_info
+
+
+class Inversion(nn.Module):
+    def __init__(self, nc, ngf, nz, truncation, c):
+        super(Inversion, self).__init__()
+
+        self.nc = nc
+        self.ngf = ngf
+        self.nz = nz
+        self.truncation = truncation
+        self.c = c
+
+        self.decoder = nn.Sequential(
+            # input is Z
+            nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0),
+            nn.BatchNorm2d(ngf * 8),
+            nn.Tanh(),
+            # state size. (ngf*8) x 4 x 4
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1),
+            nn.BatchNorm2d(ngf * 4),
+            nn.Tanh(),
+            # state size. (ngf*4) x 8 x 8
+            nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1),
+            nn.BatchNorm2d(ngf * 2),
+            nn.Tanh(),
+            # state size. (ngf*2) x 16 x 16
+            nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1),
+            nn.BatchNorm2d(ngf),
+            nn.Tanh(),
+            # state size. (ngf) x 32 x 32
+            nn.ConvTranspose2d(ngf, nc, 4, 2, 1),
+            nn.Sigmoid(),
+            # state size. (nc) x 64 x 64
+        )
+
+    def forward(self, x):
+        topk, indices = torch.topk(x, self.truncation)
+        topk = torch.clamp(torch.log(topk), min=-1000) + self.c
+        topk_min = topk.min(1, keepdim=True)[0]
+        topk = topk + F.relu(-topk_min)
+        x = torch.zeros(len(x), self.nz).cuda().scatter_(1, indices, topk)
+
+        x = x.view(-1, self.nz, 1, 1)
+        x = self.decoder(x)
+        x = x.view(-1, 1, 64, 64)
+        return x
+
+
+@register_model('adv_purifier')
+class AdversarialPurifierWrapper(BaseClassifierWrapper):
+
+    @ModelMixin.register_to_config_init
+    def __init__(
+        self,
+        module: BaseImageClassifier,
+        path: str,
+        device: str,
+        iteration: int,
+        eta: float,
+        eps: float,
+        register_last_feature_hook=False,
+    ) -> None:
+        super().__init__(
+            module,
+            register_last_feature_hook,
+        )
+
+        self.module.eval()
+        self.iteration = iteration
+        self.eta = eta
+        self.eps = eps
+
+        for p in self.module.parameters():
+            p.requires_grad = False
+
+        self.inversion = Inversion(nc=1, ngf=128, nz=530, truncation=530, c=50)
+        self.inversion.load_state_dict(
+            state_dict=torch.load(path, map_location='cpu'), strict=True
+        )
+        self.inversion.to(device=device)
+        self.inversion.eval()
+
+    def get_noise(
+        self, ori_logit: Tensor, cur_logit: Tensor, grad: Tensor, eta: float, eps: float
+    ):
+        logit = cur_logit + eta * torch.sign(grad)
+        l = torch.argmax(ori_logit)
+        m = torch.relu(torch.max(logit) - logit[l])
+        logit[l] += m
+        noise = logit - ori_logit
+        if torch.norm(noise, p=1) > eps:
+            noise *= eps / torch.norm(noise, p=1)
+        return noise
+
+    def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
+        return self.purifier.inversion(recurse=recurse)
+
+    def _forward_impl(self, image: Tensor, *args, **kwargs):
+        forward_res, addition_info = self.module(image, *args, **kwargs)
+        # addition_info[HOOK_NAME_HIDDEN] = [h.get_feature() for h in self.hidden_hooks]
+        addition_info['ori_logits'] = forward_res
+        ori_logit = forward_res
+        cur_logit = torch.tensor(forward_res, requires_grad=True)
+        optimizer = torch.optim.Adam(
+            cur_logit, lr=0.0002, betas=(0.5, 0.999), amsgrad=True
+        )
+        for i in range(self.iteration):
+            recon = self.inversion(torch.softmax(cur_logit))
+            loss = F.mse_loss(recon, image)
+            loss.backward()
+            cur_logit = ori_logit + self.get_noise(
+                ori_logit=ori_logit,
+                cur_logit=cur_logit,
+                grad=loss.grad,
+                eta=self.eta,
+                eps=self.eps,
+            )
+        return torch.softmax(cur_logit), addition_info

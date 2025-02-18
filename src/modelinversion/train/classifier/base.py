@@ -355,7 +355,8 @@ class SimpleTrainer(BaseTrainer):
                 output = output[0]
             return self.loss_fn(output, labels) + self.loss_fn(aux, labels)
         return self.loss_fn(result, labels)
-    
+
+
 @dataclass
 class MixTrainConfig(BaseTrainConfig):
 
@@ -390,9 +391,11 @@ class MixTrainer(BaseTrainer):
             if not isinstance(output, Tensor):
                 output = output[0]
 
-            return self._apply_loss(output, labels, mix_mask) + self._apply_loss(aux, labels, mix_mask)
+            return self._apply_loss(output, labels, mix_mask) + self._apply_loss(
+                aux, labels, mix_mask
+            )
         return self._apply_loss(result, labels, mix_mask)
-    
+
     def calc_acc(self, inputs, result, labels: LongTensor):
         if labels.ndim == 2:
             labels = labels[:, 0]
@@ -544,3 +547,24 @@ class BackdoorTrainer(SimpleTrainer):
 
 
 # class BaseTrainer(ABC):
+class ConditionPurifierTrainConfig(SimpleTrainConfig):
+    cls_loss_coef: float = 0.1
+
+
+class ConditionPurifierTrainer(SimpleTrainer):
+
+    def __init__(self, config: ConditionPurifierTrainConfig, *args, **kwargs) -> None:
+        super().__init__(config, *args, **kwargs)
+
+    def calc_loss(self, inputs, result, labels: LongTensor):
+        result, addition_info = result
+        if isinstance(result, InceptionOutputs):
+            result, aux = result
+
+        ori_logits = addition_info['ori_logits']
+
+        mse = nn.functional.mse_loss(result, ori_logits)
+        pseudo_labels = torch.argmax(ori_logits, dim=-1)
+        loss = self.loss_fn(result, pseudo_labels) + mse * self.config.cls_loss_coef
+
+        return loss

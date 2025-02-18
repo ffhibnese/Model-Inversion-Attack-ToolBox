@@ -38,20 +38,19 @@ The reason why we developed this toolbox is that the research line of **MI** suf
 
 |Method|Paper|Publication|Scenario|Key Characteristics|
 |:-:|:-:|:-:|:-:|:-:|
-|DeepInversion|Dreaming to Distill: Data-Free Knowledge Transfer via DeepInversion|[CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Yin_Dreaming_to_Distill_Data-Free_Knowledge_Transfer_via_DeepInversion_CVPR_2020_paper.html)|whitebox|student-teacher, data-free|
-|GMI|The Secret Revealer: Generative Model-Inversion Attacks Against Deep Neural Networks|[CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Zhang_The_Secret_Revealer_Generative_Model-Inversion_Attacks_Against_Deep_Neural_Networks_CVPR_2020_paper.html)|whitebox|the first GAN-based MIA, instance-level|
-|KEDMI|Knowledge-Enriched Distributional Model Inversion Attacks|[ICCV'2021](https://openaccess.thecvf.com/content/ICCV2021/html/Chen_Knowledge-Enriched_Distributional_Model_Inversion_Attacks_ICCV_2021_paper.html)|whitebox|the first MIA that recovers data distributions, pseudo-labels|
-|VMI|Variational Model Inversion Attacks|[NeurIPS'2021](https://proceedings.neurips.cc/paper/2021/hash/50a074e6a8da4662ae0a29edde722179-Abstract.html)|whitebox|variational inference, special loss function|
-|SecretGen|SecretGen: Privacy Recovery on Pre-trained Models via Distribution Discrimination|[ECCV'2022](https://link.springer.com/chapter/10.1007/978-3-031-20065-6_9#Abs1)|whitebox, blackbox|instance-level, data augmentation|
-|BREPMI|Label-Only Model Inversion Attacks via Boundary Repulsion|[CVPR'2022](https://openaccess.thecvf.com/content/CVPR2022/html/Kahla_Label-Only_Model_Inversion_Attacks_via_Boundary_Repulsion_CVPR_2022_paper.html)|blackbox|boundary repelling, label-only|
-|Mirror|MIRROR: Model Inversion for Deep Learning Network with High Fidelity|[NDSS'2022](https://www.ndss-symposium.org/ndss-paper/auto-draft-203/)|whitebox, blackbox|both gradient-free and gradient-based, genetic algorithm|
-|PPA|Plug & Play Attacks: Towards Robust and Flexible Model Inversion Attacks|[ICML'2022](https://arxiv.org/pdf/2201.12179.pdf)|whitebox|Initial selection, pre-trained GANs, results selection|
-|PLGMI|Pseudo Label-Guided Model Inversion Attack via Conditional Generative Adversarial Network|[AAAI'2023](https://ojs.aaai.org/index.php/AAAI/article/view/25442)|whitebox|pseudo-labels, data augmentation, special loss function|
-|C2FMI|C2FMI: Corse-to-Fine Black-box Model Inversion Attack|[TDSC'2023](https://ieeexplore.ieee.org/abstract/document/10148574)|whitebox, blackbox|gradient-free, two-stage|
-|LOMMA|Re-Thinking Model Inversion Attacks Against Deep Neural Networks|[CVPR'2023](https://openaccess.thecvf.com/content/CVPR2023/html/Nguyen_Re-Thinking_Model_Inversion_Attacks_Against_Deep_Neural_Networks_CVPR_2023_paper.html)|blackbox|special loss, model augmentation|
-|RLBMI|Reinforcement Learning-Based Black-Box Model Inversion Attacks|[CVPR'2023](https://openaccess.thecvf.com/content/CVPR2023/html/Han_Reinforcement_Learning-Based_Black-Box_Model_Inversion_Attacks_CVPR_2023_paper.html)|blackbox|reinforcement learning|
-|LOKT|Label-Only Model Inversion Attacks via Knowledge Transfer|[NeurIPS'2023](https://openreview.net/forum?id=NuoIThPPag)|blackbox|surrogate models, label-only|
-|IFGMI|A Closer Look at GAN Priors: Exploiting Intermediate Features for Enhanced Model Inversion Attacks|[ECCV'2024](https://arxiv.org/abs/2407.13863)|whitebox|intermeidate feature|
+|[DeepInversion](./src/modelinversion/attack/DeepInversion/)|Dreaming to Distill: Data-Free Knowledge Transfer via DeepInversion|[CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Yin_Dreaming_to_Distill_Data-Free_Knowledge_Transfer_via_DeepInversion_CVPR_2020_paper.html)|whitebox|student-teacher, data-free|
+|[GMI](./src/modelinversion/attack/GMI/)|The Secret Revealer: Generative Model-Inversion Attacks Against Deep Neural Networks|[CVPR'2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Zhang_The_Secret_Revealer_Generative_Model-Inversion_Attacks_Against_Deep_Neural_Networks_CVPR_2020_paper.html)|whitebox|the first GAN-based MIA, instance-level|
+|[KEDMI](./src/modelinversion/attack/KEDMI/)|Knowledge-Enriched Distributional Model Inversion Attacks|[ICCV'2021](https://openaccess.thecvf.com/content/ICCV2021/html/Chen_Knowledge-Enriched_Distributional_Model_Inversion_Attacks_ICCV_2021_paper.html)|whitebox|the first MIA that recovers data distributions, pseudo-labels|
+|[VMI](./src/modelinversion/attack/VMI/)|Variational Model Inversion Attacks|[NeurIPS'2021](https://proceedings.neurips.cc/paper/2021/hash/50a074e6a8da4662ae0a29edde722179-Abstract.html)|whitebox|variational inference, special loss function|
+|[SecretGen](./src/modelinversion/attack/SecretGen/)|SecretGen: Privacy Recovery on Pre-trained Models via Distribution Discrimination|[ECCV'2022](https://link.springer.com/chapter/10.1007/978-3-031-20065-6_9#Abs1)|whitebox, blackbox|instance-level, data augmentation|
+|[BREPMI](./src/modelinversion/attack/BREPMI/)|Label-Only Model Inversion Attacks via Boundary Repulsion|[CVPR'2022](https://openaccess.thecvf.com/content/CVPR2022/html/Kahla_Label-Only_Model_Inversion_Attacks_via_Boundary_Repulsion_CVPR_2022_paper.html)|blackbox|boundary repelling, label-only|
+|[Mirror](./src/modelinversion/attack/Mirror/)|MIRROR: Model Inversion for Deep Learning Network with High Fidelity|[NDSS'2022](https://www.ndss-symposium.org/ndss-paper/auto-draft-203/)|whitebox, blackbox|both gradient-free and gradient-based, genetic algorithm|
+|[PPA](./src/modelinversion/attack/PPA/)|Plug & Play Attacks: Towards Robust and Flexible Model Inversion Attacks|[ICML'2022](https://arxiv.org/pdf/2201.12179.pdf)|whitebox|Initial selection, pre-trained GANs, results selection|
+|[PLGMI](./src/modelinversion/attack/PLGMI/)|Pseudo Label-Guided Model Inversion Attack via Conditional Generative Adversarial Network|[AAAI'2023](https://ojs.aaai.org/index.php/AAAI/article/view/25442)|whitebox|pseudo-labels, data augmentation, special loss function|
+|[C2FMI](./src/modelinversion/attack/C2FMI/)|C2FMI: Corse-to-Fine Black-box Model Inversion Attack|[TDSC'2023](https://ieeexplore.ieee.org/abstract/document/10148574)|whitebox, blackbox|gradient-free, two-stage|
+|[Lomma](./src/modelinversion/attack/Lomma/)|Re-Thinking Model Inversion Attacks Against Deep Neural Networks|[CVPR'2023](https://openaccess.thecvf.com/content/CVPR2023/html/Nguyen_Re-Thinking_Model_Inversion_Attacks_Against_Deep_Neural_Networks_CVPR_2023_paper.html)|blackbox|special loss, model augmentation|
+|[RLBMI](./src/modelinversion/attack/RLBMI/)|Reinforcement Learning-Based Black-Box Model Inversion Attacks|[CVPR'2023](https://openaccess.thecvf.com/content/CVPR2023/html/Han_Reinforcement_Learning-Based_Black-Box_Model_Inversion_Attacks_CVPR_2023_paper.html)|blackbox|reinforcement learning|
+|[LOKT](./src/modelinversion/attack/Lokt/)|Label-Only Model Inversion Attacks via Knowledge Transfer|[NeurIPS'2023](https://openreview.net/forum?id=NuoIThPPag)|blackbox|surrogate models, label-only|
 
 
 
@@ -125,20 +124,15 @@ and attack results will be produced in `./results/<DEFENSE_METHOD>_<ATTACK_METHO
 For more information, you can read [here](./defense_scripts/README.md). -->
 
 ## 📔 Citation
-**If you find our work helpful for your research, please kindly cite our paper:**
+**If you find our work helpful for your research, please kindly cite our papers:**
 ```
-@article{fang2024privacy,
-  title={Privacy leakage on dnns: A survey of model inversion attacks and defenses},
-  author={Fang, Hao and Qiu, Yixiang and Yu, Hongyao and Yu, Wenbo and Kong, Jiawei and Chong, Baoli and Chen, Bin and Wang, Xuan and Xia, Shu-Tao},
-  journal={arXiv preprint arXiv:2402.04013},
-  year={2024}
-}
-
-@article{qiu2024closer,
-  title={A Closer Look at GAN Priors: Exploiting Intermediate Features for Enhanced Model Inversion Attacks},
-  author={Qiu, Yixiang and Fang, Hao and Yu, Hongyao and Chen, Bin and Qiu, MeiKang and Xia, Shu-Tao},
-  journal={arXiv preprint arXiv:2407.13863},
-  year={2024}
+@misc{fang2024privacy,
+      title={Privacy Leakage on DNNs: A Survey of Model Inversion Attacks and Defenses}, 
+      author={Hao Fang and Yixiang Qiu and Hongyao Yu and Wenbo Yu and Jiawei Kong and Baoli Chong and Bin Chen and Xuan Wang and Shu-Tao Xia},
+      year={2024},
+      eprint={2402.04013},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
 }
 ```
 
