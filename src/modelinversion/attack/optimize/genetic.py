@@ -391,6 +391,8 @@ class C2fGeneticOptimization(BaseImageOptimization):
     def _gen_images(self, latents: Tensor, labels: LongTensor):
         latents = latents.to(self.config.device)
         labels = labels.to(self.config.device)
+        # print(latents.shape, labels.shape)
+        # exit()
         images = self.generator(latents, labels=labels)
         return images
 

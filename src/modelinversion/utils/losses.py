@@ -5,6 +5,11 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+import lpips
+
+from ._iresnet import iresnet50
+from face_parsing.model import BiSeNet
+
 
 def max_margin_loss(out, iden):
     real = out.gather(1, iden.unsqueeze(1)).squeeze(1)
@@ -139,3 +144,98 @@ class TorchLoss:
 
     def __call__(self, *args, **kwargs):
         return self.fn(*args, **kwargs)
+
+
+class ArcfaceIDCosineLoss:
+
+    def __init__(
+        self,
+        ckpt_path: str,
+        device: str,
+        scale: float = 1.0,
+        transform_input: Callable = None,
+        transform_target: Callable = None,
+    ):
+        self.arcface = iresnet50()
+        self.arcface.load_state_dict(torch.load(ckpt_path))
+        self.arcface.eval()
+        self.arcface.to(device)
+        self.resolution = 112
+        self.transform_input = transform_input
+        self.transform_target = transform_target
+        self.scale = scale
+
+    def __call__(self, inputs, targets):
+        # with torch.no_grad():
+        if self.transform_input is not None:
+            inputs = self.transform_input(inputs)
+        if self.transform_target is not None:
+            targets = self.transform_target(targets)
+        inputs = F.interpolate(inputs, (self.resolution, self.resolution))
+        targets = F.interpolate(targets, (self.resolution, self.resolution))
+        inputs = self.arcface(inputs)
+        targets = self.arcface(targets)
+        return F.cosine_similarity(inputs, targets, dim=-1).mean() * self.scale
+
+
+class LandmarkLoss:
+
+    def __init__(
+        self,
+        ckpt_path: str,
+        device: str,
+        scale: float = 1.0,
+        transform_input: Callable = None,
+        transform_target: Callable = None,
+    ):
+        self.parsing_net = BiSeNet(n_classes=19)
+        self.parsing_net.load_state_dict(torch.load(ckpt_path))
+        self.parsing_net.eval()
+        self.parsing_net.to(device)
+        self.resolution = 512
+        self.transform_input = transform_input
+        self.transform_target = transform_target
+        self.scale = scale
+
+    def __call__(self, inputs, targets):
+        # with torch.no_grad():
+        if self.transform_input is not None:
+            inputs = self.transform_input(inputs)
+        if self.transform_target is not None:
+            targets = self.transform_target(targets)
+        inputs = F.interpolate(inputs, (self.resolution, self.resolution))
+        targets = F.interpolate(targets, (self.resolution, self.resolution))
+        out_1 = self.parsing_net(inputs)
+        out_2 = self.parsing_net(targets)
+        parsing_loss = sum(
+            [
+                1
+                - F.cosine_similarity(
+                    out_1[i].flatten(start_dim=1), out_2[i].flatten(start_dim=1)
+                )
+                for i in range(len(out_1))
+            ]
+        )
+        return parsing_loss.mean() * self.scale
+
+
+class LpipsLoss:
+
+    def __init__(
+        self,
+        device: str,
+        scale: float = 1.0,
+        transform_input: Callable = None,
+        transform_target: Callable = None,
+    ):
+        self.lpips = lpips.LPIPS(net='alex', spatial=False).to(device)
+        self.transform_input = transform_input
+        self.transform_target = transform_target
+        self.scale = scale
+
+    def __call__(self, inputs, targets):
+        if self.transform_input is not None:
+            inputs = self.transform_input(inputs)
+        if self.transform_target is not None:
+            targets = self.transform_target(targets)
+        return self.lpips(inputs, targets).mean() * self.scale

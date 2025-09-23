@@ -11,4 +11,5 @@
     "black-formatter.args": [
         "-S"
     ],
+    "python.autoComplete.extraPaths": ["./src"]
 }

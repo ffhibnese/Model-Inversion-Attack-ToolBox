@@ -7,7 +7,6 @@ from .gan import (
     GmiGanTrainConfig,
     KedmiGanTrainConfig,
     LoktGanTrainConfig,
-    
 )
 from .classifier import (
     BaseTrainConfig,
@@ -24,6 +23,11 @@ from .classifier import (
     DistillTrainConfig,
     BackdoorTrainer,
     BackdoorTrainConfig,
+    TrapTrainConfig,
+    TrapTrainer,
+    SmileTrainConfig,
+    SmileTrainer,
 )
 
 from .mapping import train_mapping_model
+from .p2i_adapter import train_p2i_adapter

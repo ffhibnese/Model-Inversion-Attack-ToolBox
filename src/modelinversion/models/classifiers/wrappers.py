@@ -65,13 +65,13 @@ _activation = {
 }
 
 
-def _neck_builder(neck_dim, activation='tanh'):
+def _neck_builder(neck_dim, activation='tanh', use_batch_norm=True):
 
     activation_builder = _activation[activation]
 
     def _builder(input_dim, output_dim):
         return nn.Sequential(
-            nn.BatchNorm1d(input_dim),
+            nn.BatchNorm1d(input_dim) if use_batch_norm else nn.Identity(),
             nn.Linear(input_dim, neck_dim),
             activation_builder(),
             nn.Linear(neck_dim, output_dim),
@@ -91,6 +91,7 @@ class NeckWrapper(BaseClassifierWrapper):
         neck_dim=10,
         neck_activation='tanh',
         feature_compressed=False,
+        use_batch_norm=True,
     ) -> None:
 
         def _output_transform(m: nn.Sequential):
@@ -113,7 +114,11 @@ class NeckWrapper(BaseClassifierWrapper):
             module,
             module.num_classes,
             _output_transform,
-            _neck_builder(neck_dim=neck_dim, activation=neck_activation),
+            _neck_builder(
+                neck_dim=neck_dim,
+                activation=neck_activation,
+                use_batch_norm=use_batch_norm,
+            ),
         )
 
         # self.module = module
@@ -983,14 +988,6 @@ class LRCWrapper(BaseClassifierWrapper):
             elif keep_rank_or_ratio == 0.0:
                 k = 0
             else:
-                # print("BB")
-                # cumulative_energy = torch.cumsum(S, dim=0) / torch.sum(S)
-                # k = (
-                #     torch.searchsorted(
-                #         cumulative_energy, torch.tensor(keep_rank_or_ratio)
-                #     ).item()
-                #     + 1
-                # )
                 k = int(full_rank * keep_rank_or_ratio)
                 # k = (k - 1) // hw + 1
                 k = min(k, full_rank)
@@ -1021,21 +1018,6 @@ class LRCWrapper(BaseClassifierWrapper):
         node_b = nn.Conv2d(
             k, conv.out_channels, kernel_size=1, bias=conv.bias is not None
         )
-
-        # print(U.shape, S.shape, V.shape)
-        # print(U_k.shape, S_k.shape, V_k.shape)
-        # print(conv.weight.shape, node_a.weight.shape, node_b.weight.shape)
-        # # exit()
-
-        # print(
-        #     f"V_K.T shape: {V_k.T.shape}",
-        #     " ",
-        #     conv.in_channels * conv.kernel_size[0] * conv.kernel_size[1],
-        #     "node_a shape: ",
-        #     node_a.weight.shape,
-        #     # V_k.T.view(k, conv.in_channels, *conv.kernel_size).shape,
-        # )
-
         node_a.weight.data = V_k.T.reshape(
             k, conv.in_channels, conv.kernel_size[0], conv.kernel_size[1]
         )
@@ -1058,102 +1040,6 @@ class LRCWrapper(BaseClassifierWrapper):
 
         conv.forward = _new_forward.__get__(conv, conv.__class__)
 
-    # @torch.no_grad()
-    # def _split_conv(self, conv: nn.Conv2d, keep_rank_or_ratio):
-
-    #     # (O, I, K, K)
-    #     original_weight = conv.weight.data
-    #     # (O, I * K * K)
-    #     reshaped_weight = original_weight.reshape(original_weight.size(0), -1)
-
-    #     # (I*K*K, O)
-    #     transpose_weight = reshaped_weight.transpose(0, 1)
-
-    #     hw = original_weight.shape[-1] * original_weight.shape[-2]
-
-    #     # (I*K*K, O), (O), (O, O)
-    #     U, S, V = torch.svd(transpose_weight)
-    #     if isinstance(keep_rank_or_ratio, float):
-    #         if keep_rank_or_ratio == 1.0:
-    #             # print("AA")
-    #             k = reshaped_weight.shape[1]
-    #         elif keep_rank_or_ratio == 0.0:
-    #             k = 0
-    #         else:
-    #             # print("BB")
-    #             cumulative_energy = torch.cumsum(S, dim=0) / torch.sum(S)
-    #             k = (
-    #                 torch.searchsorted(
-    #                     cumulative_energy, torch.tensor(keep_rank_or_ratio)
-    #                 ).item()
-    #                 + 1
-    #             )
-    #             # k = (k - 1) // hw + 1
-    #             k = min(k, reshaped_weight.shape[1])
-    #     else:
-    #         # print("CC")
-    #         k = keep_rank_or_ratio * hw
-
-    #     # select_dim = k * hw
-
-    #     # (I*K*K, k), (k), (O, k)
-    #     U_k = U[:, :k]
-    #     S_k = torch.diag(S[:k])
-    #     V_k = V[:, :k]
-
-    #     print(f"origin dim: {original_weight.shape[1]} new dim: {k}")
-
-    #     node_a = nn.Conv2d(
-    #         conv.in_channels,
-    #         k,
-    #         kernel_size=conv.kernel_size,
-    #         stride=conv.stride,
-    #         padding=conv.padding,
-    #         dilation=conv.dilation,
-    #         groups=conv.groups,
-    #         bias=False,
-    #         padding_mode=conv.padding_mode,
-    #     )
-    #     node_b = nn.Conv2d(
-    #         k, conv.out_channels, kernel_size=1, bias=conv.bias is not None
-    #     )
-
-    #     print(U.shape, S.shape, V.shape)
-    #     print(U_k.shape, S_k.shape, V_k.shape)
-    #     print(conv.weight.shape, node_a.weight.shape, node_b.weight.shape)
-    #     # exit()
-
-    #     print(
-    #         f"V_K.T shape: {V_k.T.shape}",
-    #         " ",
-    #         conv.in_channels * conv.kernel_size[0] * conv.kernel_size[1],
-    #         "node_a shape: ",
-    #         node_a.weight.shape,
-    #         # V_k.T.view(k, conv.in_channels, *conv.kernel_size).shape,
-    #     )
-
-    #     node_a.weight.data = (U_k @ S_k).reshape(
-    #         k, conv.in_channels, conv.kernel_size[0], conv.kernel_size[1]
-    #     )
-    #     node_b.weight.data = V_k.T.reshape(conv.out_channels, k, 1, 1)
-    #     if conv.bias is not None:
-    #         node_b.bias.data = conv.bias
-
-    #     # return nn.Sequential(node_a, node_b)
-    #     conv._lrc_node_a = node_a
-    #     conv._lrc_node_b = node_b
-    #     conv._lrc_save_require_grad = conv.weight.requires_grad
-    #     conv.requires_grad_(False)
-
-    #     def _new_forward(self, x):
-    #         a_out = self._lrc_node_a(x)
-    #         b_out = self._lrc_node_b(a_out)
-    #         return b_out
-
-    #     conv._lrc_save_forward = conv.forward
-
-    #     conv.forward = _new_forward.__get__(conv, conv.__class__)
-
     def _split_linear(self, linear: nn.Linear, keep_rank_or_ratio):
 
         # (O. I)
@@ -1162,13 +1048,6 @@ class LRCWrapper(BaseClassifierWrapper):
         U, S, V = torch.svd(original_weight)
         full_rank = min(original_weight.shape[0], original_weight.shape[1])
         if isinstance(keep_rank_or_ratio, float):
-            # cumulative_energy = torch.cumsum(S, dim=0) / torch.sum(S)
-            # k = (
-            #     torch.searchsorted(
-            #         cumulative_energy, torch.tensor(keep_rank_or_ratio)
-            #     ).item()
-            #     + 1
-            # )
 
             k = int(full_rank * keep_rank_or_ratio)
             k = min(k, len(S))
@@ -1243,7 +1122,110 @@ class LRCWrapper(BaseClassifierWrapper):
 
     def _forward_impl(self, image: Tensor, *args, **kwargs):
         forward_res, addition_info = self.module(image, *args, **kwargs)
+        return forward_res, addition_info
+
+
+class MultiExpertWrapper(nn.Module):
+
+    def __init__(
+        self, origin_module: nn.Module, num_experts: int, is_first=True
+    ) -> None:
+        super().__init__()
+        self.origin_module = origin_module
+        self.num_experts = num_experts
+        self.experts = nn.ModuleList(
+            [deepcopy(origin_module) for _ in range(num_experts)]
+        )
+        for m in self.experts:
+            # reset parameters
+            for layer in m.modules():
+                if hasattr(layer, 'reset_parameters'):
+                    layer.reset_parameters()
+                    # nn.Linear
+        self.is_first = is_first
+
+    def parameters(self):
+        return self.experts.parameters()
+
+    def forward(self, x):
+        if self.is_first:
+            res = [m(x) for m in self.experts]
+        else:
+            x = x.chunk(self.num_experts, dim=0)
+            res = [m(x[i]) for i, m in enumerate(self.experts)]
+
+        return torch.cat(res, dim=0)
+
+
+@register_model('multihead')
+class MultiHeadWrapper(BaseClassifierWrapper):
+
+    @ModelMixin.register_to_config_init
+    def __init__(
+        self,
+        module: BaseImageClassifier,
+        register_last_feature_hook=False,
+        # create_hidden_hook_fn: Optional[Callable] = None,
+        last_layers: int = 2,
+        num_heads: int = 3,
+        avg_result: bool = False,
+    ) -> None:
+        super().__init__(
+            module,
+            # module.resolution,
+            # module.feature_dim,
+            # module.num_classes,
+            register_last_feature_hook,
+        )
+
+        self.avg_result = avg_result
+        self.num_heads = num_heads
+
+        all_modules: list[nn.Module] = []
+        replace_mapping = {}
+
+        def _visit_linear(module):
+            all_modules.append(module)
+
+        traverse_module(module, _visit_linear, call_middle=False)
+
+        split_idx = None
+        _cnt = 0
+        for i in range(len(all_modules) - 1, -1, -1):
+            if isinstance(all_modules[i], (nn.Linear, nn.Conv2d)):
+                _cnt += 1
+                if _cnt >= last_layers:
+                    split_idx = i
+                    break
+
+        if split_idx is None:
+            raise ValueError('No linear layer found.')
+
+        self.optim_nodes = nn.ModuleList()
+
+        for i, m in enumerate(all_modules[split_idx:]):
+            replace_mapping[m] = MultiExpertWrapper(m, num_heads, is_first=(i == 0))
+            self.optim_nodes.append(replace_mapping[m])
+
+        replace_module(module, replace_mapping)
+
+        # self.freeze_to_train()
+
+    # def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
+    #     print('get optim nodes parameters')
+    #     return self.optim_nodes.parameters(recurse)
+
+    def freeze_to_train(self):
+
+        for p in self.parameters():
+            p.requires_grad_(False)
+        for p in self.optim_nodes.parameters():
+            p.requires_grad_(True)
+
+    def _forward_impl(self, image: Tensor, *args, **kwargs):
+        forward_res, addition_info = self.module(image, *args, **kwargs)
         # addition_info[HOOK_NAME_HIDDEN] = [h.get_feature() for h in self.hidden_hooks]
-        # print(type(forward_res), type(addition_info))
-        # exit()
+        if self.avg_result:
+            forward_res = torch.chunk(forward_res, self.num_heads, dim=0)
+            forward_res = torch.stack(forward_res, dim=0).mean(dim=0)
         return forward_res, addition_info

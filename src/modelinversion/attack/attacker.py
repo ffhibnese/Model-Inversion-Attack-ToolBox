@@ -17,6 +17,7 @@ from ..models import *
 from ..metrics import *
 from ..scores import *
 from ..sampler import *
+from ..datasets import LabelImageFolder
 from ..utils import (
     batch_apply,
     print_as_yaml,
@@ -24,6 +25,7 @@ from ..utils import (
     get_random_string,
     BaseOutput,
     safe_save,
+    gather,
 )
 from .optimize import BaseImageOptimization
 
@@ -98,6 +100,7 @@ class ImageClassifierAttackConfig:
     optimize_num: int = 50
     optimize_fn: BaseImageOptimization = None
     optimize_batch_size: int = 5
+    optimize_require_single_id: bool = False
 
     # final selection
     final_num: Optional[int] = None
@@ -156,7 +159,7 @@ class ImageClassifierAttacker(ABC):
         +-------v----------v----------v-------+
         |                                     |
         |             Optimization            |
-        |     O ptimize Latents To Images     |
+        |      Optimize Latents To Images     |
         |                                     |
         +-------+----------+----------+-------+
                 |          |          |
@@ -315,13 +318,41 @@ class ImageClassifierAttacker(ABC):
         )
 
     def optimize(self, latents: Tensor, labels: LongTensor, batch_size: int):
-        return batch_apply(
-            self._batch_optimize,
-            latents,
-            labels,
-            batch_size=batch_size,
-            description='Optimized Batch',
-        )
+        if not self.config.optimize_require_single_id:
+            return batch_apply(
+                self._batch_optimize,
+                latents,
+                labels,
+                batch_size=batch_size,
+                description='Optimized Batch',
+            )
+        else:
+            # 把label按不同数值分类，然后分别调用batch_apply
+            # classes, inverse_indices = torch.unique(
+            #     latents, sorted=True, return_inverse=True
+            # )
+            classes = set(labels.tolist())
+
+            # 按类别组织数值和索引
+            all_results = []
+
+            # for i in range(len(classes)):
+            for i, class_id in enumerate(classes):
+                # print(f"优化第 {i} / {len(classes)} 个类")
+                indices = labels == class_id  # .nonzero(as_tuple=True)[0]
+                use_latents = latents[indices]
+                use_labels = labels[indices]
+
+                result = batch_apply(
+                    self._batch_optimize,
+                    use_latents,
+                    use_labels,
+                    batch_size=batch_size,
+                    description='Optimized Batch',
+                )
+                all_results.append(result)
+
+            return gather(all_results)
 
     def _evaluation(self, features_list, labels, description, save_dir):
         result = OrderedDict()
@@ -495,27 +526,47 @@ class ImageClassifierAttacker(ABC):
         select_classes: Optional[list[int]] = None,
         description: str = 'alteval',
         device: torch.device = 'cpu',
+        image_transform=None,
     ):
         config = self.config
         for foldername in os.listdir(config.save_dir):
             # print(foldername)
             folder = os.path.join(config.save_dir, foldername)
             cache_folder = os.path.join(folder, 'cache')
-            if not os.path.isdir(cache_folder):
+            if os.path.isdir(cache_folder):
 
-                continue
-            # print(f'parse {cache_folder}')
-            labels_file = os.path.join(cache_folder, 'labels.npy')
-            latents_file = os.path.join(cache_folder, 'latents.npy')
+                # print(f'parse {cache_folder}')
+                labels_file = os.path.join(cache_folder, 'labels.npy')
+                latents_file = os.path.join(cache_folder, 'latents.npy')
 
-            if not os.path.exists(labels_file) or not os.path.exists(latents_file):
-                # print(f'not exist {labels_file} {latents_file}')
-                continue
+                if not os.path.exists(labels_file) or not os.path.exists(latents_file):
+                    # print(f'not exist {labels_file} {latents_file}')
+                    continue
 
-            print_split_line(foldername)
+                print_split_line(foldername)
 
-            labels = torch.from_numpy(np.load(labels_file)).long()
-            latents = torch.from_numpy(np.load(latents_file))
+                labels = torch.from_numpy(np.load(labels_file)).long()
+                latents = torch.from_numpy(np.load(latents_file))
+                use_generator = True
+
+            else:
+                image_folder = os.path.join(folder, 'images')
+                if not os.path.isdir(image_folder):
+                    continue
+                image_dataset = LabelImageFolder(
+                    image_folder, transform=image_transform
+                )
+                # from torch.utils.data import DataLoader
+
+                image_loader = DataLoader(
+                    image_dataset,
+                    batch_size=len(image_dataset),
+                    shuffle=False,
+                    num_workers=8,
+                )
+                images, labels = next(iter(image_loader))
+                latents = images
+                use_generator = False
 
             if select_classes is not None:
                 select_indices = torch.zeros_like(labels, dtype=torch.bool)
@@ -526,8 +577,13 @@ class ImageClassifierAttacker(ABC):
 
             print(len(labels))
 
-            def _batch_get_features(latents, labels):
-                images = generator(latents.to(device), labels=labels.to(device)).cpu()
+            def _batch_get_features(latents, labels, use_generator=True):
+                if use_generator:
+                    images = generator(
+                        latents.to(device), labels=labels.to(device)
+                    ).cpu()
+                else:
+                    images = latents
                 return [
                     metric.get_features(images, labels)
                     for metric in config.eval_metrics
@@ -538,6 +594,7 @@ class ImageClassifierAttacker(ABC):
                 latents,
                 labels,
                 batch_size=config.optimize_batch_size,
+                use_generator=use_generator,
             )
 
             self._evaluation(

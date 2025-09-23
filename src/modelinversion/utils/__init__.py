@@ -20,7 +20,7 @@ from .losses import (
     MSELogitLoss,
 )
 from .check import check_shape
-from .batch import batch_apply
+from .batch import batch_apply, gather
 from .hook import (
     BaseHook,
     OutputHook,

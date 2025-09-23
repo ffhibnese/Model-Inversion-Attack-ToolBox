@@ -1,12 +1,15 @@
 import os
+import copy
 import importlib
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import Tuple, Callable, Optional, Iterable
+from typing import Tuple, Callable, Optional, Iterable, Literal
 
+import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch import Tensor, LongTensor
 from torch.optim import Optimizer, Adam
 from tqdm import tqdm
@@ -17,6 +20,8 @@ from ...utils import (
     DictAccumulator,
     obj_to_yaml,
     BaseOutput,
+    freeze,
+    unfreeze,
 )
 from ...models import BaseImageClassifier, BaseImageGenerator
 from ...scores import BaseLatentScore
@@ -166,18 +171,10 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
                 loss, metric_dict = loss
                 if metric_dict is not None and len(metric_dict) > 0:
                     if i == 1 or i % config.show_loss_info_iters == 0:
-                        # ls = [f'{k}: {v}' for k, v in metric_dict.items()]
-                        # right_str = '  '.join(ls)
-                        # description = f'iter {i}: {right_str}'
                         description = get_info_description(i, metric_dict)
-                        # description = obj_to_yaml()
                         bar.write(description)
                     if i == config.iter_times:
-                        # ls = [f'{k}: {v}' for k, v in metric_dict.items()]
                         description = get_info_description(i, metric_dict)
-                        # right_str = '  '.join(ls)
-                        # description = f'iter {i}: {right_str}'
-                        # print(description)
 
             optimizer.zero_grad()
             loss.backward()
@@ -193,7 +190,6 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
 
         final_labels = labels.cpu()
 
-        # return final_fake.detach(), final_labels.detach()
         return ImageOptimizationOutput(
             images=final_fake,
             labels=final_labels,
@@ -793,3 +789,4 @@ class BrepOptimization(BaseImageOptimization):
             labels=labels.detach().cpu(),
             latents=latents.detach().cpu(),
         )
+

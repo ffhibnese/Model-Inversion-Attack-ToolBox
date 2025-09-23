@@ -30,6 +30,7 @@ from .cgan import (
 )
 from .stylegan2ada import (
     get_stylegan2ada_generator,
+    get_stylegan2ada_discriminator,
     StyleGan2adaMappingWrapper,
     StyleGAN2adaSynthesisWrapper,
 )

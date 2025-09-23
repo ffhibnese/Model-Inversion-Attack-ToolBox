@@ -21,14 +21,14 @@ def check_shape(
 
     Returns:
         bool: The check result.
-    """    
-    
+    """
+
     tensor_shape = tensor.shape
 
     if len(tensor_shape) < len(expect_shape):
         if raise_exception:
             raise ShapeException(
-                f'expect ndim >= {len(expect_shape)}, but found {len(tensor_shape)}'
+                f'expect ndim >= {len(expect_shape)}, but found {len(tensor_shape)}, shape {tensor_shape}'
             )
         return False
     # torch.Size().

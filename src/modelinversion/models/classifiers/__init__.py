@@ -21,6 +21,7 @@ from .wrappers import (
     origin_vgg16_64_hidden_hook_fn,
     LRCWrapper,
     ConditionPurifierWrapper,
+    MultiHeadWrapper,
 )
 from .skipconnection import REMOVE_FUNCTIONS, SkipConnectionWrapper
 from .classifier64 import (

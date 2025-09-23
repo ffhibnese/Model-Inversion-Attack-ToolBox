@@ -51,6 +51,10 @@ def _gather(outputs, dim=0):
     return res
 
 
+def gather(outputs, dim=0):
+    return _gather(outputs, dim=dim)
+
+
 def batch_apply(
     fn: Callable,
     *inputs,

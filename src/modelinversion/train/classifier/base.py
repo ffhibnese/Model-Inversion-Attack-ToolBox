@@ -9,7 +9,7 @@ import math
 
 import torch
 from torch import nn, Tensor, LongTensor
-from torch.nn import Module
+from torch.nn import Module, functional as F
 from torch.nn.utils.clip_grad import clip_grad_norm_
 from torch.optim.lr_scheduler import LRScheduler
 from torch.nn.parallel import DataParallel, DistributedDataParallel
@@ -568,3 +568,136 @@ class ConditionPurifierTrainer(SimpleTrainer):
         loss = self.loss_fn(result, pseudo_labels) + mse * self.config.cls_loss_coef
 
         return loss
+
+@dataclass
+class TrapTrainConfig:
+
+    experiment_dir: str
+    save_name: str
+    device: torch.device
+
+    model: BaseImageClassifier
+    optimizer: Optimizer
+    discriminator: BaseImageClassifier
+    discriminator_optimizer: Optimizer
+    trigger: torch.Tensor
+    trigger_optimizer: Optimizer
+    lr_scheduler: Optional[LRScheduler] = None
+    clip_grad_norm: Optional[float] = None
+
+    discriminator_lr_scheduler: Optional[LRScheduler] = None
+
+    trap_ratio: float = 0.02
+    trap_loss_beta: float = 0.2
+
+    loss_fn: nn.Module = 'ce'
+
+    save_per_epochs: int = 1
+
+    augment: Optional[Callable] = None
+    learn_trigger: bool=True,
+
+class TrapTrainer(SimpleTrainer):
+
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(config, *args, **kwargs)
+        # self.trigger = nn.Parameter(torch.randn(self.config.model.num_classes, 3, self.config.model.resolution, self.config.model.resolution))
+        # self.loss_fn = ClassificationLoss(config.loss_fn)
+
+    def _train_loop(self, dataloader: DataLoader):
+
+        config = self.config
+        model = self.config.model
+        discriminator = self.config.discriminator
+        optimizer = self.config.optimizer
+        discriminator_optimizer = self.config.discriminator_optimizer
+
+        trigger = self.config.trigger
+        trigger_optimizer = self.config.trigger_optimizer
+
+
+
+        accumulator = DictAccumulator()
+
+        # iter_times = 0
+        for i, batch in enumerate(tqdm(dataloader, leave=False)):
+            self._iteration = i
+            # iter_times += 1
+            images, labels = self.prepare_input_label(batch)
+            random_labels = torch.randint_like(labels, 0, self.config.model.num_classes)
+
+            model.eval()
+            if config.learn_trigger:
+                discriminator.train()
+
+                trap_images = images * (1-config.trap_ratio) + trigger[random_labels] * config.trap_ratio
+
+                concat_images = torch.cat([images, trap_images], dim=0)
+                # concat_labels = torch.cat([labels, random_labels], dim=0)
+
+                dis_prob, addition_info = discriminator(concat_images)
+                # dis_feat = addition_info['feature']
+
+                dis_loss = F.binary_cross_entropy_with_logits(dis_prob, torch.cat([torch.ones_like(labels, dtype=dis_prob.dtype).unsqueeze(-1), torch.zeros_like(labels, dtype=dis_prob.dtype).unsqueeze(-1)], dim=0).to(dis_prob.device))
+
+                discriminator_optimizer.zero_grad()
+                dis_loss.backward()
+                discriminator_optimizer.step()
+
+                discriminator.eval()
+
+            
+
+                trap_images = images * (1-config.trap_ratio) + trigger[random_labels] * config.trap_ratio
+                
+
+                trapdoor_out_prob, _ = discriminator(trap_images)
+                trigger_loss = F.binary_cross_entropy_with_logits(
+                    trapdoor_out_prob,
+                    torch.ones_like(labels, dtype=dis_prob.dtype).unsqueeze(-1).to(dis_prob.device)
+                )
+
+                aug_trapdoor_img = config.augment(trap_images)
+                trigger_out_prob, _ = model(aug_trapdoor_img)
+                trigger_loss += self.loss_fn(trigger_out_prob, random_labels) + 1e-4 * (trigger**2).mean()
+
+                trigger_optimizer.zero_grad()
+                trigger_loss.backward()
+                trigger_optimizer.step()
+
+                trigger.data = torch.clamp(
+                    trigger.data,
+                    -1,
+                    1,
+                )
+            else:
+                trap_images = images * (1-config.trap_ratio) + trigger[random_labels] * config.trap_ratio
+                aug_trapdoor_img = config.augment(trap_images)
+
+            model.train()
+
+            aug_image = config.augment(images)
+
+            concat_prob, _ = model(torch.concat([aug_image.detach(), aug_trapdoor_img.detach()]))
+
+
+            clean_loss = self.loss_fn(concat_prob[:len(images)], labels)
+            trap_loss = self.loss_fn(concat_prob[len(images):], random_labels)
+            loss = trap_loss * config.trap_loss_beta + clean_loss * (1-config.trap_loss_beta)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            step_res = {
+                'loss': loss.item(),
+                # 'dis_loss': dis_loss.item(),
+            }
+            
+
+            accumulator.add(step_res)
+
+        model.eval()
+        discriminator.eval()
+
+        return accumulator.avg()

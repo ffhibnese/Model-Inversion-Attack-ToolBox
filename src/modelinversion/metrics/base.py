@@ -238,6 +238,7 @@ class ImageDistanceMetric(BaseImageMetric):
 
         target_values = list(set(labels.cpu().tolist()))
 
+        target_centre_dists = []
         target_dists = []
         target_nums = []
 
@@ -258,27 +259,41 @@ class ImageDistanceMetric(BaseImageMetric):
             target_dst_features = torch.cat(target_dst_features, dim=0)
 
             distance = torch.cdist(target_src_features, target_dst_features) ** 2
+            mean_distance = distance.mean().item()
             distance, _ = torch.min(distance, dim=1)
 
             target_dists.append(distance.mean().item())
+            target_centre_dists.append(mean_distance)
             target_nums.append(len(distance))
 
         target_values = np.array(target_values, dtype=np.int32)
         target_dists = np.array(target_dists)
+        target_centre_dists = np.array(target_centre_dists)
         target_nums = np.array(target_nums)
 
         if self.save_dir is not None:
             df = pd.DataFrame()
             df['target'] = target_values
             df['square distance'] = target_dists
+            df['square central distance'] = target_centre_dists
             save_name = f'{self.description}_square_distance.csv'
-            safe_save_csv(df, self.save_dir, save_name)
+            safe_save_csv(df, os.path.join(self.save_dir, self.description), save_name)
 
         result = (target_dists * target_nums).sum() / target_nums.sum()
-        ret = OrderedDict([[f'{self.description} square distance', float(result)]])
+        result_centre = (target_centre_dists * target_nums).sum() / target_nums.sum()
+        ret = OrderedDict(
+            [
+                [f'{self.description} square distance', float(result)],
+                [f'{self.description} square central distance', float(result_centre)],
+            ]
+        )
         try:
             target_dists_std = np.std(target_dists, axis=0).mean()
             ret[f'{self.description} square distance std'] = float(target_dists_std)
+            target_centre_dists_std = np.std(target_centre_dists, axis=0).mean()
+            ret[f'{self.description} square central distance std'] = float(
+                target_centre_dists_std
+            )
         except:
 
             print_split_line()
@@ -375,7 +390,7 @@ class ImageFidPRDCMetric(BaseImageMetric):
         self.num_workers = num_workers
         self.prdc_k = prdc_k
         self.description = description
-        
+
         self.calc_fid = fid
         self.calc_prdc = prdc
         self.save_dir = save_individual_prdc_dir

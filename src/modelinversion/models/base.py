@@ -45,6 +45,11 @@ class ModelMixin(Module, ConfigMixin):
         init_kwargs = {k: v for k, v in kwargs.items() if not k.startswith("_")}
         model = cls(**init_kwargs)
 
+        # print(model.model.classifier)
+        # print(data['config'])
+        # print(data['state_dict'].keys())
+        # exit()
+
         if 'state_dict' in data:
             state_dict = data['state_dict']
             if state_dict is not None:

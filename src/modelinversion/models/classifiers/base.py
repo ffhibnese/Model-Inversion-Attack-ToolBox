@@ -84,6 +84,10 @@ class BaseImageModel(ModelMixin):
         self._inner_hooks = {}
 
     @property
+    def name(self):
+        return self.__class__.__name__
+
+    @property
     def resolution(self):
         return self._resolution
 
@@ -427,3 +431,59 @@ class ResNeSt(BaseImageClassifier):
 
     def _forward_impl(self, image: torch.Tensor, *args, **kwargs):
         return self.model(image)
+
+
+def _replace_module_impl(
+    module: nn.Module,
+    replace_mapping,
+    visit_path='',
+):
+    """Reset the output class num of nn.Linear and return the input feature_dim of nn.Linear.
+
+    Args:
+        module (nn.Module): The specific model structure.
+        reset_num_classes (int, optional): The new output class num. Defaults to None.
+
+    Returns:
+        feature_dim (int): The input feature_dim of nn.Linear.
+    """
+
+    if isinstance(module, nn.Sequential):
+
+        for i, child in enumerate(module):
+            if child in replace_mapping:
+                # remove_all_forward_hooks(child)
+                module[i] = replace_mapping[child]
+            else:
+                _replace_module_impl(
+                    child,
+                    replace_mapping,
+                    visit_path=f'{visit_path}.{i}',
+                )
+
+        return
+
+    children = list(module.named_children())
+
+    for attr_name, child_module in children:
+
+        # attr_name, child_module = children[-1]
+        visit_path = f'{visit_path}.{attr_name}'
+        if child_module in replace_mapping:
+            setattr(module, attr_name, replace_mapping[child_module])
+
+            # print(visit_path)
+            # return
+        else:
+            _replace_module_impl(
+                child_module,
+                replace_mapping,
+                visit_path=visit_path,
+            )
+
+
+def replace_module(
+    module: nn.Module,
+    replace_mapping,
+) -> int:
+    return _replace_module_impl(module, replace_mapping)

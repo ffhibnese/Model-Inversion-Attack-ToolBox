@@ -57,7 +57,7 @@ class SimpleLatentsSampler(BaseLatentsSampler):
     def __call__(self, labels: list[int], sample_num: int):
         size = self.get_batch_latent_size(sample_num)
 
-        latents = torch.randn(size)
+        latents = torch.randn(size).to(next(self.latents_mapping.parameters()).device)
         if self.latents_mapping is not None:
             latents = batch_apply(
                 self.latents_mapping, latents, batch_size=self.batch_size
@@ -158,7 +158,7 @@ class GaussianMixtureLatentsSampler(SimpleLatentsSampler):
         device: torch.device,
         latents_mapping: Optional[Callable] = None,
         mode: str = 'eval',
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         input
@@ -218,17 +218,15 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
         """
         super().__init__(input_size, batch_size, latents_mapping)
         assert latents_mapping != None
-        self.miner = (
-            LayeredFlowMiner(
-                flow_params.k,
-                flow_params.l,
-                flow_params.flow_permutation,
-                flow_params.flow_K,
-                flow_params.flow_glow,
-                flow_params.flow_coupling,
-                flow_params.flow_L,
-                flow_params.flow_use_actnorm,
-            )
+        self.miner = LayeredFlowMiner(
+            flow_params.k,
+            flow_params.l,
+            flow_params.flow_permutation,
+            flow_params.flow_K,
+            flow_params.flow_glow,
+            flow_params.flow_coupling,
+            flow_params.flow_L,
+            flow_params.flow_use_actnorm,
         )
         if mode == 'eval':
             self.miner.load_state_dict(torch.load(kwargs['path'], map_location='cpu'))

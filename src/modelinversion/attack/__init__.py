@@ -22,6 +22,8 @@ from .optimize import (
     IntermediateWhiteboxOptimization,
     StyelGANIntermediateWhiteboxOptimization,
     IntermediateWhiteboxOptimizationConfig,
+    # PPDGWhiteBoxOptimization,
+    # PPDGWhiteboxOptimizationConfig,
 )
 
 from .losses import (
