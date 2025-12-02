@@ -1127,6 +1127,15 @@ class LRCWrapper(BaseClassifierWrapper):
 
 class MultiExpertWrapper(nn.Module):
 
+    def _get_split_idx(self, length, ratio):
+        if ratio == 0:
+            return 0
+        if isinstance(ratio, int):
+            return length // ratio
+        if 0 < ratio < 1:
+            return int(length * ratio)
+        raise RuntimeError(f'ratio {ratio} is invalid.')
+
     def __init__(
         self, origin_module: nn.Module, num_experts: int, is_first=True
     ) -> None:
@@ -1228,4 +1237,234 @@ class MultiHeadWrapper(BaseClassifierWrapper):
         if self.avg_result:
             forward_res = torch.chunk(forward_res, self.num_heads, dim=0)
             forward_res = torch.stack(forward_res, dim=0).mean(dim=0)
+        return forward_res, addition_info
+
+
+@register_model('interneck')
+class InterNeckWrapper(BaseClassifierWrapper):
+
+    def _get_split_idx(self, length, ratio):
+        if ratio == 0:
+            return 0
+        if isinstance(ratio, int):
+            return (length + ratio) % length
+        if 0 < ratio < 1:
+            return int(length * ratio)
+        if -1 < ratio < 0:
+            return length - int(length * (-ratio))
+        raise RuntimeError(f'ratio {ratio} is invalid.')
+
+    @ModelMixin.register_to_config_init
+    def __init__(
+        self,
+        module: BaseImageClassifier,
+        register_last_feature_hook=False,
+        # create_hidden_hook_fn: Optional[Callable] = None,
+        keep_rank_or_ratio: int | float | list[int] = 1.0,
+        part_index_or_ratio: int | float = -1,
+    ) -> None:
+        super().__init__(
+            module,
+            register_last_feature_hook,
+        )
+
+        self.keep_rank_or_ratio = keep_rank_or_ratio
+        self.part_index_or_ratio = part_index_or_ratio
+
+        self.compression()
+
+        # self.lins = lins[-1]
+        # self.convs = convs[-1]
+
+    def compression(self):
+
+        # lins: list[nn.Linear] = []
+        # convs: list[nn.Conv2d] = []
+        layers = []
+
+        def _visit_compression(module):
+            # if isinstance(module, nn.Linear):
+            #     lins.append(module)
+            # elif isinstance(module, nn.Conv2d):
+            #     convs.append(module)
+            if isinstance(module, (nn.Linear, nn.Conv2d)):
+                layers.append(module)
+
+        traverse_module(self.module, _visit_compression, call_middle=False)
+
+        # lins = lins[:-1]
+
+        compress_idx = self._get_split_idx(len(layers), self.part_index_or_ratio)
+        # conv_end_idx = self._get_split_idx(len(convs), self.end_ratio)
+
+        # for lin in lins[lin_start_idx:lin_end_idx]:
+        #     self._split_linear(lin, self.keep_rank_or_ratio)
+
+        # for conv in convs[conv_start_idx:conv_end_idx]:
+        #     self._split_conv(conv, self.keep_rank_or_ratio)
+        compress_module = layers[compress_idx]
+        if isinstance(compress_module, nn.Linear):
+            self._split_linear(compress_module, self.keep_rank_or_ratio)
+        elif isinstance(compress_module, nn.Conv2d):
+            self._split_conv(compress_module, self.keep_rank_or_ratio)
+        else:
+            raise NotImplementedError(f'Not implemented for {type(compress_module)}')
+
+    @torch.no_grad()
+    def _split_conv(self, conv: nn.Conv2d, keep_rank_or_ratio):
+
+        # (O, I, K, K)
+        original_weight = conv.weight.data
+        # (O, I * K * K)
+        reshaped_weight = original_weight.reshape(original_weight.size(0), -1)
+
+        # hw = original_weight.shape[-1] * original_weight.shape[-2]
+
+        full_rank = min(reshaped_weight.shape[1], reshaped_weight.shape[0])
+
+        # (O, full_rank), (full_rank), (I * K * K, full_rank)
+        U, S, V = torch.svd(reshaped_weight)
+        if isinstance(keep_rank_or_ratio, float):
+            if keep_rank_or_ratio == 1.0:
+                # print("AA")
+                k = full_rank
+            elif keep_rank_or_ratio == 0.0:
+                k = 0
+            else:
+                k = int(full_rank * keep_rank_or_ratio)
+                # k = (k - 1) // hw + 1
+                k = min(k, full_rank)
+        else:
+            # print("CC")
+            k = keep_rank_or_ratio
+
+        # select_dim = k * hw
+
+        # (O, k), (k), (I * K * K, k)
+        U_k = U[:, :k]
+        S_k = torch.diag(S[:k])
+        V_k = V[:, :k]
+
+        print(f"origin dim: {full_rank} new dim: {k}")
+
+        node_a = nn.Conv2d(
+            conv.in_channels,
+            k,
+            kernel_size=conv.kernel_size,
+            stride=conv.stride,
+            padding=conv.padding,
+            dilation=conv.dilation,
+            groups=conv.groups,
+            bias=False,
+            padding_mode=conv.padding_mode,
+        )
+        node_b = nn.Conv2d(
+            k, conv.out_channels, kernel_size=1, bias=conv.bias is not None
+        )
+        node_a.weight.data = V_k.T.reshape(
+            k, conv.in_channels, conv.kernel_size[0], conv.kernel_size[1]
+        )
+        node_b.weight.data = (U_k @ S_k).reshape(conv.out_channels, k, 1, 1)
+        if conv.bias is not None:
+            node_b.bias.data = conv.bias
+
+        # return nn.Sequential(node_a, node_b)
+        conv._lrc_node_a = node_a
+        conv._lrc_node_b = node_b
+        conv._lrc_save_require_grad = conv.weight.requires_grad
+        conv.requires_grad_(False)
+
+        def _new_forward(self, x):
+            a_out = self._lrc_node_a(x)
+            b_out = self._lrc_node_b(a_out)
+            return b_out
+
+        conv._lrc_save_forward = conv.forward
+
+        conv.forward = _new_forward.__get__(conv, conv.__class__)
+
+    def _split_linear(self, linear: nn.Linear, keep_rank_or_ratio):
+
+        # (O. I)
+        original_weight = linear.weight.data
+        # (O, I), (I), (I, I)
+        U, S, V = torch.svd(original_weight)
+        full_rank = min(original_weight.shape[0], original_weight.shape[1])
+        if isinstance(keep_rank_or_ratio, float):
+
+            k = int(full_rank * keep_rank_or_ratio)
+            k = min(k, len(S))
+        else:
+            k = keep_rank_or_ratio
+
+        print(f"origin dim: {full_rank} new dim: {k}")
+        # (O, k), (k), (k, I)
+        U_k = U[:, :k]
+        S_k = torch.diag(S[:k])
+        V_k = V[:, :k]
+        node_a = nn.Linear(linear.in_features, k, bias=False)
+        node_b = nn.Linear(k, linear.out_features, bias=linear.bias is not None)
+
+        node_a.weight.data = V_k.T
+        node_b.weight.data = U_k @ S_k
+        if linear.bias is not None:
+            node_b.bias.data = linear.bias
+
+        linear._lrc_node_a = node_a
+        linear._lrc_node_b = node_b
+        linear._lrc_save_require_grad = linear.weight.requires_grad
+        linear.requires_grad_(False)
+
+        def _new_forward(self, x):
+            a_out = self._lrc_node_a(x)
+            b_out = self._lrc_node_b(a_out)
+            return b_out
+
+        linear._lrc_save_forward = linear.forward
+
+        linear.forward = _new_forward.__get__(linear, linear.__class__)
+
+        return nn.Sequential(node_a, node_b)
+
+    def unwrap(self) -> BaseImageClassifier:
+        model = deepcopy(self.module)
+
+        def _visit(module):
+            if isinstance(module, nn.Conv2d) and hasattr(module, '_lrc_node_a'):
+                conv1 = module._lrc_node_a
+                conv2 = module._lrc_node_b
+
+                combined_weight = torch.matmul(
+                    conv2.weight.view(conv2.out_channels, -1),
+                    conv1.weight.view(conv1.out_channels, -1),
+                ).view(conv2.out_channels, conv1.in_channels, *conv1.kernel_size)
+
+                module.weight.data = combined_weight.data
+                if conv2.bias is not None:
+                    module.bias.data = conv2.bias.data
+
+                del module._lrc_node_a, module._lrc_node_b
+
+                module.forward = module._lrc_save_forward
+                module.requires_grad_(module._lrc_save_require_grad)
+
+            if isinstance(module, nn.Linear) and hasattr(module, '_lrc_node_a'):
+                linear1 = module._lrc_node_a
+                linear2 = module._lrc_node_b
+
+                combined_weight = torch.matmul(linear2.weight, linear1.weight)
+
+                module.weight.data = combined_weight.data
+                if linear2.bias is not None:
+                    module.bias.data = linear2.bias.data
+                del module._lrc_node_a, module._lrc_node_b
+                module.forward = module._lrc_save_forward
+                module.requires_grad_(module._lrc_save_require_grad)
+
+        traverse_module(model, _visit, call_middle=False)
+
+        return model
+
+    def _forward_impl(self, image: Tensor, *args, **kwargs):
+        forward_res, addition_info = self.module(image, *args, **kwargs)
         return forward_res, addition_info

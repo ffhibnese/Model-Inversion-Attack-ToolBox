@@ -13,7 +13,7 @@ from .base import *
 
 
 @register_adapter('p2i_confidence2style')
-class P2IConfidence2StyleAdapter(ModelMixin):
+class P2IConfidence2StyleAdapter(BaseAdapter):
 
     @ModelMixin.register_to_config_init
     def __init__(
@@ -22,8 +22,11 @@ class P2IConfidence2StyleAdapter(ModelMixin):
         n_styles=18,
         arcface_model_path=None,
         stride=(1, 1),
+        return_out_latent_only=False,
     ):
         super(P2IConfidence2StyleAdapter, self).__init__()
+
+        self.return_out_latent_only = return_out_latent_only
 
         resnet50 = iresnet50()
         resnet50.load_state_dict(torch.load(arcface_model_path, map_location='cpu'))
@@ -122,4 +125,8 @@ class P2IConfidence2StyleAdapter(ModelMixin):
         for i in range(len(self.styles)):
             latents.append(self.styles[i](x))
         out = torch.stack(latents, dim=1)  # torch.Size([1, 18, 512])
+        # if self.return_out_latent_only:
+        #     return out
+        # else:
         return out, content, outimg
+        # return out, content, outimg

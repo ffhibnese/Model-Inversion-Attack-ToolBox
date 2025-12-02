@@ -1,6 +1,8 @@
 from tqdm import tqdm
 from typing import Optional
 
+import os
+
 import torch
 from torch import nn, Tensor
 import torch.nn.functional as F
@@ -42,6 +44,8 @@ def train_p2i_adapter(
     schedular: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
     show_info_iters: int = 100,
 ):
+    os.makedirs(save_path, exist_ok=True)
+    torch.save(avg_w, os.path.join(save_path, "avg_w.pth"))
     for epoch in range(epoch_num):
 
         for real_data, fake_data in tqdm(
@@ -99,4 +103,6 @@ def train_p2i_adapter(
             if schedular is not None:
                 schedular.step()
 
-        unwrapped_parallel_module(p2i_adapter).save_pretrained(save_path)
+        unwrapped_parallel_module(p2i_adapter).save_pretrained(
+            os.path.join(save_path, f"p2i_adapter.pth")
+        )

@@ -4,6 +4,7 @@ from .base import (
     ImageAugmentSelectLatentsSampler,
     GaussianMixtureLatentsSampler,
     LayeredFlowLatentsSampler,
+    P2ILatentsMixingSampler,
 )
 from .labelonly import LabelOnlySelectLatentsSampler
 

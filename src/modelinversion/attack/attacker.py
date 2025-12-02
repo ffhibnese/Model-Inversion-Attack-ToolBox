@@ -269,7 +269,7 @@ class ImageClassifierAttacker(ABC):
             results = {}
             for label in tqdm(labels):
                 latents = latents[label]
-                labels = torch.ones((len(latents),), dtype=torch.long)
+                labels = torch.ones((len(latents),), dtype=torch.long) * label
                 # scores = latent_score_fn(latents, labels)
                 scores = batch_apply(
                     latent_score_fn, latents, labels, batch_size=batch_size

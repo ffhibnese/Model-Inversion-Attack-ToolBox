@@ -22,6 +22,7 @@ from .wrappers import (
     LRCWrapper,
     ConditionPurifierWrapper,
     MultiHeadWrapper,
+    InterNeckWrapper,
 )
 from .skipconnection import REMOVE_FUNCTIONS, SkipConnectionWrapper
 from .classifier64 import (

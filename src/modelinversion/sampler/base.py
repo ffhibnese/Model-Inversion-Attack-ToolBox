@@ -1,6 +1,7 @@
 import warnings
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Iterable, Sequence
+from tqdm import tqdm
 
 import torch
 from torch import Tensor, LongTensor
@@ -257,3 +258,98 @@ class LayeredFlowLatentsSampler(SimpleLatentsSampler):
         w = (1 - self.identity_mask) * w_nuisance + self.identity_mask * w_identity
         results[label] = w
         return results
+
+
+class P2ILatentsMixingSampler(BaseLatentsSampler):
+    """A latent vector sampler that generates Gaussian distributed random latent vectors with the given `input_size`.
+
+    Args:
+        input_size (int or Sequence[int]): The shape of the latent vectors.
+    """
+
+    def __init__(
+        self,
+        input_size: int | Sequence[int],
+        batch_size: int,
+        avg_num: int,
+        classifier: BaseImageClassifier,
+        generator: BaseImageGenerator,
+        p2i_adapter,
+        dataset,
+        # latents_mapping: Optional[Callable] = None,
+        output_bias: Optional[torch.Tensor] = None,
+    ) -> None:
+        super().__init__()
+
+        if isinstance(input_size, int):
+            input_size = (input_size,)
+        if not isinstance(input_size, tuple):
+            input_size = tuple(input_size)
+        self._input_size = input_size
+        self.batch_size = batch_size
+        # self.latents_mapping = latents_mapping
+        self.output_bias = output_bias
+        self.classifier = classifier
+        self.generator = generator
+        self.p2i_adapter = p2i_adapter
+        self.avg_num = avg_num
+        self.dataset = dataset
+
+    def get_batch_latent_size(self, batch_num: int):
+        return (batch_num,) + self._input_size
+
+    def __call__(self, labels: list[int], sample_num: int):
+
+        device = next(self.classifier.parameters()).device
+
+        all_p = []
+        all_w = []
+        dataloader = torch.utils.data.DataLoader(
+            self.dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+        )
+        for batch in tqdm(
+            dataloader, leave=False, desc='Calculating confidence and latent'
+        ):
+            if not isinstance(batch, torch.Tensor):
+                batch = batch[0]
+            batch = batch.to(device)
+            with torch.no_grad():
+                confidences, _ = self.classifier(batch)
+                p = torch.softmax(confidences, dim=-1)
+                logp = torch.log_softmax(confidences, dim=-1)
+                w, *_ = self.p2i_adapter(logp)
+                all_p.append(p.detach().cpu())
+                all_w.append(w.detach().cpu())
+
+        all_p = torch.cat(all_p, dim=0)
+        all_w = torch.cat(all_w, dim=0)
+
+        result = {}
+
+        for label in tqdm(labels, leave=False, desc='Calculating mixing'):
+            p = all_p[:, label]
+            sort_p, sort_idx = torch.sort(p, descending=True)
+            use_num = self.avg_num * sample_num
+            sort_p = sort_p[:use_num]
+            sort_w = all_w[sort_idx][:use_num]
+            sort_p_reshape = sort_p.reshape(sample_num, self.avg_num)
+            sort_w_reshape = sort_w.reshape(sample_num, self.avg_num, *sort_w.shape[1:])
+            sort_p_reshape = sort_p_reshape.unsqueeze(-1).unsqueeze(-1)
+
+            # print(sort_p_reshape.shape, sort_w_reshape.shape)
+            # exit()
+            result[label] = (sort_p_reshape * sort_w_reshape).sum(
+                dim=1
+            ) / sort_p_reshape.sum(dim=1)
+            if self.output_bias is not None:
+                # print(self.output_bias.shape, result[label].shape)
+                # exit()
+                result[label] = result[label] + self.output_bias
+
+        # if self.latents_mapping is not None:
+        #     latents, *_ = batch_apply(
+        #         self.latents_mapping, latents, batch_size=self.batch_size
+        #     )
+        return result

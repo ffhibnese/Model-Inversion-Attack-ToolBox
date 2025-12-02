@@ -155,6 +155,7 @@ class SimpleWhiteBoxOptimization(BaseImageOptimization):
         optimizer: Optimizer = self.optimizer_class(
             [latents], **config.optimizer_kwargs
         )
+        description = None
 
         if config.latent_constraint is not None:
             config.latent_constraint.register_center(latents)
@@ -789,4 +790,3 @@ class BrepOptimization(BaseImageOptimization):
             labels=labels.detach().cpu(),
             latents=latents.detach().cpu(),
         )
-
