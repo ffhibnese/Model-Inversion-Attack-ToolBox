@@ -3,6 +3,8 @@ import os
 import time
 
 sys.path.append('../../../../src')
+sys.path.append('../../../..')
+from attack_paths import get_attack_paths, ALL_TAGS
 
 import torch
 from torch import nn
@@ -28,28 +30,20 @@ from modelinversion.datasets import FaceScrub224
 
 
 def main(tag, model_name, device_ids_available):
+    # Use lomma_lgmi to get common config (distill models are same for both variants)
+    paths = get_attack_paths('lomma_lgmi', tag)
+
+    if not os.environ.get('CUDA_VISIBLE_DEVICES'):
+        os.environ['CUDA_VISIBLE_DEVICES'] = paths.cuda_device
 
     num_classes = 530
-    # model_name = 'efficientnet_b2'
     teacher_name = 'ir152'
     save_name = f'ffhq256_{model_name}_facescrub224_{tag}.pth'
-    train_dataset_path = '/mnt/data/<usrname>/datasets/ffhq256'
-    test_dataset_path = (
-        # '/data/<usrname>/intermediate-MIA/intermediate-MIA/data/facescrub'
-        '/mnt/data/<usrname>/datasets/facescrub/'
-    )
-    experiment_dir = f'./distill_ffhq256_{model_name}_facescrub224_{tag}'
+    experiment_dir = f'./results_attack/distill_{model_name}_ir152_{tag}'
 
-    if tag == 'no':
-        tag = ''
-    else:
-        tag = '_' + tag
-    teacher_ckpt_path = f'/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_resnet152{tag}/facescrub224_resnet152{tag}.pth'
+    batch_size = paths.distill_batch_size  # halved from 128
+    epoch_num = paths.distill_epoch_num
 
-    batch_size = 128
-    epoch_num = 100
-
-    # device_ids_available = '1'
     pin_memory = False
 
     # prepare logger
@@ -59,18 +53,16 @@ def main(tag, model_name, device_ids_available):
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_available
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
 
     # prepare target model
 
-    teacher = auto_classifier_from_pretrained(teacher_ckpt_path)
+    teacher = auto_classifier_from_pretrained(paths.target_model_ckpt_path)
     if hasattr(teacher, 'unwrap'):
         teacher = teacher.unwrap()
     teacher = teacher.to(device)
-    # freeze(teacher)
     teacher.eval()
 
     model = TorchvisionClassifierModel(
@@ -78,15 +70,13 @@ def main(tag, model_name, device_ids_available):
     )
     model = nn.DataParallel(model, device_ids=gpu_devices).to(device)
 
-    # optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999))
-    # lr_schedular = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
     lr_schedular = None
 
     # prepare dataset
 
     train_dataset = ImageFolder(
-        train_dataset_path,
+        paths.lomma_public_dataset_path,
         transform=Compose(
             [
                 ToTensor(),
@@ -96,7 +86,7 @@ def main(tag, model_name, device_ids_available):
         ),
     )
     test_dataset = FaceScrub224(
-        test_dataset_path,
+        paths.eval_dataset_path,
         train=False,
         output_transform=Compose(
             [
@@ -140,29 +130,6 @@ def main(tag, model_name, device_ids_available):
     logger.close()
 
 
-tags = ['no']
-
-modelnames = ['efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2']
-
-for tag in [
-    'no',
-    # 'vib0.01',
-    # 'bido0.01_0.1_pretrain',
-    # 'ls0.05',
-    # 'tl0.5',
-    # 'rolss0.0_2',
-]:
-    # main(tag, 6)
-    for model_name in modelnames:
+for tag in ALL_TAGS:
+    for model_name in ['efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2']:
         main(tag, model_name, '4')
-
-# for i, tag in enumerate(tags):
-#     for j, model_name in enumerate(modelnames):
-#         idx = i * len(modelnames) + j
-#         if idx == 2:
-#             main(tag, model_name, '1')
-#             exit()
-#         else:
-#             if os.fork() == 0:
-#                 main(tag, model_name, '1')
-#                 exit()

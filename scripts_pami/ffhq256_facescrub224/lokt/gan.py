@@ -3,6 +3,8 @@ import os
 import time
 
 sys.path.append('../../../src')
+sys.path.append('..')
+from attack_paths import get_attack_paths, ALL_TAGS
 
 import kornia
 import torch
@@ -25,31 +27,23 @@ from modelinversion.datasets import InfiniteSamplerWrapper, CelebA64
 import torchvision.models
 
 
-def main(tag, cuda):
+def main(tag):
+    paths = get_attack_paths('lokt', tag)
 
-    if tag == 'no':
-        tag = ''
-    else:
-        tag = '_' + tag
+    if not os.environ.get('CUDA_VISIBLE_DEVICES'):
+        os.environ['CUDA_VISIBLE_DEVICES'] = paths.cuda_device
 
     num_classes = 530
-    target_model_ckpt_path = f'/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_resnet152{tag}/facescrub224_resnet152{tag}.pth'
-    dataset_path = '/mnt/data/<usrname>/datasets/ffhq256'
-    experiment_dir = f'./gan/lokt_ffhq256_facescrub224_ir152_{tag}_gan'
-
-    batch_size = 64
-    max_iters = 105000
-
-    device_ids_str = f'{cuda}'
+    batch_size = paths.gan_batch_size  # halved from 64
+    max_iters = paths.gan_max_iters
 
     # prepare logger
 
     now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-    logger = Logger(experiment_dir, f'train_gan_{now_time}.log')
+    logger = Logger(paths.gan_experiment_dir, f'train_gan_{now_time}.log')
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_str
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
@@ -58,18 +52,14 @@ def main(tag, cuda):
 
     # prepare target models
 
-    # target_model = IR152_64(num_classes=num_classes)
-    # target_model.load_state_dict(
-    #     torch.load(target_model_ckpt_path, map_location='cpu')['state_dict']
-    # )
-    target_model = auto_classifier_from_pretrained(target_model_ckpt_path)
+    target_model = auto_classifier_from_pretrained(paths.target_model_ckpt_path)
     target_model = target_model.to(device)
     target_model.eval()
 
     # prepare dataset
 
     dataset = ImageFolder(
-        dataset_path,
+        paths.eval_dataset_path,
         transform=Compose([ToTensor()]),
     )
     dataloader = iter(
@@ -99,7 +89,7 @@ def main(tag, cuda):
     )
 
     train_config = LoktGanTrainConfig(
-        experiment_dir=experiment_dir,
+        experiment_dir=paths.gan_experiment_dir,
         batch_size=batch_size,
         input_size=z_dim,
         generator=generator,
@@ -125,14 +115,5 @@ def main(tag, cuda):
     trainer.train(dataloader, max_iters)
 
 
-# main('rolss0.0_2', 0)
-
-for tag in [
-    'no',
-    # 'vib0.01',
-    # 'bido0.01_0.1_pretrain',
-    # 'ls0.05',
-    # 'tl0.5',
-    # 'rolss0.0_2',
-]:
-    main(tag, 6)
+for tag in ALL_TAGS:
+    main(tag)

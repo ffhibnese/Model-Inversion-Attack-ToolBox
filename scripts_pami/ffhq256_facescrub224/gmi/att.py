@@ -4,6 +4,8 @@ import argparse
 import time
 
 sys.path.append('../../../src')
+sys.path.append('..')
+from attack_paths import get_attack_paths, ALL_TAGS
 
 import torch
 from torch import nn
@@ -34,46 +36,23 @@ from modelinversion.metrics import (
 )
 from modelinversion.utils import freeze
 
-for tag in [
-    'no',
-    # 'vib0.01',
-    # 'bido0.01_0.1_pretrain',
-    # 'ls0.05',
-    # 'tl0.5',
-    # 'rolss0.0_2',
-]:
-    # main(tag)
 
-    # prepare path args
-    # tag = 'rolss0.0_2'
+def main(tag):
+    paths = get_attack_paths('gmi', tag)
 
-    experiment_dir = f'./results_attack/gmi_ir152_{tag}'
-    device_ids_available = '6'
-
-    if tag == 'no':
-        tag = ''
-    else:
-        tag = '_' + tag
+    if not os.environ.get('CUDA_VISIBLE_DEVICES'):
+        os.environ['CUDA_VISIBLE_DEVICES'] = paths.cuda_device
     num_classes = 530
-    generator_ckpt_path = '../../../checkpoints_v2/gmi/gmi_ffhq256_G.pth'
-    discriminator_ckpt_path = '../../../checkpoints_v2/gmi/gmi_ffhq256_D.pth'
-    target_model_ckpt_path = f'/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_resnet152{tag}/facescrub224_resnet152{tag}.pth'
-    # '/mnt/data/<usrname>/Model-Inversion-Attack-ToolBox/results/train_facescrub64_ir152_lora/facescrub64_ir152_lora.pth'
-    eval_model_ckpt_path = '/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_maxvit_t/facescrub224_maxvit_t.pth'
-    # eval_model_ckpt_path_2 = '/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_maxvit_t/facescrub224_maxvit_t.pth'
-    eval_dataset_path = '/mnt/data/<usrname>/datasets/facescrub/'
     attack_targets = list(range(100))
-
-    batch_size = 100
+    batch_size = 50
 
     # prepare logger
 
     now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-    logger = Logger(experiment_dir, f'attack_{now_time}.log')
+    logger = Logger(paths.experiment_dir, f'attack_{now_time}.log')
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_available
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
@@ -84,12 +63,12 @@ for tag in [
 
     latents_sampler = SimpleLatentsSampler(z_dim, batch_size)
 
-    target_model = auto_classifier_from_pretrained(target_model_ckpt_path)
+    target_model = auto_classifier_from_pretrained(paths.target_model_ckpt_path)
     eval_model = auto_classifier_from_pretrained(
-        eval_model_ckpt_path, register_last_feature_hook=True
+        paths.eval_model_ckpt_path, register_last_feature_hook=True
     )
-    generator = auto_generator_from_pretrained(generator_ckpt_path)
-    discriminator = auto_discriminator_from_pretrained(discriminator_ckpt_path)
+    generator = auto_generator_from_pretrained(paths.generator_ckpt_path)
+    discriminator = auto_discriminator_from_pretrained(paths.discriminator_ckpt_path)
 
     freeze(target_model)
     freeze(eval_model)
@@ -109,7 +88,7 @@ for tag in [
     # prepare eval dataset
 
     eval_dataset = FaceScrub224(
-        eval_dataset_path,
+        paths.eval_dataset_path,
         train=True,
         output_transform=ToTensor(),
     )
@@ -117,7 +96,7 @@ for tag in [
     # prepare optimization
 
     optimization_config = SimpleWhiteBoxOptimizationConfig(
-        experiment_dir=experiment_dir,
+        experiment_dir=paths.experiment_dir,
         device=device,
         optimizer='SGD',
         optimizer_kwargs={'lr': 0.02, 'momentum': 0.9},
@@ -150,14 +129,14 @@ for tag in [
         eval_dataset,
         device=device,
         description='evaluation',
-        save_individual_res_dir=experiment_dir,
+        save_individual_res_dir=paths.experiment_dir,
     )
 
     fid_prdc_metric = ImageFidPRDCMetric(
         batch_size,
         eval_dataset,
         device=device,
-        save_individual_prdc_dir=experiment_dir,
+        save_individual_prdc_dir=paths.experiment_dir,
         fid=True,
         prdc=True,
     )
@@ -168,7 +147,7 @@ for tag in [
         batch_size,
         eval_dataset,
         device=device,
-        save_individual_res_dir=experiment_dir,
+        save_individual_res_dir=paths.experiment_dir,
     )
 
     attack_config = ImageClassifierAttackConfig(
@@ -178,7 +157,7 @@ for tag in [
         optimize_batch_size=batch_size,
         optimize_fn=optimization_fn,
         # save path args
-        save_dir=experiment_dir,
+        save_dir=paths.experiment_dir,
         save_optimized_images=True,
         save_final_images=False,
         # metric args
@@ -197,3 +176,7 @@ for tag in [
     attacker.attack(attack_targets)
 
     logger.close()
+
+
+for tag in ALL_TAGS:
+    main(tag)

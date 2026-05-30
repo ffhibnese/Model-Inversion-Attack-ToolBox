@@ -4,6 +4,8 @@ import argparse
 import time
 
 sys.path.append('../../../src')
+sys.path.append('..')
+from attack_paths import get_attack_paths, ALL_TAGS
 
 import torch
 from torch import nn
@@ -36,39 +38,23 @@ from modelinversion.metrics import (
 )
 
 
-for tag in ['no']:
+def main(tag):
+    paths = get_attack_paths('plg', tag)
 
-    # tag = 'tl0.7'
-
-    if tag == 'no':
-        tag = ''
-    else:
-        tag = f'_{tag}'
-
-    experiment_dir = f'./results_attack/plgmi_resnet152{tag}'
-    device_ids_str = '7'
+    if not os.environ.get('CUDA_VISIBLE_DEVICES'):
+        os.environ['CUDA_VISIBLE_DEVICES'] = paths.cuda_device
     num_classes = 530
-    generator_ckpt_path = (
-        f'./results_gan/plg_ffhq256_facescrub256_resnet152{tag}_gan/G.pth'
-    )
-
-    target_model_ckpt_path = f'/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_resnet152{tag}/facescrub224_resnet152{tag}.pth'
-    # eval_model_ckpt_path_2 = '/mnt/data/<usrname>/mywork/lora_defense/checkpoints_v2/classifier/facescrub224/facescrub224_inception_v3_94.45.pth'
-    eval_model_ckpt_path = '/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_maxvit_t/facescrub224_maxvit_t.pth'
-    eval_dataset_path = '/mnt/data/<usrname>/datasets/facescrub/'
     attack_targets = list(range(100))
-
-    batch_size = 32
+    batch_size = 16
     num_classes = 530
 
     # prepare logger
 
     now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-    logger = Logger(experiment_dir, f'attack_{now_time}.log')
+    logger = Logger(paths.experiment_dir, f'attack_{now_time}.log')
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_str
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
@@ -79,14 +65,14 @@ for tag in ['no']:
 
     latents_sampler = SimpleLatentsSampler(z_dim, batch_size)
 
-    target_model = auto_classifier_from_pretrained(target_model_ckpt_path)
+    target_model = auto_classifier_from_pretrained(paths.target_model_ckpt_path)
     eval_model = auto_classifier_from_pretrained(
-        eval_model_ckpt_path, register_last_feature_hook=True
+        paths.eval_model_ckpt_path, register_last_feature_hook=True
     )
     # eval_model_2 = auto_classifier_from_pretrained(
     #     eval_model_ckpt_path_2, register_last_feature_hook=True
     # )
-    generator = auto_generator_from_pretrained(generator_ckpt_path)
+    generator = auto_generator_from_pretrained(paths.generator_ckpt_path)
 
     target_model = nn.parallel.DataParallel(target_model, device_ids=gpu_devices).to(
         device
@@ -110,7 +96,7 @@ for tag in ['no']:
     # prepare eval dataset
 
     eval_dataset = FaceScrub224(
-        eval_dataset_path,
+        paths.eval_dataset_path,
         train=True,
         output_transform=Compose(
             [
@@ -137,7 +123,7 @@ for tag in ['no']:
     )
 
     optimization_config = ImageAugmentWhiteBoxOptimizationConfig(
-        experiment_dir=experiment_dir,
+        experiment_dir=paths.experiment_dir,
         device=device,
         optimizer='Adam',
         optimizer_kwargs={'lr': 0.1},
@@ -162,7 +148,7 @@ for tag in ['no']:
         eval_dataset,
         device=device,
         description='evaluation',
-        save_individual_res_dir=experiment_dir,
+        save_individual_res_dir=paths.experiment_dir,
     )
 
     # accuracy_metric_2 = ImageClassifierAttackAccuracy(
@@ -181,7 +167,7 @@ for tag in ['no']:
         batch_size,
         eval_dataset,
         device=device,
-        save_individual_prdc_dir=experiment_dir,
+        save_individual_prdc_dir=paths.experiment_dir,
         fid=True,
         prdc=True,
     )
@@ -192,7 +178,7 @@ for tag in ['no']:
         batch_size,
         eval_dataset,
         device=device,
-        save_individual_res_dir=experiment_dir,
+        save_individual_res_dir=paths.experiment_dir,
     )
 
     attack_config = ImageClassifierAttackConfig(
@@ -200,7 +186,7 @@ for tag in ['no']:
         optimize_num=10,
         optimize_batch_size=batch_size,
         optimize_fn=optimization_fn,
-        save_dir=experiment_dir,
+        save_dir=paths.experiment_dir,
         save_optimized_images=True,
         save_final_images=False,
         eval_metrics=[
@@ -218,3 +204,7 @@ for tag in ['no']:
     attacker = ImageClassifierAttacker(attack_config)
 
     attacker.attack(attack_targets)
+
+
+for tag in ALL_TAGS:
+    main(tag)

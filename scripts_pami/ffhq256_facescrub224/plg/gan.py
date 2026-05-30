@@ -3,6 +3,8 @@ import os
 import time
 
 sys.path.append('../../../src')
+sys.path.append('..')
+from attack_paths import get_attack_paths, ALL_TAGS
 
 import kornia
 import torch
@@ -27,53 +29,54 @@ import torchvision.transforms as TF
 from modelinversion.models import auto_classifier_from_pretrained
 from modelinversion.datasets import (
     top_k_selection,
-    preprocess_celeba_fn,
+    preprocess_celebs_fn,
     preprocess_facescrub_fn,
 )
+
 
 if __name__ == '__main__':
 
     top_k = 30
     num_classes = 530
     loradim = 1
-    tag = ''
-    target_model_ckpt_path = f'/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_resnet152{tag}/facescrub224_resnet152{tag}.pth'
-    src_dataset_path = '/mnt/data/<usrname>/datasets/ffhq256/'
-    tag = f'{tag}'
-    dst_dataset_path = f'./dataset/plg_ffhq256_facescrub256_resnet152{tag}_dataset'
-    experiment_dir = f'./results_gan/plg_ffhq256_facescrub256_resnet152{tag}_gan'
 
-    dataset_path = dst_dataset_path
+    for tag in ALL_TAGS:
+        main(tag)
 
-    batch_size = 32
-    device_ids_str = '7'
+
+def main(tag):
+    paths = get_attack_paths('plg', tag)
+
+    if not os.environ.get('CUDA_VISIBLE_DEVICES'):
+        os.environ['CUDA_VISIBLE_DEVICES'] = paths.cuda_device
+
+    batch_size = paths.gan_batch_size  # halved from 32
+    max_iters = paths.gan_max_iters
 
     now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-    logger = Logger(experiment_dir, f'train_gan_{now_time}.log')
+    logger = Logger(paths.gan_experiment_dir, f'train_gan_{now_time}.log')
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_str
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
 
     # prepare target models
 
-    target_model = auto_classifier_from_pretrained(target_model_ckpt_path).to(device)
-    # target_model = nn.DataParallel(target_model, device_ids=gpu_devices)
+    target_model = auto_classifier_from_pretrained(paths.target_model_ckpt_path).to(device)
     target_model.eval()
 
     # dataset generation
 
     transform = TF.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
-    if not os.path.exists(dst_dataset_path):
+    if not os.path.exists(paths.experiment_dir):
 
         top_k_selection(
             top_k=top_k,
-            src_dataset_path=src_dataset_path,
-            dst_dataset_path=dst_dataset_path,
+            src_dataset_path=paths.eval_dataset_path,
+            dst_dataset_path=paths.experiment_dir,
             batch_size=batch_size,
             target_model=target_model,
             num_classes=num_classes,
@@ -81,14 +84,11 @@ if __name__ == '__main__':
             create_aug_images_fn=lambda img: [transform(img)],
         )
 
-    batch_size = 32
-    max_iters = 100000
-
     def _noise_adder(img):
         return torch.empty_like(img, dtype=img.dtype).uniform_(0.0, 1 / 256.0) + img
 
     dataset = LabelImageFolder(
-        dataset_path,
+        paths.experiment_dir,
         transform=Compose([ToTensor(), _noise_adder]),
     )
     dataloader = DataLoader(
@@ -124,7 +124,7 @@ if __name__ == '__main__':
     )
 
     train_configs = PlgmiGanTrainConfig(
-        experiment_dir=experiment_dir,
+        experiment_dir=paths.gan_experiment_dir,
         # train args
         batch_size=batch_size,
         input_size=z_dim,

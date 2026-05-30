@@ -5,6 +5,8 @@ import argparse
 import time
 
 sys.path.append('../../../src')
+sys.path.append('..')
+from attack_paths import get_attack_paths, ALL_TAGS
 
 import torch
 from torch import nn
@@ -48,41 +50,21 @@ from modelinversion.datasets import FaceScrub112
 
 
 def main(tag):
-    experiment_dir = f'./results_attack/lommaked_ir152_{tag}'
-    device_ids_str = '2'
+    paths = get_attack_paths('lomma_lked', tag)
+
+    if not os.environ.get('CUDA_VISIBLE_DEVICES'):
+        os.environ['CUDA_VISIBLE_DEVICES'] = paths.cuda_device
     num_classes = 530
-    eval_dataset_path = '/mnt/data/<usrname>/datasets/facescrub/'
-    aug_model_efficientnet_b0_path = f'./surr/distill_ffhq256_efficientnet_b0_facescrub224_{tag}/ffhq256_efficientnet_b0_facescrub224_{tag}.pth'
-    aug_model_efficientnet_b1_path = f'./surr/distill_ffhq256_efficientnet_b1_facescrub224_{tag}/ffhq256_efficientnet_b1_facescrub224_{tag}.pth'
-    aug_model_efficientnet_b2_path = f'./surr/distill_ffhq256_efficientnet_b2_facescrub224_{tag}/ffhq256_efficientnet_b2_facescrub224_{tag}.pth'
-
-    if tag == 'no':
-        tag = ''
-    else:
-        tag = '_' + tag
-
-    generator_ckpt_path = (
-        f'../ked/results_gan/kedmi_ffhq64_facescrub64_ir152{tag}_gan/G.pth'
-    )
-    discriminator_ckpt_path = (
-        f'../ked/results_gan/kedmi_ffhq64_facescrub64_ir152{tag}_gan/D.pth'
-    )
-    target_model_ckpt_path = f'/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_resnet152{tag}/facescrub224_resnet152{tag}.pth'
-    # '/mnt/data/<usrname>/Model-Inversion-Attack-ToolBox/results/train_facescrub224_ir152_lora/facescrub224_ir152_lora.pth'
-    eval_model_ckpt_path = '/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_maxvit_t/facescrub224_maxvit_t.pth'
-    public_dataset_path = '/mnt/data/<usrname>/datasets/ffhq256'
     attack_targets = list(range(100))
-
-    batch_size = 16
+    batch_size = 8
 
     # prepare logger
 
     now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-    logger = Logger(experiment_dir, f'attack_{now_time}.log')
+    logger = Logger(paths.experiment_dir, f'attack_{now_time}.log')
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_str
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
@@ -95,17 +77,17 @@ def main(tag):
 
     # target_model =  IR152_64(num_classes=num_classes, register_last_feature_hook=True)
     target_model = auto_classifier_from_pretrained(
-        target_model_ckpt_path, register_last_feature_hook=True
+        paths.target_model_ckpt_path, register_last_feature_hook=True
     )
     eval_model = auto_classifier_from_pretrained(
-        eval_model_ckpt_path, register_last_feature_hook=True
+        paths.eval_model_ckpt_path, register_last_feature_hook=True
     )
-    generator = auto_generator_from_pretrained(generator_ckpt_path)
-    discriminator = auto_discriminator_from_pretrained(discriminator_ckpt_path)
+    generator = auto_generator_from_pretrained(paths.generator_ckpt_path)
+    discriminator = auto_discriminator_from_pretrained(paths.discriminator_ckpt_path)
 
-    aug_model_0 = auto_classifier_from_pretrained(aug_model_efficientnet_b0_path)
-    aug_model_1 = auto_classifier_from_pretrained(aug_model_efficientnet_b1_path)
-    aug_model_2 = auto_classifier_from_pretrained(aug_model_efficientnet_b2_path)
+    aug_model_0 = auto_classifier_from_pretrained(paths.lomma_aug_model_ckpt_paths[0])
+    aug_model_1 = auto_classifier_from_pretrained(paths.lomma_aug_model_ckpt_paths[1])
+    aug_model_2 = auto_classifier_from_pretrained(paths.lomma_aug_model_ckpt_paths[2])
 
     freeze(target_model)
     freeze(eval_model)
@@ -134,13 +116,13 @@ def main(tag):
     # prepare eval dataset
 
     eval_dataset = FaceScrub112(
-        eval_dataset_path,
+        paths.eval_dataset_path,
         train=True,
         output_transform=ToTensor(),
     )
 
     # prepare feature statics
-    public_dataset = ImageFolder(public_dataset_path, transform=ToTensor())
+    public_dataset = ImageFolder(paths.lomma_public_dataset_path, transform=ToTensor())
     public_loader = DataLoader(public_dataset, batch_size=batch_size, shuffle=True)
 
     feature_mean, feature_std = generate_feature_statics(
@@ -151,7 +133,7 @@ def main(tag):
     # prepare optimization
 
     optimization_config = VarienceWhiteboxOptimizationConfig(
-        experiment_dir=experiment_dir,
+        experiment_dir=paths.experiment_dir,
         device=device,
         optimizer='Adam',
         optimizer_kwargs={'lr': 0.02},
@@ -205,14 +187,14 @@ def main(tag):
         device=device,
         description='evaluation',
         transform=to_eval_transform,
-        save_individual_res_dir=experiment_dir,
+        save_individual_res_dir=paths.experiment_dir,
     )
 
     fid_prdc_metric = ImageFidPRDCMetric(
         batch_size,
         eval_dataset,
         device=device,
-        save_individual_prdc_dir=experiment_dir,
+        save_individual_prdc_dir=paths.experiment_dir,
         fid=True,
         prdc=True,
     )
@@ -223,7 +205,7 @@ def main(tag):
         batch_size,
         eval_dataset,
         device=device,
-        save_individual_res_dir=experiment_dir,
+        save_individual_res_dir=paths.experiment_dir,
     )
 
     attack_config = ImageClassifierAttackConfig(
@@ -231,7 +213,7 @@ def main(tag):
         optimize_num=1,
         optimize_batch_size=batch_size,
         optimize_fn=optimization_fn,
-        save_dir=experiment_dir,
+        save_dir=paths.experiment_dir,
         save_optimized_images=True,
         save_final_images=False,
         eval_metrics=[
@@ -252,12 +234,5 @@ def main(tag):
     logger.close()
 
 
-for tag in [
-    'no',
-    # 'vib0.01',
-    # 'bido0.01_0.1_pretrain',
-    # 'ls0.05',
-    # 'tl0.5',
-    # 'rolss0.0_2',
-]:
+for tag in ALL_TAGS:
     main(tag)

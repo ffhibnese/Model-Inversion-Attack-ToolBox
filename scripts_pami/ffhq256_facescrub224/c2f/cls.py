@@ -3,6 +3,8 @@ import os
 import time
 
 sys.path.append("../../../src")
+sys.path.append('..')
+from attack_paths import get_attack_paths, ALL_TAGS
 
 import torch
 from torch import nn
@@ -19,45 +21,31 @@ from modelinversion.datasets import InfiniteSamplerWrapper, CelebA64
 
 
 def main(tag):
+    paths = get_attack_paths('c2f', tag)
 
-    if tag == 'no':
-        tag = ''
-    else:
-        tag = '_' + tag
+    if not os.environ.get('CUDA_VISIBLE_DEVICES'):
+        os.environ['CUDA_VISIBLE_DEVICES'] = paths.cuda_device
 
-    target_model_ckpt_path = f'/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_resnet152{tag}/facescrub224_resnet152{tag}.pth'
-    embed_model_ckpt_path = (
-        '/mnt/data/<usrname>/mywork/lora_defense/checkpoints_v2/c2f/casia_incv1.pth'
-    )
-    dataset_path = '/mnt/data/<usrname>/datasets/ffhq256'
-
-    dataset_map_name = 'ffhq256_facescrub224'
-    target_name = f'ir152{tag}'
-    experiment_dir = f'./results_mapping/c2f/{dataset_map_name}/{target_name}'
-
-    batch_size = 256
-
-    device_ids_str = '3'
+    batch_size = 128  # halved from 256
 
     # prepare logger
 
     now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-    logger = Logger(experiment_dir, f'train_gan_{now_time}.log')
+    logger = Logger(paths.experiment_dir, f'train_gan_{now_time}.log')
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_str
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
 
     # prepare target models
 
-    target_model = auto_classifier_from_pretrained(target_model_ckpt_path)
+    target_model = auto_classifier_from_pretrained(paths.target_model_ckpt_path)
     target_model = nn.DataParallel(target_model, device_ids=gpu_devices).to(device)
     target_model.eval()
 
-    embed_model = auto_classifier_from_pretrained(embed_model_ckpt_path)
+    embed_model = auto_classifier_from_pretrained(paths.cls_embed_model_ckpt_path)
     embed_model = nn.DataParallel(embed_model, device_ids=gpu_devices).to(device)
     embed_model.eval()
     # print(target_model.training)
@@ -68,7 +56,7 @@ def main(tag):
     from torchvision.datasets import ImageFolder
 
     dataset = ImageFolder(
-        dataset_path,
+        paths.eval_dataset_path,
         transform=ToTensor(),
     )
     # dataset = CelebA64(dataset_path, ToTensor())
@@ -96,19 +84,12 @@ def main(tag):
         embed_model,
         dataloader,
         device=device,
-        save_path=os.path.join(experiment_dir, 'mapping.pth'),
+        save_path=os.path.join(paths.experiment_dir, 'mapping.pth'),
         schedular=optim_scheduler,
     )
 
     logger.close()
 
 
-for tag in [
-    'no',
-    # 'vib0.01',
-    # 'bido0.01_0.1_pretrain',
-    # 'ls0.05',
-    # 'tl0.5',
-    # 'rolss0.0_2',
-]:
+for tag in ALL_TAGS:
     main(tag)

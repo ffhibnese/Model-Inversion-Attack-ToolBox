@@ -4,6 +4,8 @@ import argparse
 import time
 
 sys.path.append('../../../src')
+sys.path.append('..')
+from attack_paths import get_attack_paths, ALL_TAGS
 
 import torch
 from torch import nn
@@ -42,45 +44,29 @@ from modelinversion.metrics import (
 )
 
 
-def main(tag, cuda_idx):
+def main(tag):
+    paths = get_attack_paths('if', tag)
 
-    if tag == 'no':
-        tag = ''
-    else:
-        tag = f'_{tag}'
-
-    device_ids_available = f'{cuda_idx}'
-
-    experiment_dir = f'./attack_result/if_resnet152{tag}'
-    """Download stylegan2-ada from https://github.com/NVlabs/stylegan2-ada-pytorch and record the file path as 'stylegan2ada_path' 
-    """
-    stylegan2ada_path = (
-        '/mnt/data/<usrname>/mywork/lora_defense/test_resp/stylegan2-ada-pytorch'
-    )
-    stylegan2ada_ckpt_path = (
-        '/mnt/data/<usrname>/mywork/lora_defense/checkpoints_v2/stylegan2ada/ffhq.pkl'
-    )
-    target_model_ckpt_path = f'/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_resnet152{tag}/facescrub224_resnet152{tag}.pth'
-    # '/mnt/data/<usrname>/Model-Inversion-Attack-ToolBox/results/train_facescrub64_ir152_lora/facescrub64_ir152_lora.pth'
-    eval_model_ckpt_path = '/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_maxvit_t/facescrub224_maxvit_t.pth'
-    # eval_model_ckpt_path_2 = '/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_maxvit_t/facescrub224_maxvit_t.pth'
-    eval_dataset_path = '/mnt/data/<usrname>/datasets/facescrub/'
+    if not os.environ.get('CUDA_VISIBLE_DEVICES'):
+        os.environ['CUDA_VISIBLE_DEVICES'] = paths.cuda_device
     attack_targets = list(range(100))
 
-    sample_batch_size = 32
-    optimize_batch_size = 16
-    evaluation_batch_size = 16
+    sample_batch_size = 16
+    optimize_batch_size = 8
+    evaluation_batch_size = 8
     sample_num = 5000
     optimize_num = 10
 
     # prepare logger
 
     now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-    logger = Logger(experiment_dir, f'attack_{now_time}.log')
+    logger = Logger(paths.experiment_dir, f'attack_{now_time}.log')
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_available
+    if not os.environ.get('CUDA_VISIBLE_DEVICES'):
+        os.environ['CUDA_VISIBLE_DEVICES'] = paths.cuda_device
+
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
@@ -88,16 +74,16 @@ def main(tag, cuda_idx):
     # prepare models
 
     mapping, generator = get_stylegan2ada_generator(
-        stylegan2ada_path, stylegan2ada_ckpt_path, single_w=True
+        paths.stylegan2ada_path, paths.stylegan2ada_ckpt_path, single_w=True
     )
 
     target_resolution = 224
     eval_resolution = 299
 
-    target_model = auto_classifier_from_pretrained(target_model_ckpt_path)
+    target_model = auto_classifier_from_pretrained(paths.target_model_ckpt_path)
 
     eval_model = auto_classifier_from_pretrained(
-        eval_model_ckpt_path, register_last_feature_hook=True, weights=None
+        paths.eval_model_ckpt_path, register_last_feature_hook=True, weights=None
     )
     # eval_model = TorchvisionClassifierModel(
     #     'inception_v3',
@@ -148,7 +134,7 @@ def main(tag, cuda_idx):
     # prepare eval dataset
 
     eval_dataset = FaceScrub224(
-        eval_dataset_path,
+        paths.eval_dataset_path,
         train=True,
         output_transform=Compose(
             [
@@ -211,7 +197,7 @@ def main(tag, cuda_idx):
     )
 
     optimization_config = IntermediateWhiteboxOptimizationConfig(
-        experiment_dir=experiment_dir,
+        experiment_dir=paths.experiment_dir,
         device=device,
         optimizer='Adam',
         optimizer_kwargs={'lr': 0.005, 'betas': [0.1, 0.1]},
@@ -246,7 +232,7 @@ def main(tag, cuda_idx):
         eval_dataset,
         device=device,
         description='evaluation',
-        save_individual_res_dir=experiment_dir,
+        save_individual_res_dir=paths.experiment_dir,
         transform=to_eval_transform,
     )
 
@@ -254,7 +240,7 @@ def main(tag, cuda_idx):
         evaluation_batch_size,
         eval_dataset,
         device=device,
-        save_individual_prdc_dir=experiment_dir,
+        save_individual_prdc_dir=paths.experiment_dir,
         fid=True,
         prdc=True,
         transform=to_eval_transform,
@@ -266,7 +252,7 @@ def main(tag, cuda_idx):
         evaluation_batch_size,
         eval_dataset,
         device=device,
-        save_individual_res_dir=experiment_dir,
+        save_individual_res_dir=paths.experiment_dir,
         transform=to_eval_transform,
     )
 
@@ -292,7 +278,7 @@ def main(tag, cuda_idx):
         optimize_num=optimize_num,
         optimize_batch_size=optimize_batch_size,
         optimize_fn=optimization_fn,
-        save_dir=experiment_dir,
+        save_dir=paths.experiment_dir,
         save_optimized_images=True,
         save_final_images=True,
         save_kwargs={'normalize': True},
@@ -376,7 +362,6 @@ if __name__ == '__main__':
         # 'neck50tanh_nobn'
         'no'
     ]
-    # tags = [20, 35, 75, 100, 150, 200, 300, 500]
-    for tag in tags:
-        main(tag, 2)
+    for tag in ALL_TAGS:
+        main(tag)
 os.environ["CUDA_VISIBLE_DEVICES"]

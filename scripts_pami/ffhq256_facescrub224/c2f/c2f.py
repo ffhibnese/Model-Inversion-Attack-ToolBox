@@ -4,6 +4,8 @@ import argparse
 import time
 
 sys.path.append('../../../src')
+sys.path.append('..')
+from attack_paths import get_attack_paths, ALL_TAGS
 
 import torch
 from torch import nn
@@ -56,43 +58,17 @@ from modelinversion.metrics import (
 
 
 def main(tag):
-
-    if tag == 'no':
-        tag = ''
-    else:
-        tag = '_' + tag
+    paths = get_attack_paths('c2f', tag)
 
     device_ids_available = '5,4,6,0'
     # num_classes = 1000
 
-    experiment_dir = f'./attack/c2f_ir152{tag}'
-    """Download stylegan2-ada from https://github.com/NVlabs/stylegan2-ada-pytorch and record the file path as 'stylegan2ada_path' 
-    """
-    stylegan2ada_path = (
-        '/mnt/data/<usrname>/mywork/lora_defense/test_resp/stylegan2-ada-pytorch'
-    )
-    stylegan2ada_ckpt_path = (
-        '/mnt/data/<usrname>/mywork/lora_defense/checkpoints_v2/stylegan2ada/ffhq.pkl'
-    )
-    target_model_ckpt_path = f'/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_resnet152{tag}/facescrub224_resnet152{tag}.pth'
-    # '/mnt/data/<usrname>/Model-Inversion-Attack-ToolBox/results/train_facescrub64_ir152_lora/facescrub64_ir152_lora.pth'
-    eval_model_ckpt_path = '/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_maxvit_t/facescrub224_maxvit_t.pth'
-    # eval_model_ckpt_path_2 = '/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_maxvit_t/facescrub224_maxvit_t.pth'
-    eval_dataset_path = '/mnt/data/<usrname>/datasets/facescrub/'
     attack_targets = list(range(100))
 
-    embed_model_ckpt_path = (
-        "/mnt/data/<usrname>/mywork/lora_defense/checkpoints_v2/c2f/casia_incv1.pth"
-    )
-    dataset_map_name = 'ffhq256_facescrub224'
-    pred_mapping_ckpt_path = (
-        f'./results_mapping/c2f/{dataset_map_name}/ir152{tag}/mapping.pth'
-    )
-
-    sample_batch_size = 5
-    optimize_batch_size = 5
-    final_selection_batch_size = 5
-    evaluation_batch_size = 5
+    sample_batch_size = 2
+    optimize_batch_size = 2
+    final_selection_batch_size = 2
+    evaluation_batch_size = 2
     sample_num = 5000
 
     optimize_num = 32
@@ -104,11 +80,10 @@ def main(tag):
     # prepare logger
 
     now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-    logger = Logger(experiment_dir, f'attack_{now_time}.log')
+    logger = Logger(paths.experiment_dir, f'attack_{now_time}.log')
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_available
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
@@ -116,19 +91,19 @@ def main(tag):
     # prepare models
 
     latents_mapping, generator = get_stylegan2ada_generator(
-        stylegan2ada_path, stylegan2ada_ckpt_path, single_w=True
+        paths.stylegan2ada_path, paths.stylegan2ada_ckpt_path, single_w=True
     )
 
     target_resolution = 224
     eval_resolution = 224
 
-    target_model = auto_classifier_from_pretrained(target_model_ckpt_path)
+    target_model = auto_classifier_from_pretrained(paths.target_model_ckpt_path)
     eval_model = auto_classifier_from_pretrained(
-        eval_model_ckpt_path,
+        paths.eval_model_ckpt_path,
         register_last_feature_hook=True,
     )
-    embed_model = auto_classifier_from_pretrained(embed_model_ckpt_path)
-    pred_mapping = auto_adapter_from_pretrained(pred_mapping_ckpt_path)
+    embed_model = auto_classifier_from_pretrained(paths.c2f_embed_model_ckpt_path)
+    pred_mapping = auto_adapter_from_pretrained(paths.c2f_pred_mapping_ckpt_path)
 
     # print(torch.load(target_model_ckpt_path, map_location='cpu').keys())
 
@@ -162,7 +137,7 @@ def main(tag):
     # prepare eval dataset
 
     eval_dataset = FaceScrub224(
-        eval_dataset_path,
+        paths.eval_dataset_path,
         train=True,
         output_transform=Compose(
             [
@@ -212,7 +187,7 @@ def main(tag):
     )
 
     optimization_config = C2fGeneticOptimizationConfig(
-        experiment_dir=experiment_dir,
+        experiment_dir=paths.experiment_dir,
         device=device,
         batch_size=optimize_batch_size,
         final_num=10,
@@ -250,7 +225,7 @@ def main(tag):
         eval_dataset,
         device=device,
         description='evaluation',
-        save_individual_res_dir=experiment_dir,
+        save_individual_res_dir=paths.experiment_dir,
         transform=to_eval_transform,
     )
 
@@ -258,7 +233,7 @@ def main(tag):
         evaluation_batch_size,
         eval_dataset,
         device=device,
-        save_individual_prdc_dir=experiment_dir,
+        save_individual_prdc_dir=paths.experiment_dir,
         fid=True,
         prdc=True,
         transform=to_eval_transform,
@@ -268,7 +243,7 @@ def main(tag):
         evaluation_batch_size,
         eval_dataset,
         device=device,
-        save_individual_res_dir=experiment_dir,
+        save_individual_res_dir=paths.experiment_dir,
         transform=to_eval_transform,
     )
 
@@ -279,7 +254,7 @@ def main(tag):
         optimize_num=optimize_num,
         optimize_batch_size=optimize_num,
         optimize_fn=optimization_fn,
-        save_dir=experiment_dir,
+        save_dir=paths.experiment_dir,
         save_optimized_images=True,
         save_final_images=True,
         save_kwargs={'normalize': True},
@@ -299,12 +274,5 @@ def main(tag):
     logger.close()
 
 
-for tag in [
-    'no',
-    # 'vib0.01',
-    # 'bido0.01_0.1_pretrain',
-    # 'ls0.05',
-    # 'tl0.5',
-    # 'rolss0.0_2',
-]:
+for tag in ALL_TAGS:
     main(tag)

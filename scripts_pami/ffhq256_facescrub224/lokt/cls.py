@@ -3,6 +3,8 @@ import os
 import time
 
 sys.path.append('../../../src')
+sys.path.append('..')
+from attack_paths import get_attack_paths, ALL_TAGS
 
 import torch
 from torch import nn
@@ -30,27 +32,22 @@ from modelinversion.datasets import FaceScrub224, GeneratorDataset
 
 
 def main(tag, cuda, model_name):
+    paths = get_attack_paths('lokt', tag)
 
-    if tag == 'no':
-        tag = ''
-    # else:
-    tag = '_' + tag
+    if not os.environ.get('CUDA_VISIBLE_DEVICES'):
+        os.environ['CUDA_VISIBLE_DEVICES'] = paths.cuda_device
 
     num_classes = 530
-    # model_name = 'densenet121'
     save_name = f'facescrub224_{model_name}.pth'
-    train_dataset_path = (
-        f'./dataset/lokt_ffhq256_facescrub224_ir152{tag}_dataset/dataset.pt'
+    train_dataset_path = paths.lokt_train_dataset_path
+    test_dataset_path = paths.eval_dataset_path
+    experiment_dir = f'./classifier/lokt_ffhq256_facescrub224_ir152{{tag_str}}/{model_name}'.format(
+        tag_str='' if tag == 'no' else f'_{tag}'
     )
-    test_dataset_path = '/mnt/data/<usrname>/datasets/facescrub/'
-    experiment_dir = f'./classifier/lokt_ffhq256_facescrub224_ir152{tag}/{model_name}'
-    generator_ckpt_path = f'./gan/lokt_ffhq256_facescrub224_ir152{tag}_gan/G.pth'
-    # backbone_path = '/data/<usrname>/Model-Inversion-Attack-ToolBox/checkpoints_v2/classifier/backbones/Backbone_IR_152_Epoch_112_Batch_2547328_Time_2019-07-13-02-59_checkpoint.pth'
 
-    batch_size = 128
+    batch_size = paths.cls_train_batch_size  # halved from 128
     epoch_num = 10
 
-    device_ids_str = str(cuda)
     pin_memory = False
 
     # prepare logger
@@ -60,18 +57,13 @@ def main(tag, cuda, model_name):
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_str
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
 
     # prepare generator
     z_dim = 128
-    # generator = LoktGenerator64(num_classes, dim_z=z_dim)
-    # generator.load_state_dict(
-    #     torch.load(generator_ckpt_path, map_location='cpu')['state_dict']
-    # )
-    generator = auto_generator_from_pretrained(generator_ckpt_path)
+    generator = auto_generator_from_pretrained(paths.generator_ckpt_path)
     generator = generator.to(device)
     generator.eval()
 
@@ -82,11 +74,7 @@ def main(tag, cuda, model_name):
     )
     model = nn.DataParallel(model, device_ids=gpu_devices).to(device)
 
-    # optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999))
-    # lr_schedular = torch.optim.lr_scheduler.MultiStepLR(
-    #     optimizer, milestones=[75, 90], gamma=0.1
-    # )
     lr_schedular = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, T_max=epoch_num
     )
@@ -106,24 +94,6 @@ def main(tag, cuda, model_name):
             ]
         ),
     )
-    # train_dataset = CelebA(
-    #     train_dataset_path,
-    #     crop_center=False,
-    #     preprocess_resolution=64,
-    #     transform=Compose(
-    #         [
-    #             ToTensor(),
-    #             RandomApply(
-    #                 [
-    #                     RandomResizedCrop((64, 64), scale=(0.8, 1.0), ratio=(1.0, 1.0)),
-    #                     RandomApply([ColorJitter(brightness=0.2, contrast=0.2)]),
-    #                     RandomHorizontalFlip(),
-    #                     RandomRotation(5),
-    #                 ]
-    #             ),
-    #         ]
-    #     ),
-    # )
     test_dataset = FaceScrub224(
         test_dataset_path,
         train=False,
@@ -163,50 +133,7 @@ def main(tag, cuda, model_name):
     logger.close()
 
 
-# tags = [
-#     'no',
-#     'neck30tanh_focal8_lr1_5',
-#     'tl0.5',
-#     'bido0.01_0.1',
-#     'ls_-0.3',
-#     # -------
-#     'vib0.1',
-#     'rolss0.0_2',
-# ]
-
-
-# tag = tags[6]
-# cuda = 2
-
-# if os.fork() == 0:
-#     main(tag, cuda, 'densenet121')
-
-#     exit()
-
-# if os.fork() == 0:
-#     main(tag, cuda, 'densenet169')
-
-#     exit()
-
-# main(tag, cuda, 'densenet161')
-
-for tag in [
-    'no',
-    # 'vib0.01',
-    # 'bido0.01_0.1_pretrain',
-    # 'ls0.05',
-    # 'tl0.5',
-    # 'rolss0.0_2',
-]:
+for tag in ALL_TAGS:
     all_pids = []
     for model_name in ['densenet121', 'densenet169', 'densenet161']:
         main(tag, 3, model_name)
-    #     cuda = 2
-    #     if pid := os.fork() == 0:
-    #         main(tag, cuda, model_name)
-    #         exit()
-
-    #     all_pids.append(pid)
-
-    # for pid in all_pids:
-    #     os.waitpid(pid, 0)

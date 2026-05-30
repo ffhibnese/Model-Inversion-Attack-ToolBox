@@ -3,6 +3,8 @@ import os
 import time
 
 sys.path.append('../../../src')
+sys.path.append('..')
+from attack_paths import get_attack_paths, ALL_TAGS
 
 import kornia
 import torch
@@ -20,40 +22,31 @@ from modelinversion.utils import Logger
 from modelinversion.datasets import InfiniteSamplerWrapper, CelebA64
 
 
-# neck30tanh_focal8_lr0.0001_5
 def main(tag):
+    paths = get_attack_paths('ked', tag)
+
+    if not os.environ.get('CUDA_VISIBLE_DEVICES'):
+        os.environ['CUDA_VISIBLE_DEVICES'] = paths.cuda_device
 
     num_classes = 530
 
-    if tag == 'no':
-        tag = ''
-    else:
-        tag = '_' + tag
-    # tag = 'rolss0.0_2'
-    target_model_ckpt_path = f'/mnt/data/<usrname>/mywork/lora_defense/test_lora/ffhq256_facescrub224/result_classifier/train_facescrub224_resnet152{tag}/facescrub224_resnet152{tag}.pth'
-    dataset_path = '/mnt/data/<usrname>/datasets/ffhq256'
-    experiment_dir = f'./results_gan/kedmi_ffhq64_facescrub64_ir152{tag}_gan'
-
-    batch_size = 64
-    max_iters = 50000
-
-    device_ids_str = '7'
+    batch_size = paths.gan_batch_size  # halved from 64
+    max_iters = paths.gan_max_iters
 
     # prepare logger
 
     now_time = time.strftime(r'%Y%m%d_%H%M', time.localtime(time.time()))
-    logger = Logger(experiment_dir, f'train_gan_{now_time}.log')
+    logger = Logger(paths.gan_experiment_dir, f'train_gan_{now_time}.log')
 
     # prepare devices
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = device_ids_str
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
     gpu_devices = [i for i in range(torch.cuda.device_count())]
 
     # prepare target models
 
-    target_model = auto_classifier_from_pretrained(target_model_ckpt_path)
+    target_model = auto_classifier_from_pretrained(paths.target_model_ckpt_path)
     target_model = nn.DataParallel(target_model, device_ids=gpu_devices).to(device)
     target_model.eval()
     # print(target_model.training)
@@ -64,7 +57,7 @@ def main(tag):
     from torchvision.datasets import ImageFolder
 
     dataset = ImageFolder(
-        dataset_path,
+        paths.eval_dataset_path,
         transform=ToTensor(),
     )
     # dataset = CelebA64(dataset_path, ToTensor())
@@ -98,7 +91,7 @@ def main(tag):
     # prepare trainer
 
     config = KedmiGanTrainConfig(
-        experiment_dir=experiment_dir,
+        experiment_dir=paths.gan_experiment_dir,
         batch_size=batch_size,
         input_size=z_dim,
         generator=generator,
@@ -123,14 +116,7 @@ def main(tag):
 
 all_pids = []
 
-for tag in [
-    'no',
-    # 'vib0.01',
-    # 'bido0.01_0.1_pretrain',
-    # 'ls0.05',
-    # 'tl0.5',
-    # 'rolss0.0_2',
-]:
+for tag in ALL_TAGS:
     main(tag)
 #     if pid := os.fork():
 #         all_pids.append(pid)
