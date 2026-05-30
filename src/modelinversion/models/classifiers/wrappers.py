@@ -80,6 +80,21 @@ def _neck_builder(neck_dim, activation='tanh', use_batch_norm=True):
     return _builder
 
 
+# def _neck_builder(neck_dim, activation='tanh', use_batch_norm=True):
+
+#     activation_builder = _activation[activation]
+
+#     def _builder(input_dim, output_dim):
+#         return nn.Sequential(
+#             nn.BatchNorm1d(input_dim) if use_batch_norm else nn.Identity(),
+#             nn.Linear(input_dim, neck_dim),
+#             # activation_builder(),
+#             # nn.Linear(neck_dim, output_dim),
+#         )
+
+#     return _builder
+
+
 @register_model('neck')
 class NeckWrapper(BaseClassifierWrapper):
 
@@ -105,7 +120,7 @@ class NeckWrapper(BaseClassifierWrapper):
                 return output, {HOOK_NAME_FEATURE: input[0]}
 
             # print('hook register')
-            if feature_compressed:
+            if feature_compressed is True:
                 m[-1].register_forward_hook(hook_fn)
             else:
                 m.register_forward_hook(hook_fn)
@@ -1468,3 +1483,41 @@ class InterNeckWrapper(BaseClassifierWrapper):
     def _forward_impl(self, image: Tensor, *args, **kwargs):
         forward_res, addition_info = self.module(image, *args, **kwargs)
         return forward_res, addition_info
+
+
+@register_model('post_filter')
+class PostFilterWrapper(BaseClassifierWrapper):
+
+    @ModelMixin.register_to_config_init
+    def __init__(
+        self,
+        module: BaseImageClassifier,
+        register_last_feature_hook=False,
+        down_rank=32,
+    ) -> None:
+        super().__init__(
+            module,
+            # module.resolution,
+            # module.feature_dim,
+            # module.num_classes,
+            register_last_feature_hook,
+        )
+
+        self.down_rank = down_rank
+
+        self.down_layer = nn.Linear(module.num_classes, down_rank)
+        self.bn = nn.BatchNorm1d(down_rank)
+        self.up_layer = nn.Linear(down_rank, module.num_classes)
+
+    def _forward_impl(self, image: torch.Tensor, *args, **kwargs):
+
+        # self._inner_hook.clear_feature()
+        logits, hook_res = self.module(image, *args, **kwargs)
+
+        # # self._check_hook(HOOK_NAME_FEATURE)
+
+        down_feat = self.down_layer(logits)
+        bn_feat = self.bn(down_feat)
+        up_feat = self.up_layer(bn_feat)
+
+        return logits, {**hook_res, HOOK_NAME_FEATURE: bn_feat}

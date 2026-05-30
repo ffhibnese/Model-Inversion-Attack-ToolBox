@@ -34,6 +34,8 @@ class ModelMixin(Module, ConfigMixin):
     @classmethod
     def from_pretrained(cls, data_or_path, **config_kwargs):
 
+        strict = config_kwargs.pop('strict', True)
+
         if isinstance(data_or_path, str):
             data: dict = torch.load(data_or_path, map_location='cpu')
         else:
@@ -54,6 +56,6 @@ class ModelMixin(Module, ConfigMixin):
             state_dict = data['state_dict']
             if state_dict is not None:
                 # print(f'load state dict')
-                model.load_state_dict(state_dict)
+                model.load_state_dict(state_dict, strict=strict)
 
         return model

@@ -23,6 +23,7 @@ from .wrappers import (
     ConditionPurifierWrapper,
     MultiHeadWrapper,
     InterNeckWrapper,
+    PostFilterWrapper,
 )
 from .skipconnection import REMOVE_FUNCTIONS, SkipConnectionWrapper
 from .classifier64 import (
