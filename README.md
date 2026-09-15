@@ -13,6 +13,8 @@
 [Xuan Wang](https://faculty.hitsz.edu.cn/wangxuan),
 [Shu-Tao Xia](https://www.sigs.tsinghua.edu.cn/xst/main.htm)
 
+🎉🎉 Our survey paper about model inversion (Privacy Leakage on DNNs: A Survey of Model Inversion Attacks and Defenses) has been **accepted by the International Journal of Computer Vision (IJCV) 2026**!
+
 Welcome to **MIA**! This repository is a comprehensive open-source Python benchmark for model inversion attacks, which is well-organized and easy to get started. It includes uniform implementations of advanced and representative model inversion methods, formulating a unified and reliable framework for a convenient and fair comparison between different model inversion methods. Our repository is continuously updated in **https://github.com/ffhibnese/Model-Inversion-Attack-ToolBox**.
 
 
@@ -20,7 +22,6 @@ If you have any concerns about our toolbox, feel free to contact us at qiuyixian
 
 Also, you are always welcome to contribute and make this repository better! 
 
-🎉🎉 Our survey paper about model inversion (Privacy Leakage on DNNs: A Survey of Model Inversion Attacks and Defenses) has been **accepted by the International Journal of Computer Vision (IJCV) 2026**!
 
 ## :rocket: Introduction
 
